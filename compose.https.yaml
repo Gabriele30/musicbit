@@ -1,0 +1,23 @@
+services:
+  web:
+    ports: !reset []
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      MUSICBIT_DOMAIN: ${MUSICBIT_DOMAIN:?Set MUSICBIT_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+volumes:
+  caddy_data:
+  caddy_config:

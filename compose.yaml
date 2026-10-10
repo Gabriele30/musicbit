@@ -1,0 +1,37 @@
+name: musicbit
+services:
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: 3001
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+  web:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${WEB_PORT:-8080}:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1/nginx-health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
