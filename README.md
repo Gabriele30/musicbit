@@ -1,12 +1,83 @@
-# MusicBit · Milestone 1
+# MusicBit · Milestone 2
 
 PWA musicale personale self-hosted, mobile-first, con React, Vite e Fastify.
 Un solo `HTMLAudioElement` gestisce l’intera sessione passando tra Player, Coda
-e Diagnostica. Nessun login, database, YouTube, download musicale o HLS.
+e Diagnostica. Nessun login, database, YouTube o download musicale persistente.
+HLS è presente solo come laboratorio separato con toni originali.
 
-**Stato:** M1 implementata; background, blocco schermo e CarPlay **non verificati
+**Stato:** M1 preservata, M2 performance/diagnostica implementata; background,
+blocco schermo e CarPlay **non verificati
 su iPhone fisico**. Gli E2E WebKit emulati non dimostrano il comportamento iOS.
 Vedi [checklist](docs/ios-checklist.md) e [registro prove](docs/ios-test-report.md).
+
+M2 mantiene il percorso nativo `src/load/play`, aggiunge preparazione **esplicita**
+della traccia corrente, timeout/cancellazione e misure API, rete, buffer e lifecycle.
+Apri `/?screen=diagnostics` per la diagnostica mobile con controlli ed export JSON.
+Il comando **Prepara traccia** ricarica dall’inizio e può scaricare l’intero MP3:
+il browser decide quanto precaricare e può ignorare il suggerimento su iOS.
+
+La prima misura M1 ripetuta ha rilevato 7,60 s click→playing, di cui circa 7,27 s
+nella fase proxy del browser. Con traccia preparata, tre campioni desktop M2
+hanno dato **13,7–15,5 ms**, preceduti da **207,5–275,2 ms di preparazione**.
+Rete/cache di sistema non controllate: questi risultati **non validano la soglia
+0,5–1,5 s su iPhone**. Dati, fasi e limiti in [performance.md](docs/performance.md).
+
+## HTTPS per la prova iPhone
+
+È disponibile un server HTTPS locale con CA dedicata, senza Docker e senza
+modificare automaticamente la fiducia dei dispositivi:
+
+```sh
+pnpm build
+pnpm start
+# In un secondo terminale:
+pnpm test:https --share-ca
+```
+
+Lo script stampa gli URL LAN sulla porta **4443**. L’opzione `--share-ca` espone
+**solo il certificato pubblico** sulla 4444 per installarlo su iPhone. Installa
+e abilita la fiducia completa della CA sul telefono, quindi apri l’URL HTTPS
+senza avvisi TLS. Procedura esatta, firewall, rimozione CA e alternativa Tailscale
+in [ios-https.md](docs/ios-https.md). Il PC deve restare acceso; la raggiungibilità
+dal telefono va verificata sul telefono.
+
+Su questo PC è stato verificato `https://192.168.1.69:4443` da desktop con controllo
+CA/SAN e service worker. Tailscale è disponibile, ma Serve risulta disabilitato:
+l’abilitazione amministrativa è ancora da completare. Non è stato usato un iPhone.
+
+## Esperimenti e misurazioni M2
+
+Con `pnpm start` attivo, `pnpm benchmark` misura tre avvii reali Chromium e salva
+JSON in `docs/performance/manual.json`. Non usa una cache HTTP o il service worker.
+Per evitare di sovrascrivere un report, cambia `BENCHMARK_LABEL` (variabile di shell).
+
+```powershell
+$env:BENCHMARK_LABEL = 'mia-rete-prepared'
+$env:BENCHMARK_PREPARE = '1'
+pnpm benchmark
+Remove-Item Env:BENCHMARK_PREPARE
+```
+
+`BENCHMARK_RUNS` accetta 1–20. Su Debian usa
+`BENCHMARK_LABEL=mia-rete BENCHMARK_PREPARE=1 pnpm benchmark`.
+`pnpm smoke:https` verifica HTTPS con la CA locale; richiede `pnpm test:https`
+attivo. Per verificare l’IP LAN imposta `MUSICBIT_HTTPS_URL=https://<IP-LAN>:4443`.
+
+Il laboratorio continuo HLS richiede **FFmpeg e ffprobe nel PATH** (oppure
+`FFMPEG_PATH`/`FFPROBE_PATH` come variabili di shell):
+
+```sh
+pnpm experiment:hls
+# In un altro terminale, con HTTPS di test attivo:
+# https://<IP-LAN>:4443/__hls/
+```
+
+Genera AAC live da toni originali per massimo 5 minuti, su porta loopback 4180;
+Ctrl+C ferma server/encoder. Nessun MP3 remoto viene convertito. La pagina usa
+solo HLS nativo e segnala i browser che non lo dichiarano. `pnpm smoke:hls`
+esegue una prova server autonoma di circa 15 secondi: rolling playlist,
+continuità PTS e decodifica, senza provare l’audio su iPhone. Ferma prima un
+eventuale laboratorio sulla stessa porta. Analisi e limiti in [hls-feasibility.md](docs/hls-feasibility.md).
 
 ## Requisiti e avvio locale
 
@@ -142,8 +213,9 @@ Incluse icone PNG 192, 512, maskable 512 e Apple touch 180 px.
 
 ## Playback e diagnostica
 
-Il catalogo viene caricato all’avvio. `preload="none"` evita richieste audio prima
-del tocco; `preconnect` anticipa la connessione al dominio audio. `src`, `load()`
+Il catalogo viene caricato all’avvio. `preload="none"` è il comportamento predefinito;
+la preparazione esplicita abilita `auto` prima di Play. Il `preconnect` M1 resta
+un suggerimento di connessione, senza garanzie su proxy/rete/iOS. `src`, `load()`
 e `play()` vengono eseguiti nello stack sincrono del gesto, senza fetch/blob o
 Web Audio. Le promise rifiutate e i comandi rapidi superati vengono gestiti.
 
@@ -184,10 +256,14 @@ ritrasmissione. Disponibilità e latenza dipendono dalla sorgente.
 apps/web/src/player/engine.ts     audio persistente, stato, tempi e Media Session
 apps/web/src/components/         diagnostica, icone e stato PWA
 apps/web/src/App.tsx              Player, Coda e navigazione responsive
+apps/web/src/catalog.ts           richiesta catalogo, timeout e telemetria API
 apps/api/src/app.ts               factory Fastify testabile senza porte
 apps/api/src/providers/demo.ts    provider demo
 packages/shared/src/index.ts     tipi, validazione runtime e MusicProvider
 tests/e2e/                       PWA/audio browser con fixture deterministica
+scripts/benchmark.mjs            benchmark remoto con fasi HTTP e media
+scripts/https-test.mjs           HTTPS LAN con CA locale opzionale
+experiments/hls/                 laboratorio live con toni originali
 deploy/                         Nginx e Caddy
 docs/                           architettura, checklist e registro verifiche
 ```
@@ -203,9 +279,11 @@ prima delle app; dopo modifiche ai contratti riavvia `pnpm dev` o esegui
   di background o cambio traccia quando la pagina è sospesa.
 - CarPlay: nessuna app nativa, icona MusicBit o navigazione catalogo; si verifica
   l’eventuale integrazione “In riproduzione” offerta da iOS.
-- Nessun catalogo/audio offline, ripristino coda, proxy media, transcoding, HLS,
+- Nessun catalogo/audio offline, ripristino coda, proxy musica, transcoding o HLS nel player,
   gapless, repeat o TTFB cross-origin garantito.
-- Docker/HTTPS reale richiedono motore attivo, server e dominio validi.
-- YouTube.js resta una valutazione futura per metadati/ricerca, senza integrazione M1.
+- Docker/deploy pubblico richiedono motore attivo, server e dominio validi.
+- La CA locale richiede fiducia e raggiungibilità verificate sul telefono;
+  Tailscale Serve non ancora abilitato. HLS ha solo evidenze server/PTS.
+- YouTube.js resta una valutazione futura per metadati/ricerca, senza integrazione M2.
 - Branch locale dedicato; nessun contatto GitHub, push o PR. La sincronizzazione
   tramite GitHub Desktop è lasciata all’utente come richiesto.

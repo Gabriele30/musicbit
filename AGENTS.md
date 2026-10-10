@@ -9,10 +9,14 @@
 - Feature-detect Media Session and catch unsupported individual action handlers.
 - Use only explicitly authorized audio; preserve title, artist, source, permission
   and attribution. No unauthorized YouTube streaming or downloading.
-- Do not cache audio or proxy media in M1. Offline support covers only the app shell.
+- Do not cache/proxy remote music. Offline support covers only the app shell.
+  M2 preparation is opt-in, through the same native audio element; disclose data use.
+  Keep HLS experiments isolated in experiments/hls, using original authorized tones.
 - Timing labels must state their actual meaning; `loadstart` is an event proxy for
   the request, `loadeddata` means first decoded data, not network first byte.
 - Never claim iOS locked-screen, background track changes or CarPlay passed without
   recorded device evidence in `docs/ios-test-report.md`.
-- No login, database, recommendations, HLS or YouTube integration in M1.
+- No login, database, recommendations, YouTube integration or HLS in the main player.
+- Record before/after measurements and their limitations in docs/performance.md.
+  Browser playing is not proof of audible physical output. Never hide preload cost.
 - Do not contact GitHub, push or create a PR unless the user changes that instruction.

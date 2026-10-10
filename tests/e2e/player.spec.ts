@@ -11,6 +11,106 @@ async function fixture(page: Page) {
   ).toBeVisible();
 }
 
+test('explicit preparation keeps one audio element, does not autoplay and exports mobile diagnostics', async ({
+  page,
+}, info) => {
+  await fixture(page);
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.instance = 'prepared';
+  });
+  await page
+    .getByRole('button', { name: 'Prepara traccia', exact: true })
+    .click();
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.readyState),
+    )
+    .toBeGreaterThanOrEqual(3);
+  expect(
+    await page
+      .locator('audio')
+      .evaluate((audio: HTMLAudioElement) => audio.paused),
+  ).toBe(true);
+  const loads = await page
+    .locator('audio')
+    .evaluate((audio: HTMLAudioElement) => audio.currentSrc);
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: /^In riproduzione$/ }),
+  ).toBeVisible();
+  await page
+    .getByRole('navigation', { name: 'Navigazione mobile' })
+    .getByRole('button', { name: 'Diagnostica' })
+    .click();
+  await page.getByRole('button', { name: 'Suono udito' }).click();
+  const downloadEvent = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Esporta JSON' }).click();
+  const download = await downloadEvent;
+  const stream = await download.createReadStream();
+  const chunks = [];
+  for await (const chunk of stream!) chunks.push(chunk);
+  const data = JSON.parse(Buffer.concat(chunks).toString());
+  expect(data.state.attempts.at(-1).kind).toBe('prepared');
+  expect(data.state.attempts.at(-1).audibleAt).toBeGreaterThanOrEqual(
+    data.state.attempts.at(-1).playingAt,
+  );
+  expect(data.state.catalog.readyAt).toBeGreaterThanOrEqual(
+    data.state.catalog.headersAt,
+  );
+  expect(data.state.buffer.readyState).toBeGreaterThanOrEqual(2);
+  expect(data.state.buffer.ahead).toBeGreaterThanOrEqual(0);
+  // Native WebKit can play without exposing buffered TimeRanges on Windows.
+  expect(Array.isArray(data.state.buffer.ranges)).toBe(true);
+  expect(
+    await page
+      .locator('audio')
+      .evaluate((audio: HTMLAudioElement) => audio.currentSrc),
+  ).toBe(loads);
+  await expect(page.locator('audio')).toHaveCount(1);
+  await expect(page.locator('audio')).toHaveAttribute(
+    'data-instance',
+    'prepared',
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `artifacts/${info.project.name}-diagnostics-m2.png`,
+    fullPage: true,
+  });
+});
+
+test('diagnostics deep link can play and rapid track changes preserve the latest command', async ({
+  page,
+}) => {
+  await page.goto('/?screen=diagnostics');
+  const controls = page.locator('.diagnostic-controls');
+  await expect(
+    controls.getByRole('button', { name: 'Play', exact: true }),
+  ).toBeEnabled();
+  await controls.getByRole('button', { name: 'Play', exact: true }).click();
+  await page.getByRole('button', { name: 'Successiva', exact: true }).click();
+  await page.getByRole('button', { name: 'Successiva', exact: true }).click();
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+    )
+    .toBeGreaterThan(0);
+  expect(
+    await page
+      .locator('audio')
+      .evaluate((audio: HTMLAudioElement) => audio.currentSrc),
+  ).toContain('soundhelix-3.wav');
+  await expect(page.getByRole('button', { name: 'Suono udito' })).toBeEnabled();
+  await expect(page.locator('audio')).toHaveCount(1);
+});
+
 test('native audio survives screens and supports controls, seeking and queue changes', async ({
   page,
 }, info) => {

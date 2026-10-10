@@ -1200,3 +1200,19 @@ summary {
     scroll-behavior: auto !important;
   }
 }
+/* Diagnostics remain usable with one hand and narrow iPhone viewports. */
+.diagnostic-controls,
+.preparation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  margin-block: 1rem;
+}
+.preparation-controls p {
+  flex-basis: 100%;
+  font-size: 0.78rem;
+}
+.capabilities dd {
+  overflow-wrap: anywhere;
+}

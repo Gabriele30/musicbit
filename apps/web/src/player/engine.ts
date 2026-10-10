@@ -13,13 +13,39 @@ export interface PlaybackAttempt {
   trackId: string;
   title: string;
   trigger: Trigger;
-  kind: 'load' | 'resume';
+  kind: 'load' | 'resume' | 'prepared';
   clickAt: number;
   requestIssuedAt?: number;
   loadstartAt?: number;
   firstDataAt?: number;
   playingAt?: number;
+  audibleAt?: number;
+  cancelledAt?: number;
+  waitingMs?: number;
+  waitingAt?: number;
   error?: string;
+}
+export interface CatalogTiming {
+  startedAt: number;
+  headersAt?: number;
+  bodyAt?: number;
+  readyAt?: number;
+  serverTiming?: string;
+  error?: string;
+}
+export interface Preparation {
+  trackId: string;
+  startedAt: number;
+  firstDataAt?: number;
+  readyAt?: number;
+  finishedAt?: number;
+  outcome: 'loading' | 'ready' | 'cancelled' | 'timeout' | 'error' | 'used';
+}
+export interface BufferSnapshot {
+  readyState: number;
+  networkState: number;
+  ranges: [number, number][];
+  ahead: number;
 }
 export interface PlayerState {
   queue: Track[];
@@ -29,7 +55,28 @@ export interface PlayerState {
   duration: number;
   error: string | null;
   attempts: PlaybackAttempt[];
-  events: { event: string; at: number; visibility: string }[];
+  events: {
+    event: string;
+    at: number;
+    visibility: string;
+    position: number;
+    trackId?: string;
+    readyState: number;
+    networkState: number;
+    persisted?: boolean;
+  }[];
+  catalog?: CatalogTiming;
+  preparation?: Preparation;
+  buffer: BufferSnapshot;
+  lastProgressAt?: number;
+  networkTimings: {
+    url: string;
+    start: number;
+    end: number;
+    responseStart?: number;
+    connectMs?: number;
+    requestToHeadersMs?: number;
+  }[];
   mediaSession: boolean;
   mediaActions: string[];
 }
@@ -54,6 +101,8 @@ export class PlayerEngine {
     events: [],
     mediaSession: false,
     mediaActions: [],
+    buffer: { readyState: 0, networkState: 0, ranges: [], ahead: 0 },
+    networkTimings: [],
   };
   private listeners = new Set<() => void>();
   private audioListeners = new Map<string, EventListener>();
@@ -62,15 +111,19 @@ export class PlayerEngine {
   private activeAttempt: number | undefined;
   private source: string | undefined;
   private session: MediaSession | undefined;
+  private deadline: ReturnType<typeof setTimeout> | undefined;
+  private observer: PerformanceObserver | undefined;
 
   constructor(
     readonly audio: HTMLAudioElement,
     private now = () => performance.now(),
+    private timeoutMs = 15000,
   ) {
     audio.preload = 'none';
     audio.setAttribute('playsinline', '');
     const on = (event: string, fn: () => void) => {
       const listener = () => {
+        this.syncBuffer();
         this.log(event);
         fn();
       };
@@ -78,12 +131,38 @@ export class PlayerEngine {
       audio.addEventListener(event, listener);
     };
     on('loadstart', () => this.mark('loadstartAt'));
-    on('loadeddata', () => this.mark('firstDataAt'));
+    on('loadeddata', () => {
+      this.mark('firstDataAt');
+      if (this.state.preparation?.outcome === 'loading')
+        this.patch({
+          preparation: { ...this.state.preparation, firstDataAt: this.now() },
+        });
+    });
+    on('canplay', () => {
+      if (this.state.preparation?.outcome === 'loading') {
+        this.clearDeadline();
+        this.patch({
+          preparation: {
+            ...this.state.preparation,
+            readyAt: this.now(),
+            outcome: 'ready',
+          },
+        });
+      }
+    });
+    on('progress', () => this.patch({ lastProgressAt: this.now() }));
+    on('suspend', () => {});
+    on('emptied', () => {});
+    on('abort', () => {});
+    on('seeking', () => {});
+    on('seeked', () => {});
     on('loadedmetadata', () => this.syncPosition());
     on('durationchange', () => this.syncPosition());
     on('timeupdate', () => this.syncPosition());
     on('playing', () => {
       if (audio.paused) return;
+      this.clearDeadline();
+      this.endWaiting();
       this.mark('playingAt');
       this.patch({ status: 'playing', error: null });
       this.setPlaybackState('playing');
@@ -99,7 +178,15 @@ export class PlayerEngine {
       this.setPlaybackState('paused');
     });
     on('waiting', () => {
-      if (!audio.paused) this.patch({ status: 'loading' });
+      if (!audio.paused) {
+        this.patch({ status: 'loading' });
+        this.updateAttempt((item) =>
+          item.waitingAt === undefined
+            ? { ...item, waitingAt: this.now() }
+            : item,
+        );
+        this.armDeadline();
+      }
     });
     on('stalled', () => {
       /* May recover automatically; do not replace the source. */
@@ -119,6 +206,46 @@ export class PlayerEngine {
       }
     });
     document.addEventListener('visibilitychange', this.visibilityChanged);
+    for (const event of ['pagehide', 'pageshow', 'online', 'offline'])
+      window.addEventListener(event, this.lifecycleChanged);
+    for (const event of ['freeze', 'resume'])
+      document.addEventListener(event, this.lifecycleChanged);
+    if (typeof PerformanceObserver !== 'undefined') {
+      try {
+        this.observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries() as PerformanceResourceTiming[]) {
+            if (
+              !this.state.queue.some(
+                (track) =>
+                  new URL(track.audioUrl, location.href).href === entry.name,
+              )
+            )
+              continue;
+            const exposed = entry.responseStart > 0;
+            this.patch({
+              networkTimings: [
+                ...this.state.networkTimings,
+                {
+                  url: entry.name,
+                  start: entry.startTime,
+                  end: entry.responseEnd,
+                  responseStart: exposed ? entry.responseStart : undefined,
+                  connectMs: exposed
+                    ? entry.connectEnd - entry.connectStart
+                    : undefined,
+                  requestToHeadersMs: exposed
+                    ? entry.responseStart - entry.requestStart
+                    : undefined,
+                },
+              ].slice(-20),
+            });
+          }
+        });
+        this.observer.observe({ type: 'resource', buffered: true });
+      } catch {
+        /* Timing is optional, and cross-origin details may be hidden. */
+      }
+    }
     this.setupMediaSession();
   }
 
@@ -133,18 +260,172 @@ export class PlayerEngine {
     this.state = { ...this.state, ...patch };
     this.listeners.forEach((listener) => listener());
   }
-  private log(event: string) {
+  private log(event: string, persisted?: boolean) {
     // timeupdate can be frequent. Keep diagnostics useful and bounded.
     if (event === 'timeupdate') return;
     this.patch({
       events: [
         ...this.state.events,
-        { event, at: this.now(), visibility: document.visibilityState },
+        {
+          event,
+          at: this.now(),
+          visibility: document.visibilityState,
+          position: this.audio.currentTime || 0,
+          trackId: this.state.queue[this.state.index]?.id,
+          readyState: this.audio.readyState ?? 0,
+          networkState: this.audio.networkState ?? 0,
+          persisted,
+        },
       ].slice(-100),
     });
   }
   private visibilityChanged = () =>
     this.log(`visibility:${document.visibilityState}`);
+  private lifecycleChanged = (event: Event) =>
+    this.log(
+      event.type,
+      'persisted' in event ? Boolean(event.persisted) : undefined,
+    );
+  private updateAttempt(update: (attempt: PlaybackAttempt) => PlaybackAttempt) {
+    this.patch({
+      attempts: this.state.attempts.map((item) =>
+        item.id === this.activeAttempt ? update(item) : item,
+      ),
+    });
+  }
+  private syncBuffer() {
+    const ranges: [number, number][] = [];
+    for (let i = 0; i < (this.audio.buffered?.length ?? 0); i++)
+      ranges.push([this.audio.buffered.start(i), this.audio.buffered.end(i)]);
+    const position = this.audio.currentTime || 0;
+    const range = ranges.find(
+      ([start, end]) => start <= position && end >= position,
+    );
+    this.patch({
+      buffer: {
+        readyState: this.audio.readyState ?? 0,
+        networkState: this.audio.networkState ?? 0,
+        ranges,
+        ahead: range ? range[1] - position : 0,
+      },
+    });
+  }
+  private clearDeadline() {
+    clearTimeout(this.deadline);
+    this.deadline = undefined;
+  }
+  private armDeadline() {
+    if (this.deadline !== undefined) return;
+    const token = this.command;
+    const position = this.audio.currentTime;
+    this.deadline = setTimeout(() => {
+      this.deadline = undefined;
+      if (token !== this.command) return;
+      // A suspended page can receive timers before delayed media events on resume.
+      // Never stop progressing native audio merely because JS did not see playing.
+      if (
+        !this.audio.paused &&
+        this.audio.readyState >= 3 &&
+        this.audio.currentTime > position
+      ) {
+        this.syncPosition();
+        this.endWaiting();
+        this.patch({ status: 'playing' });
+        this.setPlaybackState('playing');
+        this.log('deadline:native-progress');
+        return;
+      }
+      if (document.visibilityState === 'hidden') {
+        this.log('deadline:deferred-hidden');
+        this.armDeadline();
+        return;
+      }
+      if (this.state.preparation?.outcome === 'loading')
+        this.cancelPreparation('timeout');
+      else
+        this.fail(
+          'Timeout audio: nessun avvio o recupero del buffering entro 15 secondi. Tocca Riprova.',
+        );
+    }, this.timeoutMs);
+  }
+  private endWaiting() {
+    const at = this.now();
+    this.updateAttempt((item) =>
+      item.waitingAt === undefined
+        ? item
+        : {
+            ...item,
+            waitingMs: (item.waitingMs ?? 0) + at - item.waitingAt,
+            waitingAt: undefined,
+          },
+    );
+  }
+  recordCatalog(catalog: CatalogTiming) {
+    if (catalog.startedAt >= (this.state.catalog?.startedAt ?? 0))
+      this.patch({ catalog });
+  }
+  /** A human observation including reaction time; playing alone cannot prove audible output. */
+  markAudible() {
+    if (this.state.status !== 'playing') return;
+    this.updateAttempt((item) =>
+      item.audibleAt === undefined ? { ...item, audibleAt: this.now() } : item,
+    );
+    this.log('manual:audible');
+  }
+  prepare() {
+    const track = this.state.queue[this.state.index];
+    if (
+      !track ||
+      !this.audio.paused ||
+      this.state.status === 'loading' ||
+      this.state.status === 'playing'
+    )
+      return;
+    this.clearDeadline();
+    ++this.command;
+    this.activeAttempt = undefined;
+    this.source = track.audioUrl;
+    this.patch({
+      error: null,
+      status: 'idle',
+      position: 0,
+      duration: 0,
+      preparation: {
+        trackId: track.id,
+        startedAt: this.now(),
+        outcome: 'loading',
+      },
+    });
+    // Opt-in: auto is only a browser hint and can download the entire file.
+    this.audio.preload = 'auto';
+    this.audio.src = track.audioUrl;
+    this.audio.load();
+    this.armDeadline();
+    this.log('prepare');
+  }
+  cancelPreparation(outcome: 'cancelled' | 'timeout' = 'cancelled') {
+    if (!['loading', 'ready'].includes(this.state.preparation?.outcome ?? ''))
+      return;
+    this.clearDeadline();
+    ++this.command;
+    this.releaseSource();
+    this.patch({
+      preparation: {
+        ...this.state.preparation!,
+        outcome,
+        finishedAt: this.now(),
+      },
+    });
+    this.log(`prepare:${outcome}`);
+  }
+  private releaseSource() {
+    this.audio.pause();
+    this.source = undefined;
+    this.audio.preload = 'none';
+    this.audio.removeAttribute('src');
+    this.audio.load();
+    this.syncBuffer();
+  }
   private mark(field: 'loadstartAt' | 'firstDataAt' | 'playingAt') {
     const at = this.now();
     this.patch({
@@ -185,7 +466,20 @@ export class PlayerEngine {
     const clickAt = this.now();
     const track = this.state.queue[index];
     if (!track) return;
+    this.clearDeadline();
+    if (this.state.status === 'loading') {
+      this.endWaiting();
+      this.updateAttempt((item) =>
+        item.playingAt === undefined
+          ? { ...item, cancelledAt: this.now() }
+          : item,
+      );
+    }
     const token = ++this.command;
+    const prepared =
+      index === this.state.index &&
+      this.source === track.audioUrl &&
+      ['loading', 'ready'].includes(this.state.preparation?.outcome ?? '');
     const load =
       this.source !== track.audioUrl ||
       index !== this.state.index ||
@@ -195,10 +489,22 @@ export class PlayerEngine {
       trackId: track.id,
       title: track.title,
       trigger,
-      kind: load ? 'load' : 'resume',
+      kind: load ? 'load' : prepared ? 'prepared' : 'resume',
       clickAt,
     };
     this.activeAttempt = attempt.id;
+    if (
+      this.state.preparation &&
+      ['loading', 'ready'].includes(this.state.preparation.outcome)
+    )
+      this.patch({
+        preparation: {
+          ...this.state.preparation,
+          outcome: prepared ? 'used' : 'cancelled',
+          finishedAt: clickAt,
+        },
+      });
+    this.log(`select:${trigger}:${track.id}`);
     this.patch({
       index,
       status: 'loading',
@@ -208,6 +514,7 @@ export class PlayerEngine {
       attempts: [...this.state.attempts, attempt].slice(-20),
     });
     this.updateMetadata();
+    this.audio.preload = 'none';
     if (load) {
       this.source = track.audioUrl;
       const requestIssuedAt = this.now();
@@ -237,11 +544,19 @@ export class PlayerEngine {
     } catch {
       this.fail('Impossibile avviare l’audio. Tocca Riprova.');
     }
+    if (this.state.status === 'loading') this.armDeadline();
   }
   play(trigger: Trigger = 'tap') {
     this.select(this.state.index, trigger);
   }
   pause() {
+    this.clearDeadline();
+    this.endWaiting();
+    this.updateAttempt((item) =>
+      item.playingAt === undefined
+        ? { ...item, cancelledAt: this.now() }
+        : item,
+    );
     ++this.command;
     this.audio.pause();
     this.patch({ status: 'paused' });
@@ -264,8 +579,18 @@ export class PlayerEngine {
     this.syncPosition();
   }
   private fail(message: string) {
+    this.clearDeadline();
+    this.endWaiting();
     ++this.command;
-    this.audio.pause();
+    this.releaseSource();
+    if (this.state.preparation?.outcome === 'loading')
+      this.patch({
+        preparation: {
+          ...this.state.preparation,
+          outcome: 'error',
+          finishedAt: this.now(),
+        },
+      });
     this.patch({
       status: 'error',
       error: message,
@@ -383,12 +708,21 @@ export class PlayerEngine {
   }
   /** For tests / explicit application teardown only, never on navigation. */
   destroy() {
+    this.clearDeadline();
+    this.observer?.disconnect();
     ++this.command;
     this.audio.pause();
     this.audioListeners.forEach((listener, event) =>
       this.audio.removeEventListener(event, listener),
     );
+    this.audio.removeAttribute('src');
+    this.audio.preload = 'none';
+    this.audio.load();
     document.removeEventListener('visibilitychange', this.visibilityChanged);
+    for (const event of ['pagehide', 'pageshow', 'online', 'offline'])
+      window.removeEventListener(event, this.lifecycleChanged);
+    for (const event of ['freeze', 'resume'])
+      document.removeEventListener(event, this.lifecycleChanged);
     for (const action of this.state.mediaActions) {
       try {
         this.session?.setActionHandler(action as MediaSessionAction, null);

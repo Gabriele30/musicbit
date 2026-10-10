@@ -56,7 +56,11 @@ export default defineConfig(({ mode }) => {
         workbox: {
           // App shell only. No runtime media/API cache or Range request interception.
           globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'],
-          navigateFallbackDenylist: [/^\/api(?:\/|$)/, /^\/health(?:\/|$)/],
+          navigateFallbackDenylist: [
+            /^\/api(?:\/|$)/,
+            /^\/health(?:\/|$)/,
+            /^\/__hls(?:\/|$)/,
+          ],
           cleanupOutdatedCaches: true,
           clientsClaim: true,
         },
@@ -64,7 +68,12 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     server: { port: devPort, strictPort: true, proxy },
-    preview: { port: 4173, strictPort: true, proxy },
+    preview: {
+      port: 4173,
+      strictPort: true,
+      proxy,
+      allowedHosts: env.WEB_ALLOWED_HOST ? [env.WEB_ALLOWED_HOST] : undefined,
+    },
     build: { target: 'safari16.4' },
   };
 });

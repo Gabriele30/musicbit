@@ -9,14 +9,31 @@ CarPlay ad auto ferma oppure con un passeggero che gestisca i controlli.
 - [ ] Annotare data, commit, iPhone, versione iOS, modalità Safari/Home, rete,
       risparmio energetico, accessori e modello/software dell’unità CarPlay.
 - [ ] HTTPS senza avvisi TLS, health/catalogo disponibili, icona Home e safe area corrette.
+- [ ] Seguire [ios-https.md](ios-https.md); annotare CA locale/Tailscale/dominio,
+      origine e percorso esatto. Aprire `/?screen=diagnostics` per i controlli.
 - [ ] Ripetere ogni scenario in Safari e nella PWA installata.
 - [ ] Primo tocco udibile; raccogliere cinque avvii a freddo, mediana e massimo.
       Definire la soglia di avvio rapido per questa rete, senza presumere un risultato.
+- [ ] Separare cinque avvii **senza preparazione**, cinque con **Prepara traccia**
+      fino a dati pronti e cinque riprese. Definire “freddo”: nuova scheda/sessione,
+      buffer, cache HTTP e stato rete. Non chiamare “freddo” solo un nuovo tap.
+- [ ] Annotare API, preparazione, click→playing, waiting, readyState/networkState,
+      intervalli esposti ed errori. Segnare TTFB “non disponibile” se TAO lo nasconde.
+- [ ] In foreground, premere “Suono udito” appena percepito; annotare latenza di
+      reazione e acquisire anche prova esterna del click/primo suono quando possibile.
+      In background/CarPlay usare osservatore/registrazione esterna e orari, non
+      sbloccare per premere il pulsante durante la prova.
+- [ ] Target per la rete annotata: 0,5–1,5 s al suono con sorgente preparata.
+      Registrare anche tutti i tentativi falliti e il costo prima del click.
+- [ ] Verificare se preload è rispettato da Safari e Home. Provare Annulla prima
+      e dopo canplay: nessun autoplay, riprova valida. Considerare il traffico MP3.
 - [ ] Pausa/riprendi, seek avanti/indietro e precedente prima/dopo 3 secondi.
 - [ ] Successivo e tocchi rapidi senza doppio audio o errori tardivi.
 - [ ] Aggiungere duplicati, spostare/rimuovere upcoming e attendere ended.
 - [ ] Player → Coda → Diagnostica senza interruzione audio.
 - [ ] Disconnettere rete durante caricamento/ascolto: buffer, errore e Riprova.
+- [ ] Foreground: sorgente/API che non risponde, rispettivi timeout ~15/~10 s;
+      next/pausa durante l’attesa non devono applicare errori di comandi superati.
 
 ## Schermo bloccato e background
 
@@ -32,6 +49,9 @@ CarPlay ad auto ferma oppure con un passeggero che gestisca i controlli.
 - [ ] Ultima traccia termina senza loop o richieste impreviste.
 - [ ] Esportare JSON dopo sblocco e allegare video/osservazione con orari. Eventi
       JS assenti durante sospensione non provano audio continuo o interrotto.
+- [ ] Cercare visibility/pagehide/pageshow/freeze/resume, posizione e traccia
+      attorno al passaggio. Verificare che il ritorno non interrompa audio già
+      avanzato a causa di un timer JS tardivo; nessuna deadline real-time garantita.
 
 ## CarPlay: funzioni eventualmente offerte da iOS
 
@@ -53,3 +73,14 @@ CarPlay ad auto ferma oppure con un passeggero che gestisca i controlli.
       senza promettere audio scaricato; online + Riprova catalogo recupera.
 - [ ] Deploy nuova build durante playback: nessun reload forzato, aggiornamento
       alla successiva chiusura/riapertura di tutti i client.
+
+## Laboratorio HLS separato
+
+- [ ] Avviare `pnpm experiment:hls` e aprire `https://<IP-LAN>:4443/__hls/`.
+      Portare HLS_DURATION a 600 nella shell per una prova ≥5 minuti; default 300 s.
+- [ ] Annotare supporto HLS nativo e tempo iniziale; osservare almeno tre cambi
+      tono senza nuovo src, in Safari e Home, poi con schermo bloccato.
+- [ ] Esportare JSON HLS separato e confrontare MP3 preparato sulla stessa rete.
+      I toni non provano transizioni arbitrarie tra file musicali o Media Session HLS.
+- [ ] Annotare interruzioni, segmenti scaduti, comportamento live alla ripresa,
+      CarPlay, consumi e CPU server. Non migrare il player sulla sola prova PTS.

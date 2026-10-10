@@ -1,0 +1,10 @@
+{
+  "testedAt": "2026-10-10T15:53:10.690Z",
+  "firstAt": "2026-10-10T15:52:58.288Z",
+  "firstPlaylist": "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:2\n#EXT-X-MEDIA-SEQUENCE:0\n#EXTINF:2.005333,\n#EXT-X-PROGRAM-DATE-TIME:2026-10-10T17:52:56.645+0200\nsegment-000000.ts\n",
+  "rollingPlaylist": "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:2\n#EXT-X-MEDIA-SEQUENCE:1\n#EXTINF:2.005333,\n#EXT-X-PROGRAM-DATE-TIME:2026-10-10T17:52:58.650+0200\nsegment-000001.ts\n#EXTINF:2.005333,\n#EXT-X-PROGRAM-DATE-TIME:2026-10-10T17:53:00.655+0200\nsegment-000002.ts\n#EXTINF:1.984000,\n#EXT-X-PROGRAM-DATE-TIME:2026-10-10T17:53:02.661+0200\nsegment-000003.ts\n#EXTINF:2.005333,\n#EXT-X-PROGRAM-DATE-TIME:2026-10-10T17:53:04.645+0200\nsegment-000004.ts\n#EXTINF:2.005333,\n#EXT-X-PROGRAM-DATE-TIME:2026-10-10T17:53:06.650+0200\nsegment-000005.ts\n#EXTINF:2.005333,\n#EXT-X-PROGRAM-DATE-TIME:2026-10-10T17:53:08.655+0200\nsegment-000006.ts\n",
+  "packetsChecked": 188,
+  "maximumGapSeconds": 0.0000010000000012951038,
+  "decoder": "FFmpeg decoded adjacent live segments; AAC 48 kHz stereo",
+  "limitation": "Server/PTS proof using original tones only. Native Safari playback, locked-screen continuity, CarPlay, CPU under deployment load and arbitrary music transitions untested."
+}

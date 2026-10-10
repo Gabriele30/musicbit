@@ -1,9 +1,11 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { isTracksResponse, type Track } from '@musicbit/shared';
+import { type Track } from '@musicbit/shared';
+import { loadCatalog } from './catalog';
 import { PlayerEngine } from './player/engine';
 import { Icon, type IconName } from './components/Icon';
 import { Diagnostics } from './components/Diagnostics';
 import { PwaNotice } from './components/PwaNotice';
+import { PreparationControls } from './components/PreparationControls';
 
 type Screen = 'player' | 'queue' | 'diagnostics';
 const screens: { id: Screen; label: string; icon: IconName }[] = [
@@ -18,7 +20,11 @@ export const formatTime = (seconds: number) =>
 
 export function App({ player }: { player: PlayerEngine }) {
   const state = useSyncExternalStore(player.subscribe, player.getSnapshot);
-  const [screen, setScreen] = useState<Screen>('player');
+  const [screen, setScreen] = useState<Screen>(() =>
+    new URLSearchParams(location.search).get('screen') === 'diagnostics'
+      ? 'diagnostics'
+      : 'player',
+  );
   const [tracks, setTracks] = useState<Track[]>([]);
   const [catalogStatus, setCatalogStatus] = useState<
     'loading' | 'ready' | 'error'
@@ -31,14 +37,9 @@ export function App({ player }: { player: PlayerEngine }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/tracks', { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error('Catalogo non disponibile');
-        return response.json() as Promise<unknown>;
-      })
+    loadCatalog(controller.signal, (timing) => player.recordCatalog(timing))
       .then((data) => {
-        if (!isTracksResponse(data) || data.tracks.length === 0)
-          throw new Error('Catalogo non valido');
+        if (controller.signal.aborted) return;
         setTracks(data.tracks);
         player.setCatalog(data.tracks);
         setCatalogStatus('ready');
@@ -143,7 +144,7 @@ export function App({ player }: { player: PlayerEngine }) {
                     : 'Osserva cosa succede tra il tocco e la musica.'}
               </p>
             </div>
-            <span className="version-tag">M1</span>
+            <span className="version-tag">M2</span>
           </div>
           {!online && (
             <p className="banner" role="status">
@@ -277,6 +278,7 @@ export function App({ player }: { player: PlayerEngine }) {
                             ? 'Audio non disponibile'
                             : 'Pronto quando vuoi'}
                 </p>
+                <PreparationControls player={player} state={state} />
               </section>
               <div className="library-column">
                 <section className="library" aria-labelledby="library-title">

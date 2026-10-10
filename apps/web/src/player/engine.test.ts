@@ -17,6 +17,9 @@ const tracks: Track[] = [1, 2, 3].map((id) => ({
 class FakeAudio extends EventTarget {
   src = '';
   preload = '';
+  readyState = 0;
+  networkState = 0;
+  buffered = { length: 0, start: () => 0, end: () => 0 };
   currentTime = 0;
   duration = 120;
   paused = true;
@@ -24,6 +27,9 @@ class FakeAudio extends EventTarget {
   playbackRate = 1;
   error: { code: number } | null = null;
   setAttribute = vi.fn();
+  removeAttribute = vi.fn(() => {
+    this.src = '';
+  });
   load = vi.fn();
   play = vi.fn(() => {
     this.paused = false;
@@ -60,9 +66,116 @@ afterEach(() => {
   engines.splice(0).forEach((player) => player.destroy());
   if (descriptor) Object.defineProperty(navigator, 'mediaSession', descriptor);
   else Reflect.deleteProperty(navigator, 'mediaSession');
+  vi.useRealTimers();
 });
 
 describe('persistent player', () => {
+  it('prepares without autoplay and consumes the same source without loading again', () => {
+    const { audio, player, tick } = setup();
+    player.prepare();
+    expect(audio.preload).toBe('auto');
+    expect(audio.play).not.toHaveBeenCalled();
+    tick(200);
+    audio.emit('loadeddata');
+    audio.readyState = 3;
+    audio.emit('canplay');
+    player.play();
+    expect(audio.load).toHaveBeenCalledOnce();
+    expect(audio.play).toHaveBeenCalledOnce();
+    expect(player.getSnapshot().attempts.at(-1)?.kind).toBe('prepared');
+    expect(player.getSnapshot().preparation).toMatchObject({
+      outcome: 'used',
+      readyAt: 300,
+    });
+  });
+  it('cancels preparation, aborts native loading and does not reuse cancelled data', () => {
+    const { audio, player } = setup();
+    player.prepare();
+    player.cancelPreparation();
+    expect(audio.removeAttribute).toHaveBeenCalledWith('src');
+    expect(player.getSnapshot().preparation?.outcome).toBe('cancelled');
+    player.play();
+    expect(player.getSnapshot().attempts.at(-1)?.kind).toBe('load');
+    expect(audio.src).toBe(tracks[0]!.audioUrl);
+  });
+  it('times out preparation and a stalled start, and clears obsolete deadlines on next', () => {
+    vi.useFakeTimers();
+    const { audio, player } = setup();
+    player.prepare();
+    vi.advanceTimersByTime(15000);
+    expect(player.getSnapshot().preparation?.outcome).toBe('timeout');
+    player.play();
+    vi.advanceTimersByTime(14000);
+    player.next();
+    vi.advanceTimersByTime(1000);
+    expect(player.getSnapshot().error).toBeNull();
+    vi.advanceTimersByTime(14000);
+    expect(player.getSnapshot().error).toContain('Timeout');
+    expect(audio.src).toBe('');
+    player.play();
+    audio.emit('playing');
+    vi.advanceTimersByTime(20000);
+    expect(player.getSnapshot().status).toBe('playing');
+  });
+  it('records buffering ranges, waiting recovery and manual audible observation separately', () => {
+    const { audio, player, tick } = setup();
+    player.play();
+    audio.buffered = { length: 1, start: () => 0, end: () => 8 };
+    audio.readyState = 2;
+    audio.currentTime = 2;
+    audio.emit('waiting');
+    tick(250);
+    audio.emit('playing');
+    tick(300);
+    player.markAudible();
+    expect(player.getSnapshot().buffer.ahead).toBe(6);
+    expect(player.getSnapshot().attempts.at(-1)).toMatchObject({
+      waitingMs: 250,
+      playingAt: 350,
+      audibleAt: 650,
+    });
+  });
+  it('does not stop native audio progressing while JavaScript media events were delayed', () => {
+    vi.useFakeTimers();
+    const { audio, player } = setup();
+    player.play();
+    audio.currentTime = 10;
+    audio.readyState = 4;
+    vi.advanceTimersByTime(15000);
+    expect(player.getSnapshot().error).toBeNull();
+    expect(player.getSnapshot().status).toBe('playing');
+    expect(player.getSnapshot().attempts.at(-1)?.playingAt).toBeUndefined();
+    expect(player.getSnapshot().events.at(-1)?.event).toBe(
+      'deadline:native-progress',
+    );
+  });
+  it('defers a hidden-page deadline and enforces it again when visible', () => {
+    vi.useFakeTimers();
+    const { player } = setup();
+    const visibility = vi
+      .spyOn(document, 'visibilityState', 'get')
+      .mockReturnValue('hidden');
+    player.play();
+    vi.advanceTimersByTime(15000);
+    expect(player.getSnapshot().error).toBeNull();
+    expect(player.getSnapshot().events.at(-1)?.event).toBe(
+      'deadline:deferred-hidden',
+    );
+    visibility.mockReturnValue('visible');
+    vi.advanceTimersByTime(15000);
+    expect(player.getSnapshot().error).toContain('Timeout');
+    visibility.mockRestore();
+  });
+  it('records lifecycle context without claiming background playback', () => {
+    const { player, audio } = setup();
+    audio.currentTime = 7;
+    window.dispatchEvent(new Event('pagehide'));
+    expect(player.getSnapshot().events.at(-1)).toMatchObject({
+      event: 'pagehide',
+      position: 7,
+      trackId: 'track-1',
+    });
+  });
   it('restarts a distinct queue entry even when it repeats the same source', () => {
     const { audio, player } = setup();
     player.enqueue(tracks[0]!);
@@ -171,7 +284,9 @@ describe('persistent player', () => {
     player.play();
     audio.emit('playing');
     expect(player.getSnapshot().error).toBeNull();
-    expect(audio.load).toHaveBeenCalledTimes(2);
+    expect(audio.src).toBe(tracks[0]!.audioUrl);
+    // load(), then cancellation via removeAttribute/load(), then retry load().
+    expect(audio.load).toHaveBeenCalledTimes(3);
   });
   it('ignores a rejected play promise superseded by a rapid next or pause', async () => {
     const { audio, player } = setup();

@@ -1,4 +1,42 @@
-# Verifiche locali M1
+# Verifiche locali M2 e storico M1
+
+## M2 — 10 ottobre 2026
+
+Branch locale `codex/m2-performance-ios`, partenza da M1 `b8bd2a3` senza modifiche
+preesistenti. Nessun contatto GitHub, push o PR. Node 24.14.0, pnpm 11.25.0,
+Windows/PowerShell.
+
+- `pnpm install --frozen-lockfile`: lockfile valido; aggiunta solo node-forge
+  1.4.0 come devDependency per CA di test, non nelle app runtime.
+- `pnpm check`: lint senza warning, typecheck, **45/45 Vitest**, build production.
+- `pnpm test:e2e`: **12/12** Chromium/WebKit mobile emulati. Preservati gli otto
+  M1; aggiunti preparazione senza autoplay/riuso audio/export, deep link diagnostica
+  e cambio rapido fino all’ultima traccia. Fixture native locali, nessun server remoto.
+- `pnpm smoke --audio`: API/app shell/manifest/SW/grafiche, tre MP3 con Range 206.
+- `pnpm smoke:browser`: tutti e tre gli MP3 reali playing e posizione crescente,
+  durate 372,7 / 426,0 / 344,1 s, nessun errore. Volume zero, speaker non verificati.
+- Benchmark prima/dopo e controllo proxy: [performance.md](performance.md), JSON
+  versionabili in `docs/performance/`. Tempi al playing, non al suono fisico.
+- `pnpm smoke:https`, con MUSICBIT_HTTPS_URL all’IP LAN 192.168.1.69:4443:
+  CA/SAN/TLS, health, tracks, manifest, SW e schermata mobile; contesto sicuro e
+  client controllato da SW. Pin SPKI del solo certificato nel processo Chromium,
+  nessuna installazione di fiducia di sistema. [Evidenza](performance/https-smoke.json).
+- `pnpm smoke:hls`: playlist live rolling sequence 0→1 con sei segmenti,
+  decodifica di due segmenti e 188 pacchetti AAC, continuità PTS entro ~1 μs.
+  [Evidenza](performance/hls-smoke.json). Non è una prova nativa iOS.
+
+Screenshot e JSON delle tre tracce in `artifacts/`, report in `playwright-report/`.
+Certificati/chiavi privati e media sintetici del laboratorio sono esclusi da Git.
+I report diagnostici possono contenere UA, URL, orari e contesto del dispositivo:
+rivederli prima di condividerli.
+
+Limiti: nessuna prova fisica iPhone, lock screen, background o CarPlay; fiducia
+CA/firewall/accesso dal telefono da verificare. Tailscale Serve disabilitato nella
+tailnet (nessuna configurazione esistente modificata). Docker/runtime Debian e
+CI remota non rieseguiti in M2. HLS principale, anticipazione della successiva,
+metadati/comandi HLS e prestazioni/consumi server restano da validare.
+
+## Storico M1
 
 Ambiente: Windows/PowerShell, Node 24.14.0, pnpm 11.25.0.
 Branch `codex/m1-foundation`, nessun contatto GitHub, push o PR.

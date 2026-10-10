@@ -1,0 +1,31 @@
+{
+  "testedDate": "2026-10-10",
+  "source": "Summary of the initial M2 unprepared benchmark terminal output, before the final phase-alignment refinement. Not a new simulated run.",
+  "samples": [
+    {
+      "run": 1,
+      "clickToPlayingMs": 7653.7,
+      "apiTotalMs": 7.6,
+      "clickToLoadstartMs": 12.1,
+      "proxyMs": 7243.091,
+      "requestToHeadersMs": 93.388
+    },
+    {
+      "run": 2,
+      "clickToPlayingMs": 216.6,
+      "apiTotalMs": 2.6,
+      "clickToLoadstartMs": 14.2,
+      "proxyMs": 0.776,
+      "requestToHeadersMs": 74.838
+    },
+    {
+      "run": 3,
+      "clickToPlayingMs": 200,
+      "apiTotalMs": 2.6,
+      "clickToLoadstartMs": 14.8,
+      "proxyMs": 0.684,
+      "requestToHeadersMs": 82.433
+    }
+  ],
+  "limitation": "Desktop Chromium, volume zero, fresh browser contexts and disabled HTTP cache; OS proxy/DNS/TLS caches uncontrolled. Cold describes the observed proxy delay, not a fully cold device. No physical audio/iOS validation."
+}

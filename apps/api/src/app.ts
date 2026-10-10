@@ -18,7 +18,13 @@ export function buildApp(
   }));
   app.get<{ Reply: TracksResponse }>('/api/tracks', async (_request, reply) => {
     reply.header('Cache-Control', 'no-store');
-    return { tracks: await provider.listTracks(), provider: provider.id };
+    const start = performance.now();
+    const tracks = await provider.listTracks();
+    reply.header(
+      'Server-Timing',
+      `catalog;dur=${(performance.now() - start).toFixed(2)}`,
+    );
+    return { tracks, provider: provider.id };
   });
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);

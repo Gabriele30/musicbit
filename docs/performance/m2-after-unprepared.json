@@ -1,0 +1,236 @@
+{
+  "testedAt": "2026-10-10T15:41:45.924Z",
+  "label": "m2-after-unprepared",
+  "base": "http://127.0.0.1:4173",
+  "prepared": false,
+  "direct": false,
+  "browser": "156.0.8078.4",
+  "methodology": "Fresh Chromium context each run; HTTP cache disabled, SW blocked, no throttling; OS DNS/TLS caches and remote load uncontrolled. UI/preparation times use performance.now; preparationHarnessMs includes automation overhead. CDP firstByte is first dataReceived event; alignment via CDP wallTime/performance.timeOrigin is approximate. Request-to-headers includes RTT, not pure server compute. Volume zero; no physical sound or iPhone proof.",
+  "samples": [
+    {
+      "run": 1,
+      "timeOrigin": 1791646904459.4,
+      "clickAt": 197.30000000074506,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 210.30000000074506
+        },
+        {
+          "event": "loadstart",
+          "at": 210.80000000074506
+        },
+        {
+          "event": "loadeddata",
+          "at": 528.4000000003725
+        },
+        {
+          "event": "canplay",
+          "at": 528.7000000001863
+        },
+        {
+          "event": "playing",
+          "at": 528.9000000003725
+        }
+      ],
+      "clickToPlayingMs": 331.59999999962747,
+      "api": {
+        "totalMs": 7.3999999994412065,
+        "headersMs": 7.099999999627471,
+        "bodyMs": 0.2999999998137355
+      },
+      "audio": {
+        "readyState": 4
+      },
+      "network": [
+        {
+          "start": 4274.4982,
+          "wallTimeMs": 1791646904669.6948,
+          "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 4274.498446,
+            "proxyStart": 0.096,
+            "proxyEnd": 2.502,
+            "dnsStart": 2.579,
+            "dnsEnd": 52.471,
+            "connectStart": 52.551,
+            "connectEnd": 136.006,
+            "sslStart": 92.535,
+            "sslEnd": 135.991,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 138.002,
+            "sendEnd": 138.893,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 214.112,
+            "receiveHeadersEnd": 214.568
+          },
+          "cache": false,
+          "firstByteMs": 220.20900000006804,
+          "startPageAt": 210.294921875,
+          "firstChunkPageAt": 430.50392187506804
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": 12.994921874254942,
+        "requestToHeadersMs": 75.219,
+        "firstChunkToDecodedApproxMs": 97.89607812530448
+      }
+    },
+    {
+      "run": 2,
+      "timeOrigin": 1791646905051.9,
+      "clickAt": 169.5,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 185.29999999981374
+        },
+        {
+          "event": "loadstart",
+          "at": 185.70000000018626
+        },
+        {
+          "event": "loadeddata",
+          "at": 403.90000000037253
+        },
+        {
+          "event": "canplay",
+          "at": 404.29999999981374
+        },
+        {
+          "event": "playing",
+          "at": 404.40000000037253
+        }
+      ],
+      "clickToPlayingMs": 234.90000000037253,
+      "api": {
+        "totalMs": 2.7000000001862645,
+        "headersMs": 2.2999999998137355,
+        "bodyMs": 0.40000000037252903
+      },
+      "audio": {
+        "readyState": 4
+      },
+      "network": [
+        {
+          "start": 4275.065627,
+          "wallTimeMs": 1791646905237.103,
+          "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 4275.065823,
+            "proxyStart": 0.064,
+            "proxyEnd": 0.891,
+            "dnsStart": 0.923,
+            "dnsEnd": 1.313,
+            "connectStart": 1.349,
+            "connectEnd": 82.402,
+            "sslStart": 40.443,
+            "sslEnd": 82.396,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 82.485,
+            "sendEnd": 82.546,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 157.872,
+            "receiveHeadersEnd": 157.949
+          },
+          "cache": false,
+          "firstByteMs": 164.1939999999522,
+          "startPageAt": 185.203125,
+          "firstChunkPageAt": 349.3971249999522
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": 15.703125,
+        "requestToHeadersMs": 75.32600000000001,
+        "firstChunkToDecodedApproxMs": 54.50287500042032
+      }
+    },
+    {
+      "run": 3,
+      "timeOrigin": 1791646905516.9,
+      "clickAt": 154.8999999994412,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 169.29999999981374
+        },
+        {
+          "event": "loadstart",
+          "at": 169.69999999925494
+        },
+        {
+          "event": "loadeddata",
+          "at": 388.69999999925494
+        },
+        {
+          "event": "canplay",
+          "at": 389.09999999962747
+        },
+        {
+          "event": "playing",
+          "at": 389.19999999925494
+        }
+      ],
+      "clickToPlayingMs": 234.29999999981374,
+      "api": {
+        "totalMs": 2.7000000001862645,
+        "headersMs": 2.400000000372529,
+        "bodyMs": 0.2999999998137355
+      },
+      "audio": {
+        "readyState": 4
+      },
+      "network": [
+        {
+          "start": 4275.51454,
+          "wallTimeMs": 1791646905686.018,
+          "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 4275.514748,
+            "proxyStart": 0.084,
+            "proxyEnd": 0.822,
+            "dnsStart": 0.853,
+            "dnsEnd": 1.294,
+            "connectStart": 1.34,
+            "connectEnd": 87.607,
+            "sslStart": 43.522,
+            "sslEnd": 87.602,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 87.695,
+            "sendEnd": 87.745,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 170.211,
+            "receiveHeadersEnd": 170.305
+          },
+          "cache": false,
+          "firstByteMs": 173.0230000002848,
+          "startPageAt": 169.1181640625,
+          "firstChunkPageAt": 342.1411640627848
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": 14.218164063058794,
+        "requestToHeadersMs": 82.46600000000001,
+        "firstChunkToDecodedApproxMs": 46.55883593647013
+      }
+    }
+  ]
+}

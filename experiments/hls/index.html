@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="it">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MusicBit · laboratorio HLS</title>
+  <style>
+    body {
+      color: #e6efe9;
+      background: #101312;
+      font: 16px system-ui;
+      max-width: 48rem;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    button,
+    audio {
+      margin: 1rem 0;
+      max-width: 100%;
+    }
+    button {
+      padding: 1rem;
+      background: #b7f5a1;
+      border: 0;
+      border-radius: 1rem;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #202824;
+      padding: 1rem;
+    }
+  </style>
+  <h1>Laboratorio HLS continuo</h1>
+  <p>
+    Prova isolata: tre toni originali di 10 secondi, ripetuti. Volume iniziale
+    15%. Non cambia il player MusicBit. Nessuna musica esterna, nessun risultato
+    iOS dichiarato.
+  </p>
+  <p>
+    Una sorgente, un encoder AAC, playlist live a finestra mobile. Il cambio
+    tono avviene sul server senza assegnare un nuovo src. Il live può partire in
+    un punto qualsiasi.
+  </p>
+  <audio controls playsinline preload="none"></audio>
+  <p id="support"></p>
+  <button id="start">Avvia HLS nativo</button>
+  <button id="export">Esporta eventi</button>
+  <pre id="log">In attesa…</pre>
+  <script type="module">
+    const audio = document.querySelector('audio');
+    const log = document.querySelector('#log');
+    const events = [];
+    audio.volume = 0.15;
+    const support = audio.canPlayType('application/vnd.apple.mpegurl');
+    document.querySelector('#support').textContent = support
+      ? 'HLS nativo dichiarato dal browser: da provare sul dispositivo.'
+      : 'HLS nativo non dichiarato. Questa prova non carica hls.js.';
+    document.querySelector('#start').disabled = !support;
+    function record(event) {
+      events.push({
+        event,
+        at: performance.now(),
+        position: audio.currentTime,
+        readyState: audio.readyState,
+        networkState: audio.networkState,
+        visibility: document.visibilityState,
+        error: audio.error?.message,
+      });
+      if (events.length > 200) events.shift();
+      log.textContent = JSON.stringify(events.slice(-12), null, 2);
+    }
+    for (const event of [
+      'loadstart',
+      'loadeddata',
+      'canplay',
+      'playing',
+      'waiting',
+      'stalled',
+      'ended',
+      'error',
+      'pause',
+    ])
+      audio.addEventListener(event, () => record(event));
+    for (const event of ['visibilitychange', 'freeze', 'resume'])
+      document.addEventListener(event, () => record(event));
+    for (const event of ['pagehide', 'pageshow'])
+      window.addEventListener(event, () => record(event));
+    document.querySelector('#start').onclick = () => {
+      record('tap');
+      if (!audio.getAttribute('src')) {
+        audio.src = 'stream.m3u8';
+        audio.load();
+      }
+      audio.play().catch((error) => record(`play:${error.name}`));
+    };
+    document.querySelector('#export').onclick = async () => {
+      const status = await fetch('status')
+        .then((r) => r.json())
+        .catch(() => null);
+      const blob = new Blob(
+        [
+          JSON.stringify(
+            {
+              exportedAt: new Date().toISOString(),
+              userAgent: navigator.userAgent,
+              secureContext: isSecureContext,
+              events,
+              status,
+            },
+            null,
+            2,
+          ),
+        ],
+        { type: 'application/json' },
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'musicbit-hls.json';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+  </script>
+</html>

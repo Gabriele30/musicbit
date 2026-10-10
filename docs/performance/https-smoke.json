@@ -1,0 +1,39 @@
+{
+  "testedAt": "2026-10-10T15:54:28.283Z",
+  "base": "https://192.168.1.69:4443",
+  "results": [
+    {
+      "path": "/health",
+      "status": 200,
+      "authorized": true,
+      "protocol": "TLSv1.3"
+    },
+    {
+      "path": "/api/tracks",
+      "status": 200,
+      "authorized": true,
+      "protocol": "TLSv1.3"
+    },
+    {
+      "path": "/manifest.webmanifest",
+      "status": 200,
+      "authorized": true,
+      "protocol": "TLSv1.3"
+    },
+    {
+      "path": "/sw.js",
+      "status": 200,
+      "authorized": true,
+      "protocol": "TLSv1.3"
+    },
+    {
+      "path": "/?screen=diagnostics",
+      "status": 200,
+      "authorized": true,
+      "protocol": "TLSv1.3"
+    }
+  ],
+  "secureContext": true,
+  "serviceWorkerControlled": true,
+  "limitation": "Desktop only, explicit CA for Node TLS checks; browser trusts only the test certificate SPKI in this test process. iPhone trust, firewall reachability from phone, PWA install and CarPlay untested."
+}

@@ -34,6 +34,7 @@ describe('Fastify API', () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.headers['server-timing']).toMatch(/^catalog;dur=\d+\.\d+$/);
     const data: unknown = response.json();
     expect(isTracksResponse(data)).toBe(true);
     if (!isTracksResponse(data)) throw new Error('Invalid response');

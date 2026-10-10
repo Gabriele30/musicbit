@@ -21,7 +21,12 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "assets": "node scripts/generate-assets.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "smoke:browser": "node scripts/real-audio-smoke.mjs"
+    "smoke:browser": "node scripts/real-audio-smoke.mjs",
+    "benchmark": "node scripts/benchmark.mjs",
+    "test:https": "node scripts/https-test.mjs",
+    "experiment:hls": "node experiments/hls/server.mjs",
+    "smoke:hls": "node scripts/hls-smoke.mjs",
+    "smoke:https": "node scripts/https-smoke.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -34,6 +39,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^17.13.0",
     "jsdom": "^30.1.2",
+    "node-forge": "1.4.0",
     "pngjs": "^7.0.0",
     "prettier": "3.6.2",
     "typescript": "~5.9.3",
