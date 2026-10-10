@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 
 export type IconName =
+  | 'search'
   | 'music'
   | 'play'
   | 'pause'
@@ -15,6 +16,7 @@ export type IconName =
   | 'up'
   | 'down';
 const paths: Record<IconName, string> = {
+  search: 'M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
   music:
     'M9 18V5l12-2v13 M9 5l12-2 M9 18a3 3 0 1 1-3-3c1.66 0 3 1.34 3 3 M21 16a3 3 0 1 1-3-3c1.66 0 3 1.34 3 3',
   play: 'M8 4l13 8-13 8Z',

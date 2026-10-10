@@ -1,14 +1,47 @@
-# MusicBit · Milestone 2
+# MusicBit · Milestone 3
 
 PWA musicale personale self-hosted, mobile-first, con React, Vite e Fastify.
-Un solo `HTMLAudioElement` gestisce l’intera sessione passando tra Player, Coda
-e Diagnostica. Nessun login, database, YouTube o download musicale persistente.
+Un solo `HTMLAudioElement` gestisce l’intera sessione passando tra Player, Cerca,
+Coda e Diagnostica. Catalogo YouTube Music con `youtubei.js` **solo metadati**:
+ricerca brani/artisti/album, copertine e dettagli; nessuna estrazione audio,
+download o proxy YouTube. Nessun login, database o raccomandazione.
 HLS è presente solo come laboratorio separato con toni originali.
 
-**Stato:** M1 preservata, M2 performance/diagnostica implementata; background,
-blocco schermo e CarPlay **non verificati
-su iPhone fisico**. Gli E2E WebKit emulati non dimostrano il comportamento iOS.
+**Stato:** M1/M2 preservate, M3 implementata. L’utente ha confermato sul proprio
+iPhone foreground, schermo bloccato, cambio automatico e PWA installata in M2.
+CarPlay e regressione fisica M3 restano da verificare. Gli E2E WebKit emulati
+non dimostrano il comportamento iOS; dettagli del dispositivo e misure al suono
+non sono stati forniti.
 Vedi [checklist](docs/ios-checklist.md) e [registro prove](docs/ios-test-report.md).
+
+## Cerca: catalogo M3
+
+Apri **Cerca** oppure `/?screen=search`, scrivi almeno due caratteri e scegli
+Brani, Artisti o Album. Debounce 350 ms; tocca un risultato per i dettagli e,
+negli album, l’elenco dei brani. Tutti sono marcati **solo catalogo**, senza Play
+o aggiunta alla coda. Il collegamento esterno apre YouTube Music. Le tre demo
+autorizzate continuano a suonare mentre navighi; il motore audio M2 è invariato.
+
+La libreria usa un’API privata non ufficiale: disponibilità e risultati possono
+cambiare. Configurazione `.env` e Compose: `YOUTUBE_CATALOG_ENABLED=false` disabilita
+il provider; `CATALOG_TTL_MS=300000` e `CATALOG_TIMEOUT_MS=10000` regolano cache e
+deadline. Nessuna chiamata YouTube viene fatta all’avvio o aprendo il solo Player.
+La cache è in memoria, limitata a 200 chiavi, con deduplicazione e cancellazione;
+non è una libreria musicale offline. Le miniature vengono caricate direttamente
+dal browser senza referrer. Consulta [API e architettura](docs/catalog.md) e
+[limiti e conformità](docs/catalog-compliance.md).
+
+```sh
+# Dopo pnpm build; contatta il servizio reale, escluso dalla CI
+pnpm benchmark:catalog
+# Con pnpm start attivo, prova UI + provider reali + continuità audio demo:
+pnpm smoke:catalog
+```
+
+Benchmark locale del 10 ottobre: p50 HTTP senza cache **444–512 ms**, con cache
+**1–2 ms**, cinque campioni per tipo. Definizione di freddo, p95 e dati grezzi in
+[catalog-performance.md](docs/catalog-performance.md). Non include debounce,
+rete dell’iPhone, miniature o tempo al suono.
 
 M2 mantiene il percorso nativo `src/load/play`, aggiunge preparazione **esplicita**
 della traccia corrente, timeout/cancellazione e misure API, rete, buffer e lifecycle.
@@ -42,8 +75,11 @@ in [ios-https.md](docs/ios-https.md). Il PC deve restare acceso; la raggiungibil
 dal telefono va verificata sul telefono.
 
 Su questo PC è stato verificato `https://192.168.1.69:4443` da desktop con controllo
-CA/SAN e service worker. Tailscale è disponibile, ma Serve risulta disabilitato:
-l’abilitazione amministrativa è ancora da completare. Non è stato usato un iPhone.
+CA/SAN e service worker. L’utente ha poi confermato i test iPhone M2 elencati sopra.
+Tailscale è disponibile, ma Serve risulta disabilitato: l’abilitazione
+amministrativa è ancora da completare. Dopo una nuova build chiudi e riapri tutti
+i client PWA/Safari per ricevere l’aggiornamento, senza interrompere l’audio durante
+un ascolto. Verifica il badge **M3**, poi apri Cerca.
 
 ## Esperimenti e misurazioni M2
 
@@ -255,28 +291,34 @@ ritrasmissione. Disponibilità e latenza dipendono dalla sorgente.
 ```text
 apps/web/src/player/engine.ts     audio persistente, stato, tempi e Media Session
 apps/web/src/components/         diagnostica, icone e stato PWA
-apps/web/src/App.tsx              Player, Coda e navigazione responsive
-apps/web/src/catalog.ts           richiesta catalogo, timeout e telemetria API
+apps/web/src/components/Search.tsx ricerca e dettagli catalogo
+apps/web/src/search-api.ts        client catalogo, timeout e validazione
+apps/web/src/App.tsx              Player, Cerca, Coda e navigazione responsive
+apps/web/src/catalog.ts           libreria demo, timeout e telemetria API
 apps/api/src/app.ts               factory Fastify testabile senza porte
 apps/api/src/providers/demo.ts    provider demo
+apps/api/src/providers/youtube.ts provider metadati YouTube isolato
+apps/api/src/catalog/             API, cache TTL e single-flight
 packages/shared/src/index.ts     tipi, validazione runtime e MusicProvider
 tests/e2e/                       PWA/audio browser con fixture deterministica
 scripts/benchmark.mjs            benchmark remoto con fasi HTTP e media
+scripts/catalog-benchmark.mjs    benchmark live catalogo, p50/p95
 scripts/https-test.mjs           HTTPS LAN con CA locale opzionale
 experiments/hls/                 laboratorio live con toni originali
 deploy/                         Nginx e Caddy
 docs/                           architettura, checklist e registro verifiche
 ```
 
-Un nuovo provider implementa `MusicProvider` e viene passato a `buildApp` senza
-cambiare il player; vedi [architettura](docs/architecture.md). Shared è compilato
+Un nuovo provider implementa `MusicProvider`, con capacità opzionale `catalog`;
+`CatalogProvider` viene iniettato nel servizio metadati e `Track` resta il solo
+contratto del player. Vedi [architettura](docs/architecture.md). Shared è compilato
 prima delle app; dopo modifiche ai contratti riavvia `pnpm dev` o esegui
 `pnpm --filter @musicbit/shared build`.
 
 ## Limiti e lavori aperti
 
-- Prove iPhone fisico e CarPlay obbligatorie e ancora da eseguire: nessuna garanzia
-  di background o cambio traccia quando la pagina è sospesa.
+- Regressione M3 su iPhone e CarPlay da eseguire. Le conferme iPhone M2 dell’utente
+  non costituiscono misure di latenza né validazione di altre versioni/reti/dispositivi.
 - CarPlay: nessuna app nativa, icona MusicBit o navigazione catalogo; si verifica
   l’eventuale integrazione “In riproduzione” offerta da iOS.
 - Nessun catalogo/audio offline, ripristino coda, proxy musica, transcoding o HLS nel player,
@@ -284,6 +326,8 @@ prima delle app; dopo modifiche ai contratti riavvia `pnpm dev` o esegui
 - Docker/deploy pubblico richiedono motore attivo, server e dominio validi.
 - La CA locale richiede fiducia e raggiungibilità verificate sul telefono;
   Tailscale Serve non ancora abilitato. HLS ha solo evidenze server/PTS.
-- YouTube.js resta una valutazione futura per metadati/ricerca, senza integrazione M2.
+- Catalogo YouTube sperimentale: prima pagina, massimo 25 risultati per richiesta,
+  fino a 100 brani per dettaglio album, senza ricerca paginata o audio YouTube.
+  Nessun aggiramento di blocchi/login; termini del servizio da valutare prima del deploy.
 - Branch locale dedicato; nessun contatto GitHub, push o PR. La sincronizzazione
   tramite GitHub Desktop è lasciata all’utente come richiesto.

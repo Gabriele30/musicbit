@@ -1,4 +1,48 @@
-# Verifiche locali M2 e storico M1
+# Verifiche locali M3 e storico M1/M2
+
+## M3 — 10 ottobre 2026
+
+Branch locale `codex/m3-music-catalog`, da M2, working tree inizialmente pulito.
+Node 24.14.0, pnpm 11.25.0, Windows/PowerShell. Nessun contatto GitHub, push o PR.
+Dipendenza runtime aggiunta: `youtubei.js@18.1.0`, lockfile aggiornato.
+
+- `pnpm install --frozen-lockfile`: installazione e lockfile validi.
+
+- `pnpm check`: ESLint senza warning, typecheck strict, **83/83 Vitest**, build
+  shared/API/web production, manifest e SW generati. Engine M2 invariato.
+- `pnpm test:e2e`: **20/20** Chromium/WebKit mobile emulati: preservati i dodici
+  M2, aggiunti debounce, navigazione e dettagli brani/artisti/album, tracklist,
+  errori/vuoti/riprova, risposta superata e audio nativo demo persistente durante
+  la ricerca. Mock deterministici del catalogo, senza servizio YouTube nella CI.
+- Test backend aggiunti: normalizzazione, guardia degli endpoint metadati,
+  cache TTL/LRU/dedup, abort subscriber indipendenti, timeout, overload, validazione
+  HTTP, errori sicuri e redazione dei log. Disconnessione HTTP verificata anche
+  con socket locale reale; mock provider deterministici.
+- Test frontend aggiunti: contratti runtime, metadati separati dall’audio,
+  dettagli incoerenti rifiutati, timeout, cancellazione e corpo JSON tardivo.
+- Servizio reale: ricerche e dettagli dei tre tipi riusciti; benchmark esplicito
+  **15 cold + 15 warm**, più tre dettagli, senza errori, con p50/p95 e report
+  [catalog-m3.json](performance/catalog-m3.json). Vedi [metodo e limiti](catalog-performance.md).
+- `pnpm smoke --audio`: health, demo, manifest, SW, grafiche e tre MP3 Range 206.
+- `pnpm smoke:catalog` sulla LAN HTTPS: CA/SAN, M3, ricerca/dettagli reali,
+  un solo audio SoundHelix in avanzamento, nessun Play YouTube, layout mobile;
+  [report desktop](performance/catalog-live-smoke.json). Nessuna prova hardware.
+- `pnpm format:check`, `git diff --check`: stile e whitespace verificati.
+- Entrambe le configurazioni `docker compose config --quiet`: valide, incluse
+  variabili del catalogo e override HTTPS con dominio/email di esempio. Nessuna
+  esecuzione container o validazione runtime Nginx dichiarata.
+
+I primi E2E catalogo WebKit fallivano perché il service worker intercettava
+richieste prima dei mock Playwright. La suite catalogo ora disabilita SW soltanto
+nei suoi test; la suite player conserva il vero test production di PWA/offline.
+Non è stata modificata la strategia cache del SW dell’applicazione.
+
+Screenshot catalogo in `artifacts/*-catalog-m3.png`; report E2E in
+`playwright-report/`. I risultati fisici M2 sono riferiti dall’utente e riportati
+nel [registro](ios-test-report.md). Nessuna nuova prova fisica M3 né CarPlay.
+Runtime Docker/HTTPS pubblico/CI remota non verificati in questa milestone.
+Limitazioni funzionali e conformità in [catalog.md](catalog.md) e
+[catalog-compliance.md](catalog-compliance.md).
 
 ## M2 — 10 ottobre 2026
 

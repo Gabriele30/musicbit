@@ -11,11 +11,12 @@
   },
   "dependencies": {
     "@musicbit/shared": "workspace:*",
-    "fastify": "^5.12.5"
+    "fastify": "^5.12.5",
+    "youtubei.js": "18.1.0"
   },
   "devDependencies": {
+    "@types/node": "^24.19.2",
     "tsx": "^4.21.0",
-    "typescript": "~5.9.3",
-    "@types/node": "^24.19.2"
+    "typescript": "~5.9.3"
   }
 }

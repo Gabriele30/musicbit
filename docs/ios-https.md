@@ -2,7 +2,8 @@
 
 Il server locale M2 è già stato provato dal PC all’IP LAN 192.168.1.69 sulla porta
 4443: CA/SAN, API, manifest, SW e schermata mobile. **Raggiungibilità e fiducia
-sull’iPhone non verificate.** Nessuna CA è stata installata automaticamente.
+sull’iPhone non verificate dall’agente.** L’utente ha successivamente confermato
+PWA e playback M2; regressione M3 da verificare. Nessuna CA è stata installata automaticamente.
 
 ## HTTPS LAN con CA locale
 
@@ -83,6 +84,7 @@ Ripetere ogni prova anche nella scheda Safari: sono sessioni diverse.
 
 Aprire `/?screen=diagnostics` per misurare con controlli a portata di mano.
 Esportare JSON prima e dopo i test, senza reload nel mezzo. Il report fisico è
-ancora tutto da compilare: [checklist](ios-checklist.md), [registro](ios-test-report.md).
+aggiornato con le conferme M2 dell’utente; nuova sessione M3 ancora da compilare:
+[checklist](ios-checklist.md), [registro](ios-test-report.md).
 Per Debian/dominio pubblico restano valide le istruzioni Caddy/Compose del README;
 build e runtime Docker non sono stati verificati in M2.

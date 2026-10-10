@@ -1,0 +1,464 @@
+{
+  "startedAt": "2026-10-10T16:21:44.533Z",
+  "completedAt": "2026-10-10T16:21:52.971Z",
+  "node": "v24.14.0",
+  "library": "youtubei.js@18.1.0",
+  "runsPerType": 5,
+  "definition": "Cold: new in-memory metadata cache and local Innertube session. Warm: immediate repeat in the same API instance. Loopback HTTP, sequential requests; DNS/TLS/OS/remote caches uncontrolled. p50/p95 nearest rank, small sample; excludes 350ms UI debounce, WAN client and artwork loading. Errors excluded from latency percentiles and counted separately. No audio obtained or played.",
+  "statistics": [
+    {
+      "type": "track",
+      "phase": "cold",
+      "http": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 457.4488000000001,
+        "p95Ms": 605.096
+      },
+      "server": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 455.49440000000004,
+        "p95Ms": 591.3416
+      }
+    },
+    {
+      "type": "track",
+      "phase": "warm",
+      "http": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 1.58199999999988,
+        "p95Ms": 2.057700000000068
+      },
+      "server": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 0.032999999999901775,
+        "p95Ms": 0.049799999999777356
+      }
+    },
+    {
+      "type": "artist",
+      "phase": "cold",
+      "http": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 443.8768,
+        "p95Ms": 533.5751
+      },
+      "server": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 438.66360000000077,
+        "p95Ms": 531.7150999999999
+      }
+    },
+    {
+      "type": "artist",
+      "phase": "warm",
+      "http": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 1.1902000000000044,
+        "p95Ms": 1.253700000000208
+      },
+      "server": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 0.02989999999954307,
+        "p95Ms": 0.037400000000161526
+      }
+    },
+    {
+      "type": "album",
+      "phase": "cold",
+      "http": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 512.3440999999993,
+        "p95Ms": 603.6160999999993
+      },
+      "server": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 510.8181000000004,
+        "p95Ms": 601.9056
+      }
+    },
+    {
+      "type": "album",
+      "phase": "warm",
+      "http": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 1.0890999999992346,
+        "p95Ms": 1.1844999999993888
+      },
+      "server": {
+        "successes": 5,
+        "failures": 0,
+        "p50Ms": 0.025099999999838474,
+        "p95Ms": 0.02779999999984284
+      }
+    }
+  ],
+  "probes": [
+    {
+      "type": "track",
+      "status": 200,
+      "normalized": true,
+      "albumTracks": null,
+      "serverMs": 128.4618999999998,
+      "errorCode": null
+    },
+    {
+      "type": "artist",
+      "status": 200,
+      "normalized": true,
+      "albumTracks": null,
+      "serverMs": 391.2793999999999,
+      "errorCode": null
+    },
+    {
+      "type": "album",
+      "status": 200,
+      "normalized": true,
+      "albumTracks": 30,
+      "serverMs": 308.7382000000007,
+      "errorCode": null
+    }
+  ],
+  "samples": [
+    {
+      "type": "track",
+      "run": 1,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 605.096,
+      "serverMs": 591.3416,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "track",
+      "run": 1,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 2.057700000000068,
+      "serverMs": 0.032999999999901775,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "track",
+      "run": 2,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 483.17550000000006,
+      "serverMs": 479.4357,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "track",
+      "run": 2,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.7195000000001528,
+      "serverMs": 0.031899999999950523,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "track",
+      "run": 3,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 454.3879999999999,
+      "serverMs": 452.2492000000002,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "track",
+      "run": 3,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.58199999999988,
+      "serverMs": 0.049799999999777356,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "track",
+      "run": 4,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 457.4488000000001,
+      "serverMs": 455.49440000000004,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "track",
+      "run": 4,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.469600000000355,
+      "serverMs": 0.04370000000017171,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "track",
+      "run": 5,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 416.1058000000003,
+      "serverMs": 412.86299999999983,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "track",
+      "run": 5,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.220600000000104,
+      "serverMs": 0.028400000000146974,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "artist",
+      "run": 1,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 533.5751,
+      "serverMs": 531.7150999999999,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "artist",
+      "run": 1,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.1902000000000044,
+      "serverMs": 0.037400000000161526,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "artist",
+      "run": 2,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 473.90939999999955,
+      "serverMs": 472.1823000000004,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "artist",
+      "run": 2,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.1090999999996711,
+      "serverMs": 0.02900000000045111,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "artist",
+      "run": 3,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 436.0514999999996,
+      "serverMs": 434.2465999999995,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "artist",
+      "run": 3,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.253700000000208,
+      "serverMs": 0.03169999999954598,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "artist",
+      "run": 4,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 443.8768,
+      "serverMs": 438.66360000000077,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "artist",
+      "run": 4,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.0798000000004322,
+      "serverMs": 0.024099999999634747,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "artist",
+      "run": 5,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 410.5042000000003,
+      "serverMs": 408.6347999999998,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "artist",
+      "run": 5,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.2403999999996813,
+      "serverMs": 0.02989999999954307,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "album",
+      "run": 1,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 603.6160999999993,
+      "serverMs": 601.9056,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "album",
+      "run": 1,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.0657000000001062,
+      "serverMs": 0.024600000000646105,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "album",
+      "run": 2,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 512.3440999999993,
+      "serverMs": 510.8181000000004,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "album",
+      "run": 2,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.0890999999992346,
+      "serverMs": 0.025099999999838474,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "album",
+      "run": 3,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 477.15730000000076,
+      "serverMs": 474.14639999999963,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "album",
+      "run": 3,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.035899999999856,
+      "serverMs": 0.024699999999938882,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "album",
+      "run": 4,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 548.6544000000004,
+      "serverMs": 546.8540000000003,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "album",
+      "run": 4,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.1844999999993888,
+      "serverMs": 0.02779999999984284,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "album",
+      "run": 5,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 482.40070000000014,
+      "serverMs": 480.84099999999853,
+      "cache": "miss",
+      "count": 5,
+      "errorCode": null
+    },
+    {
+      "type": "album",
+      "run": 5,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.112200000001394,
+      "serverMs": 0.027099999999336433,
+      "cache": "hit",
+      "count": 5,
+      "errorCode": null
+    }
+  ]
+}

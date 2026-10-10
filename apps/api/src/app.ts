@@ -5,12 +5,34 @@ import type {
   TracksResponse,
 } from '@musicbit/shared';
 import { DemoMusicProvider } from './providers/demo.js';
+import { CatalogService } from './catalog/service.js';
+import { registerCatalogRoutes } from './catalog/routes.js';
+import { CatalogError } from './catalog/errors.js';
 
 export function buildApp(
   options: FastifyServerOptions = {},
   provider: MusicProvider = new DemoMusicProvider(),
+  catalog: CatalogService = new CatalogService(),
 ) {
-  const app = Fastify(options);
+  const logger = options.logger;
+  const safeLogger = logger
+    ? {
+        ...(typeof logger === 'object' ? logger : {}),
+        serializers: {
+          req: (request: { method?: string; url?: string }) => ({
+            method: request.method,
+            url: request.url?.split('?')[0],
+          }),
+        },
+      }
+    : logger;
+  const app = Fastify({
+    ...options,
+    // Search text, headers, remote errors and payloads must not enter logs.
+    logger: safeLogger,
+    ajv: { customOptions: { removeAdditional: false } },
+  });
+  registerCatalogRoutes(app, catalog, provider.id);
   app.get<{ Reply: HealthResponse }>('/health', async () => ({
     status: 'ok',
     service: 'musicbit-api',
@@ -27,7 +49,35 @@ export function buildApp(
     return { tracks, provider: provider.id };
   });
   app.setErrorHandler((error, request, reply) => {
-    request.log.error(error);
+    if (error && typeof error === 'object' && 'validation' in error)
+      return reply
+        .status(400)
+        .send({ code: 'INVALID_INPUT', error: 'Parametri non validi.' });
+    if (error instanceof CatalogError) {
+      const status = {
+        TIMEOUT: 504,
+        CANCELLED: 499,
+        UNAVAILABLE: 503,
+        DISABLED: 503,
+        NOT_FOUND: 404,
+        BUSY: 429,
+      }[error.code];
+      const message = {
+        TIMEOUT: 'Il catalogo ha impiegato troppo tempo. Riprova.',
+        CANCELLED: 'Richiesta annullata.',
+        UNAVAILABLE:
+          'Catalogo temporaneamente non disponibile. Riprova tra poco.',
+        DISABLED: 'Provider disabilitato nella configurazione.',
+        NOT_FOUND: 'Elemento non trovato nel catalogo.',
+        BUSY: 'Troppe richieste. Riprova tra poco.',
+      }[error.code];
+      request.log.warn(
+        { code: error.code, provider: 'youtube' },
+        'Catalog request failed',
+      );
+      return reply.status(status).send({ code: error.code, error: message });
+    }
+    request.log.error({ code: 'INTERNAL_ERROR' }, 'Request failed');
     reply
       .status(500)
       .send({ error: 'Il catalogo non è disponibile. Riprova tra poco.' });

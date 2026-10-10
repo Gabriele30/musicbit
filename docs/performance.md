@@ -1,5 +1,10 @@
 # M2: prestazioni misurate
 
+Le misure del nuovo catalogo M3, cache fredda/calda e p50/p95 sono documentate
+separatamente in [catalog-performance.md](catalog-performance.md). Questo storico
+resta riferito all’audio M2; le conferme fisiche dell’utente sono nel
+[registro iOS](ios-test-report.md), senza nuovi tempi al suono.
+
 10 ottobre 2026, Windows, Node 24.14.0, pnpm 11.25.0, Chromium 156.0.8078.4.
 Baseline: commit M1 `b8bd2a3`, prima di modificare il player. Branch M2:
 `codex/m2-performance-ios`. I campioni usano SoundHelix Song 1 autorizzata,

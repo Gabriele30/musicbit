@@ -1,9 +1,12 @@
-# Architettura M1 + M2
+# Architettura M1 + M2 + M3
 
 ```text
 Safari / PWA → stessa origine /api/tracks → Fastify → MusicProvider
           └→ HTMLAudioElement → sorgente MP3 HTTPS autorizzata
           └→ Media Session → controlli offerti dal sistema operativo
+          └→ /api/search, /api/catalog, /api/providers
+                 → CatalogService → TTL/LRU + single-flight → CatalogProvider
+                     → YouTubeCatalogProvider → youtubei.js → search/browse/next
 ```
 
 Vite fa da proxy in dev/preview, Nginx nei container; Caddy aggiunge TLS.
@@ -51,6 +54,18 @@ non installata automaticamente; /\_\_hls inoltra il laboratorio separato a 4180.
 Il laboratorio usa un encoder live di toni originali, non MusicProvider né URL
 MP3 remoti. Non modifica build Docker o dipendenze runtime delle app.
 
-Rimandati login, persistenza, libreria privata, ricerca, raccomandazioni, HLS nel
-player e YouTube. Prima di evolvere il trasporto servono prove fisiche: WebKit su Windows
+M3 aggiunge `MusicProvider.catalog?: CatalogProvider`. `CatalogItem` rappresenta
+metadati senza `audioUrl`, sempre `playback.available=false`; non è un `Track` e
+non viene mai passato all’engine. Il provider YouTube non restituisce tracce
+riproducibili. Sessione anonima locale e lazy, niente player JS/config di streaming;
+fetch limitato ai soli endpoint search/browse/next, redirect rifiutati.
+
+La ricerca monta una schermata React separata; il debounce e le richieste hanno
+AbortController e pulizia all’unmount. Il client evita `AbortSignal.any` per
+compatibilità con versioni Safari che non lo supportano. L’audio e la sua Media Session continuano
+a descrivere la demo anche mentre si guardano altri metadati. API, caching,
+cancellazione per subscriber e limiti sono descritti in [catalog.md](catalog.md).
+
+Rimandati login, persistenza, libreria privata, raccomandazioni, HLS nel
+player e audio YouTube. Prima di evolvere il trasporto servono prove fisiche: WebKit su Windows
 non replica processi, sospensione, Bluetooth o CarPlay di iOS.

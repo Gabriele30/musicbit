@@ -1,10 +1,31 @@
 # Registro prove fisiche
 
-**NON ESEGUITO:** nessun iPhone/CarPlay fisico usato nell’implementazione locale.
+## Conferme dell’utente per M2
+
+All’avvio di M3 l’utente ha riferito prove reali sul proprio iPhone con esito
+positivo per riproduzione in primo piano, schermo bloccato, cambio automatico
+del brano e PWA installata. Evidenza: dichiarazione nel messaggio di richiesta M3.
+Non sono stati forniti modello, versione iOS, data/durata della prova, rete,
+video/JSON o misure al suono. Queste conferme sono registrate come **riferite
+dall’utente**, senza estenderle a comandi/interruzioni/scenari non descritti.
+L’utente ha esplicitamente indicato CarPlay come non ancora testato.
+
+| Area M2                         | Esito riferito      | Limiti dell’evidenza                                                    |
+| ------------------------------- | ------------------- | ----------------------------------------------------------------------- |
+| Riproduzione in primo piano     | Funzionante, utente | Modalità Safari/Home non specificata per questa singola prova           |
+| Riproduzione a schermo bloccato | Funzionante, utente | Durata e comandi non specificati                                        |
+| Cambio automatico brano         | Funzionante, utente | Non specificata separatamente la condizione di blocco durante il cambio |
+| PWA installata                  | Funzionante, utente | iOS e dettagli della sessione non forniti                               |
+| CarPlay                         | Non testato         | Confermato dall’utente                                                  |
+
+## Regressione fisica M3
+
+**NON ESEGUITA dall’agente:** nessun dispositivo fisico disponibile durante
+l’implementazione M3. Le conferme M2 non validano automaticamente questa build.
 
 | Area                              | Esito        | Evidenza |
 | --------------------------------- | ------------ | -------- |
-| Safari iPhone foreground          | Non eseguito | —        |
+| Safari iPhone foreground M3       | Non eseguito | —        |
 | PWA Home installazione/foreground | Non eseguito | —        |
 | Schermo bloccato ≥5 minuti        | Non eseguito | —        |
 | Comandi lock screen               | Non eseguito | —        |

@@ -6,10 +6,12 @@ import { Icon, type IconName } from './components/Icon';
 import { Diagnostics } from './components/Diagnostics';
 import { PwaNotice } from './components/PwaNotice';
 import { PreparationControls } from './components/PreparationControls';
+import { Search } from './components/Search';
 
-type Screen = 'player' | 'queue' | 'diagnostics';
+type Screen = 'player' | 'search' | 'queue' | 'diagnostics';
 const screens: { id: Screen; label: string; icon: IconName }[] = [
   { id: 'player', label: 'Player', icon: 'music' },
+  { id: 'search', label: 'Cerca', icon: 'search' },
   { id: 'queue', label: 'Coda', icon: 'queue' },
   { id: 'diagnostics', label: 'Diagnostica', icon: 'pulse' },
 ];
@@ -20,11 +22,10 @@ export const formatTime = (seconds: number) =>
 
 export function App({ player }: { player: PlayerEngine }) {
   const state = useSyncExternalStore(player.subscribe, player.getSnapshot);
-  const [screen, setScreen] = useState<Screen>(() =>
-    new URLSearchParams(location.search).get('screen') === 'diagnostics'
-      ? 'diagnostics'
-      : 'player',
-  );
+  const [screen, setScreen] = useState<Screen>(() => {
+    const value = new URLSearchParams(location.search).get('screen');
+    return value === 'diagnostics' || value === 'search' ? value : 'player';
+  });
   const [tracks, setTracks] = useState<Track[]>([]);
   const [catalogStatus, setCatalogStatus] = useState<
     'loading' | 'ready' | 'error'
@@ -114,7 +115,7 @@ export function App({ player }: { player: PlayerEngine }) {
         </div>
         <div className="sidebar-footer">
           <span className="status-dot" />
-          Personale. Self-hosted.<small>MILESTONE 01 · DEMO</small>
+          Personale. Self-hosted.<small>MILESTONE 03 · CATALOGO</small>
         </div>
       </aside>
       <div className="workspace">
@@ -128,23 +129,31 @@ export function App({ player }: { player: PlayerEngine }) {
         <main id="main">
           <div className="page-heading">
             <div>
-              <p className="eyebrow">MUSICBIT / DEMO SESSIONS</p>
+              <p className="eyebrow">
+                {screen === 'search'
+                  ? 'MUSICBIT / CATALOGO MUSICALE'
+                  : 'MUSICBIT / DEMO SESSIONS'}
+              </p>
               <h1>
                 {screen === 'player'
                   ? 'Premi play. Prenditi spazio.'
-                  : screen === 'queue'
-                    ? 'Il prossimo ascolto.'
-                    : 'Ogni millisecondo conta.'}
+                  : screen === 'search'
+                    ? 'La musica comincia da un nome.'
+                    : screen === 'queue'
+                      ? 'Il prossimo ascolto.'
+                      : 'Ogni millisecondo conta.'}
               </h1>
               <p className="muted">
                 {screen === 'player'
                   ? 'Tre tracce per iniziare. Niente distrazioni, solo musica.'
-                  : screen === 'queue'
-                    ? 'La tua sessione, nell’ordine che scegli tu.'
-                    : 'Osserva cosa succede tra il tocco e la musica.'}
+                  : screen === 'search'
+                    ? 'Cerca, scopri i dettagli, esplora il catalogo.'
+                    : screen === 'queue'
+                      ? 'La tua sessione, nell’ordine che scegli tu.'
+                      : 'Osserva cosa succede tra il tocco e la musica.'}
               </p>
             </div>
-            <span className="version-tag">M2</span>
+            <span className="version-tag">M3</span>
           </div>
           {!online && (
             <p className="banner" role="status">
@@ -452,6 +461,7 @@ export function App({ player }: { player: PlayerEngine }) {
               </ol>
             </section>
           )}
+          {screen === 'search' && <Search />}
           {screen === 'diagnostics' && (
             <Diagnostics state={state} player={player} />
           )}
@@ -501,8 +511,9 @@ export function App({ player }: { player: PlayerEngine }) {
               · uso autorizzato con attribuzione.
               <br />
               <span>
-                Copertine originali MusicBit. Audio online; riproduzione su
-                iPhone e CarPlay da verificare.
+                Copertine demo originali MusicBit. Player M2 verificato su
+                iPhone dall’utente. CarPlay e regressione M3 su dispositivo da
+                verificare.
               </span>
             </p>
             <PwaNotice />

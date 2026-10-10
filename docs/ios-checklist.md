@@ -1,8 +1,30 @@
 # Checklist iPhone / CarPlay
 
-**Prove fisiche tutte da eseguire.** Registrare esiti/evidenze in
+**M2: quattro esiti positivi riferiti dall’utente; M3 e CarPlay da verificare.**
+Vedi i limiti della dichiarazione nel registro. Registrare nuovi esiti/evidenze in
 `ios-test-report.md` e allegare il JSON diagnostico dopo ogni sessione. Eseguire
 CarPlay ad auto ferma oppure con un passeggero che gestisca i controlli.
+
+## Regressione catalogo M3 (Safari e PWA Home separatamente)
+
+- [ ] Chiudere tutti i client della vecchia build e riaprire; badge M3, HTTPS
+      attendibile. Non forzare un aggiornamento durante un ascolto da preservare.
+- [ ] Avviare una demo, aprire Cerca, cercare brani/artisti/album: niente doppio
+      audio o interruzione, una sola demo e posizione crescente in Diagnostica.
+- [ ] Tastiera ricerca senza zoom inatteso, filtri e risultati leggibili in
+      portrait/landscape, nessuno scroll orizzontale; provare nomi lunghi/Unicode.
+- [ ] Tocchi rapidi e correzione query: solo ultimo risultato; attendere rete lenta,
+      annullare/cambiare schermata e verificare assenza di errori tardivi.
+- [ ] Dettagli brano, artista, album e tracklist, ritorno alla ricerca; miniature
+      mancanti non devono impedire navigazione. Tutto marcato solo catalogo,
+      nessun Play/accodamento YouTube, link sorgente esplicito.
+- [ ] Media Session/lock screen continuano a mostrare la demo effettivamente in
+      ascolto, non il brano di catalogo aperto. Bloccare da Cerca, ascoltare e
+      verificare cambio automatico, poi sbloccare e tornare al Player.
+- [ ] Ricerca vuota/errore provider/offline: messaggio e Riprova senza cambiare
+      sorgente audio; non promettere risultati o media offline.
+- [ ] Ripetere la checklist player sotto, registrando regressioni rispetto a M2.
+      CarPlay va eseguito come nuova prova, senza dedurlo dai risultati lock screen.
 
 ## Preparazione e foreground
 
