@@ -252,4 +252,23 @@ describe('accounts and isolated server libraries', () => {
       rmSync(directory, { recursive: true, force: true });
     }
   });
+  it('renews a valid session when the application opens without reviving an expired one', async () => {
+    const app = setup();
+    const account = await register(app, 'renewed_listener');
+    const startedAt = Date.now();
+    vi.useFakeTimers();
+    vi.setSystemTime(startedAt + 29 * 86400000);
+    const renewed = await app.inject({
+      url: '/api/auth/session',
+      headers: { cookie: account.cookie, 'x-forwarded-proto': 'https' },
+    });
+    expect(renewed.json().user.username).toBe('renewed_listener');
+    expect(renewed.headers['set-cookie']).toContain('Max-Age=2592000');
+    expect(renewed.headers['set-cookie']).toContain('Secure');
+    vi.setSystemTime(Date.now() + 2 * 86400000);
+    expect(
+      (await app.inject({ url: '/api/auth/session', headers: { cookie: account.cookie } })).json()
+        .user.username,
+    ).toBe('renewed_listener');
+  });
 });

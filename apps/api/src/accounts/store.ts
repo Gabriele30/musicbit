@@ -18,6 +18,7 @@ import {
 
 const hashToken = (value: string) =>
   createHash('sha256').update(value).digest('hex');
+const SESSION_DURATION_MS = 30 * 86400000;
 const derive = (password: string, salt: string): Promise<Buffer> =>
   new Promise((done, fail) =>
     scrypt(
@@ -173,7 +174,7 @@ export class AccountStore {
     const token = randomBytes(32).toString('base64url');
     this.db
       .prepare('INSERT INTO sessions VALUES(?,?,?)')
-      .run(hashToken(token), id, now + 30 * 86400000);
+      .run(hashToken(token), id, now + SESSION_DURATION_MS);
     return token;
   }
   session(token: string) {
@@ -184,6 +185,17 @@ export class AccountStore {
       )
       .get(hashToken(token), Date.now()) as { user_id: string } | undefined;
     return row ? this.getProfile(row.user_id) : undefined;
+  }
+  extendSession(token: string) {
+    if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return false;
+    const now = Date.now();
+    return (
+      this.db
+        .prepare(
+          'UPDATE sessions SET expires_at=? WHERE token_hash=? AND expires_at>?',
+        )
+        .run(now + SESSION_DURATION_MS, hashToken(token), now).changes > 0
+    );
   }
   logout(token: string) {
     this.db

@@ -20,6 +20,7 @@ function secureCookie(request: FastifyRequest) {
   return (
     process.env.AUTH_COOKIE_SECURE === 'true' ||
     request.protocol === 'https' ||
+    request.headers['x-forwarded-proto'] === 'https' ||
     request.headers.origin?.startsWith('https://') === true
   );
 }
@@ -106,10 +107,18 @@ export function registerAccountRoutes(
       password: { type: 'string', minLength: 1, maxLength: 128 },
     },
   };
-  app.get('/api/auth/session', async (request) => ({
-    user: store.session(token(request)) ?? null,
-    registrationEnabled: process.env.AUTH_REGISTRATION !== 'false',
-  }));
+  app.get('/api/auth/session', async (request, reply) => {
+    const sessionToken = token(request);
+    const user = store.session(sessionToken);
+    // Renew on application open: a user who keeps using MusicBit does not have
+    // to sign in again every 30 days. Expired tokens are never revived.
+    if (user && store.extendSession(sessionToken))
+      reply.header('Set-Cookie', cookie(sessionToken, secureCookie(request)));
+    return {
+      user: user ?? null,
+      registrationEnabled: process.env.AUTH_REGISTRATION !== 'false',
+    };
+  });
   for (const operation of ['login', 'register'] as const)
     app.post<{ Body: { username: string; password: string } }>(
       `/api/auth/${operation}`,

@@ -133,7 +133,16 @@ const server = createHttpsServer({ key, cert: pem }, (req, res) => {
   }
   const upstream = request(
     url,
-    { method: req.method, headers: { ...req.headers, host: url.host } },
+    {
+      method: req.method,
+      headers: {
+        ...req.headers,
+        host: url.host,
+        // The API is loopback-only, so it can safely use this signal to issue
+        // a Secure cookie for requests that arrived through this TLS proxy.
+        'x-forwarded-proto': 'https',
+      },
+    },
     (response) => {
       res.writeHead(response.statusCode ?? 502, response.headers);
       response.pipe(res);
