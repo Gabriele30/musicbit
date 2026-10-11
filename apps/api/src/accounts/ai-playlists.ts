@@ -75,7 +75,11 @@ async function configuredPlan(
         ...schema,
         properties: {
           ...schema.properties,
-          songs: { ...schema.properties.songs, minItems: count, maxItems: count },
+          songs: {
+            ...schema.properties.songs,
+            minItems: count,
+            maxItems: count,
+          },
         },
       },
       options: {
