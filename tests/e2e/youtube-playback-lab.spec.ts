@@ -89,7 +89,11 @@ test('M5 layout, secure manifest and independent routes', async ({
   const manifest = await request.get(`${base}manifest.webmanifest`);
   expect((await manifest.json()).scope).toBe('/__youtube/');
   expect(
-    (await request.get('http://127.0.0.1:3001/__youtube/health')).status(),
+    (
+      await request.get(
+        `http://127.0.0.1:${process.env.MUSICBIT_E2E_API_PORT || '4703'}/__youtube/health`,
+      )
+    ).status(),
   ).toBe(404);
 });
 test('M5 test transport: HTTP media failure is visible and no fallback is attempted', async ({

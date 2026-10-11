@@ -74,6 +74,90 @@ afterEach(() => {
 });
 
 describe('persistent player', () => {
+  it('persists playlists larger than 500 tracks and rejects queue overflow without interrupting audio', () => {
+    const { player, audio } = setup();
+    const queue = Array.from({ length: 1000 }, (_, i) => ({
+      ...tracks[0]!,
+      id: `saved-${i}`,
+    }));
+    const disconnect = connectSessionPersistence(player);
+    player.playCollection(queue, 611);
+    audio.emit('playing');
+    expect(player.enqueue(tracks[1]!)).toBe(false);
+    expect(player.getSnapshot().status).toBe('playing');
+    disconnect();
+    const restoredAudio = new FakeAudio(),
+      restored = new PlayerEngine(restoredAudio as unknown as HTMLAudioElement);
+    engines.push(restored);
+    const stop = connectSessionPersistence(restored);
+    expect(restored.getSnapshot()).toMatchObject({
+      index: 611,
+      status: 'paused',
+    });
+    expect(restored.getSnapshot().queue).toHaveLength(1000);
+    expect(restoredAudio.play).not.toHaveBeenCalled();
+    stop();
+  });
+  it('starts radio synchronously and recovers when recommendations arrive after the track ended', () => {
+    const { player, audio } = setup();
+    player.toggleAutoplay();
+    player.cycleRepeat();
+    player.startRadio([tracks[0]!]);
+    expect(audio.play).toHaveBeenCalledTimes(1);
+    expect(player.getSnapshot()).toMatchObject({
+      autoplay: true,
+      repeat: 'off',
+    });
+    audio.emit('playing');
+    audio.currentTime = 120;
+    audio.emit('ended');
+    expect(player.getSnapshot().status).toBe('ended');
+    player.setRecommendations(tracks[0]!.id, [tracks[1]!]);
+    expect(player.getSnapshot().queue[player.getSnapshot().index]?.id).toBe(
+      tracks[1]!.id,
+    );
+    expect(audio.play).toHaveBeenCalledTimes(2);
+  });
+  it('keeps long-running radio queues within the persistence limit without losing the new current track', () => {
+    const { player, audio } = setup();
+    const queue = Array.from({ length: 500 }, (_, i) => ({
+      ...tracks[0]!,
+      id: `radio-${i}`,
+      audioUrl: `https://example.com/radio-${i}.mp3`,
+    }));
+    player.playCollection(queue, 499);
+    audio.emit('playing');
+    player.setRecommendations(queue[499]!.id, [tracks[1]!]);
+    audio.currentTime = 120;
+    audio.emit('ended');
+    expect(player.getSnapshot().queue).toHaveLength(201);
+    expect(player.getSnapshot().queue[player.getSnapshot().index]?.id).toBe(
+      tracks[1]!.id,
+    );
+  });
+  it('isolates account sessions while keeping the same audio and restoring without autoplay', () => {
+    const { audio, player } = setup();
+    player.playCollection(tracks, 1);
+    audio.currentTime = 42;
+    audio.emit('timeupdate');
+    const disconnect = connectSessionPersistence(
+      player,
+      localStorage,
+      'account-a',
+    );
+    disconnect();
+    player.resetSession();
+    expect(player.audio).toBe(audio);
+    expect(player.getSnapshot().queue).toEqual([]);
+    expect(audio.paused).toBe(true);
+    const b = connectSessionPersistence(player, localStorage, 'account-b');
+    expect(player.getSnapshot().queue).toEqual([]);
+    b();
+    connectSessionPersistence(player, localStorage, 'account-a')();
+    expect(player.getSnapshot().queue).toEqual(tracks);
+    expect(player.getSnapshot().status).toBe('paused');
+    expect(audio.play).toHaveBeenCalledOnce();
+  });
   it('starts a collection at the selected track while preserving previous tracks and the user gesture', () => {
     const { audio, player } = setup();
     player.playCollection(tracks, 1);
@@ -198,8 +282,11 @@ describe('persistent player', () => {
     const { audio, player } = setup();
     player.enqueue(tracks[0]!);
     player.select(1);
-    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const random = vi
+      .spyOn(crypto, 'getRandomValues')
+      .mockReturnValue(new Uint32Array([0]));
     player.shuffleUpcoming();
+    random.mockRestore();
     expect(player.getSnapshot().queue.map((track) => track.id)).toEqual([
       'track-1',
       'track-2',

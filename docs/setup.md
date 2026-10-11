@@ -23,6 +23,8 @@ On PowerShell, replace `cp` with `Copy-Item`. Copy the file only on the first ru
 | `CATALOG_TIMEOUT_MS`      | `10000`                   | Metadata request timeout                                   |
 | `WEB_PORT`                | `8080`                    | Docker web port, bound to loopback                         |
 
+Account settings: `MUSICBIT_DB_PATH` overrides the SQLite file, `AUTH_REGISTRATION` controls signup, `AUTH_COOKIE_SECURE` requires Secure session cookies, and `MUSICBIT_REQUIRE_ACCOUNT` protects catalog/audio. See [accounts](accounts.md) for provisioning, persistence and backups.
+
 Other variables in `.env.example` configure the separate experimental laboratories. They are not required for the main application. Do not commit `.env` or generated certificates.
 
 ## Production build locally
@@ -50,7 +52,7 @@ docker compose down
 
 ## Hosting and HTTPS
 
-Choose a host you control and restrict access to your instance. MusicBit does not supply authentication or user isolation. Review [SECURITY.md](../SECURITY.md) before hosting.
+Choose a host you control. MusicBit includes accounts and separate libraries; require login for catalog/audio on exposed instances and review [SECURITY.md](../SECURITY.md).
 
 For a domain pointing to the server, set `MUSICBIT_DOMAIN` and `ACME_EMAIL` in `.env`. The included overlay publishes ports 80 and 443 through Caddy:
 
@@ -59,13 +61,13 @@ docker compose -f compose.yaml -f compose.https.yaml config --quiet
 docker compose -f compose.yaml -f compose.https.yaml up --build -d
 ```
 
-This overlay provides TLS only. Add private-network access or authentication at the reverse proxy before exposing the service. Allow certificate issuance and HTTPS traffic through your network configuration.
+This overlay provides TLS, requires an account for catalog/audio, closes signup and sets Secure cookies. Provision accounts through stdin using `docker compose exec -T api node scripts/create-accounts.mjs` before sharing access. The `musicbit_data` volume persists accounts and libraries. Allow certificate issuance and HTTPS traffic through your network configuration.
 
 On a phone, use an HTTPS origin with a certificate the device trusts. A desktop's `localhost` exception does not apply to an HTTP LAN address on the phone. The [iPhone HTTPS notes](ios-https.md) describe local device testing.
 
 ## Test ports
 
-Playwright starts its own production-build host and laboratory servers. On systems with reserved port ranges, override `MUSICBIT_E2E_PORT`, `MUSICBIT_PLAYBACK_E2E_PORT` and `MUSICBIT_YOUTUBE_E2E_PORT` in the shell. For example, PowerShell:
+Playwright starts an isolated API with an in-memory account database on port 4703, its own production-build host and laboratory servers. Set `MUSICBIT_E2E_API_PORT` to override the API port. On systems with reserved port ranges, override `MUSICBIT_E2E_PORT`, `MUSICBIT_PLAYBACK_E2E_PORT` and `MUSICBIT_YOUTUBE_E2E_PORT` in the shell. For example, PowerShell:
 
 ```powershell
 $env:MUSICBIT_E2E_PORT = '4704'

@@ -10,8 +10,8 @@ Include the affected commit, reproduction steps, impact and a minimal example. T
 
 ## Hosting boundaries
 
-The default Docker deployment is bound to loopback. MusicBit does not include authentication, accounts or per-user isolation. Restrict access through a private network or an authenticated reverse proxy before making an instance reachable by others.
+The default Docker deployment is bound to loopback. Accounts use salted password hashes, opaque HttpOnly sessions and separate server libraries. The HTTPS overlay requires authentication for catalog/audio, disables registration and uses Secure cookies. Account provisioning is explicit; no default credentials are shipped. See [accounts](docs/accounts.md).
 
-The playback adapter processes upstream player and integrity scripts in the API process. Further process isolation and resource controls are planned. Treat the provider integration as experimental; do not run it with access to unrelated sensitive services or credentials.
+The playback adapter evaluates upstream player/integrity scripts in a supervised child process, with a minimal environment, bounded concurrency, deadlines, a V8 heap cap and restricted filesystem access. SQLite, native addons, new child processes and filesystem writes are disabled there. These restrictions are tested but are not a complete hostile-code security boundary. Use OS/container isolation and a patched Node runtime; avoid access to unrelated sensitive services.
 
-HTTPS is required for PWA installation and browser capabilities on remote devices. The supplied Caddy overlay adds TLS, but does not add authentication or rate limits per user.
+HTTPS is required for PWA installation and browser capabilities on remote devices. The supplied Caddy overlay also enables account requirements and closes registration. Catalog/audio request and connection limits apply, including warm streams. Configure additional bandwidth and network policy for your deployment.

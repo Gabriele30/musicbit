@@ -1,11 +1,14 @@
-import { isTracksResponse } from '@musicbit/shared';
+import { isTracksResponse, PLAYBACK_QUEUE_LIMIT } from '@musicbit/shared';
 import type { PlayerEngine, SavedSession } from './engine';
 
 export const SESSION_KEY = 'musicbit.session.v1';
 
-function readSession(storage: Storage): SavedSession | undefined {
-  const raw = storage.getItem(SESSION_KEY);
-  if (!raw || raw.length > 2_000_000) return;
+function readSession(
+  storage: Storage,
+  key = SESSION_KEY,
+): SavedSession | undefined {
+  const raw = storage.getItem(key);
+  if (!raw || raw.length > 5_000_000) return;
   const data: unknown = JSON.parse(raw);
   if (!data || typeof data !== 'object') return;
   const session = data as SavedSession & { version: unknown };
@@ -13,7 +16,7 @@ function readSession(storage: Storage): SavedSession | undefined {
     session.version !== 1 ||
     !Array.isArray(session.queue) ||
     !session.queue.length ||
-    session.queue.length > 500 ||
+    session.queue.length > PLAYBACK_QUEUE_LIMIT ||
     !session.queue.every(
       (track) =>
         isTracksResponse({ provider: 'session', tracks: [track] }) &&
@@ -42,11 +45,12 @@ function readSession(storage: Storage): SavedSession | undefined {
 export function connectSessionPersistence(
   player: PlayerEngine,
   providedStorage?: Storage,
+  key = SESSION_KEY,
 ) {
   let storage: Storage;
   try {
     storage = providedStorage ?? window.localStorage;
-    const session = readSession(storage);
+    const session = readSession(storage, key);
     if (session) player.restoreSession(session);
   } catch {
     // Private browsing, full storage or corrupt JSON must never disable playback.
@@ -62,7 +66,7 @@ export function connectSessionPersistence(
     if (!queue.length) return;
     try {
       storage.setItem(
-        SESSION_KEY,
+        key,
         JSON.stringify({
           version: 1,
           queue,

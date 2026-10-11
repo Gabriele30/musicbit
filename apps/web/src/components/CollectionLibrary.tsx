@@ -6,6 +6,7 @@ import { CatalogShelf } from './Home';
 import { Icon } from './Icon';
 import { ActionMenu } from './ActionMenu';
 import { CoverArt } from './CoverArt';
+import { shuffled } from '../player/random';
 
 export type LibraryTab =
   | 'favorites'
@@ -123,7 +124,7 @@ export function CollectionLibrary({
                 <p className="eyebrow">LA TUA PLAYLIST</p>
                 <h2>{selected.name}</h2>
                 <p className="muted">
-                  {selected.tracks.length} brani · Salvata su questo dispositivo
+                  {selected.tracks.length} brani · Nella tua libreria
                 </p>
               </div>
             </div>
@@ -141,12 +142,7 @@ export function CollectionLibrary({
                 aria-label="Riproduci playlist in ordine casuale"
                 disabled={!selected.tracks.length}
                 onClick={() => {
-                  const tracks = [...selected.tracks];
-                  for (let i = tracks.length - 1; i > 0; i--) {
-                    const other = Math.floor(Math.random() * (i + 1));
-                    [tracks[i], tracks[other]] = [tracks[other]!, tracks[i]!];
-                  }
-                  onPlayAll(tracks);
+                  onPlayAll(shuffled(selected.tracks));
                 }}
               >
                 <Icon name="shuffle" size={20} />

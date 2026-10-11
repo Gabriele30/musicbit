@@ -13,12 +13,12 @@ Availability depends on the upstream service and network conditions. A catalog r
 - Searches and catalog requests go to the MusicBit API and then to the upstream provider.
 - Cover images are requested by the browser from provider image hosts, without a referrer.
 - Catalog metadata and resolved stream descriptors use bounded, expiring memory caches on the API.
-- Favorites, playlists, saved albums, followed artists, recent searches and the listening session are stored in this browser's local storage.
+- Guest libraries remain local. Signed-in favorites, playlists, saved albums, followed artists, history and recommendation preferences also reside in the self-hosted account database. Browser caches, recent searches and playback sessions are separated per account.
 - Recent searches are recorded when a query is submitted or a result is opened or played. They can be removed individually or cleared together.
 - The service worker caches application files and bundled artwork. It does not store audio or API responses for offline playback.
 - The included API and Nginx logging configuration omits query strings and raw upstream error payloads. Additional proxies or hosting software need their own configuration.
 
-There are no MusicBit accounts, cloud library synchronization or analytics SDKs. Clearing browser storage removes your local library. Library export/import is planned.
+Account synchronization uses your MusicBit server, not a third-party cloud service. There are no analytics SDKs. Clearing browser storage removes guest data and local queues; signed-in libraries can be recovered from the server or a JSON backup. Guest migration requires explicit import. See [accounts and recovery](accounts.md).
 
 ## Content and attribution
 

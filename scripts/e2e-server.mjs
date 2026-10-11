@@ -5,6 +5,7 @@ import { resolve, sep, extname } from 'node:path';
 // Test-only host for the actual production bundle. Native WebKit media requests
 // bypass Playwright routing on Windows, so serve fixtures over real local HTTP.
 const root = resolve('apps/web/dist');
+const apiBase = process.env.MUSICBIT_E2E_API_BASE ?? 'http://127.0.0.1:4703';
 const samples = 8000 * 30;
 const wav = Buffer.alloc(44 + samples * 2);
 wav.write('RIFF');
@@ -35,8 +36,38 @@ const types = {
 const server = createServer(async (request, response) => {
   try {
     const path = new URL(request.url, 'http://127.0.0.1:4174').pathname;
+    if (path.startsWith('/api/auth/') || path.startsWith('/api/me/')) {
+      const chunks = [];
+      for await (const chunk of request) chunks.push(chunk);
+      const headers = new Headers();
+      for (const name of [
+        'cookie',
+        'content-type',
+        'x-musicbit-request',
+        'x-musicbit-account',
+        'origin',
+        'sec-fetch-site',
+      ])
+        if (typeof request.headers[name] === 'string')
+          headers.set(name, request.headers[name]);
+      const body = Buffer.concat(chunks);
+      const upstream = await fetch(`${apiBase}${request.url}`, {
+        method: request.method,
+        headers,
+        ...(body.length ? { body } : {}),
+      });
+      response.writeHead(upstream.status, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, no-store',
+        ...(upstream.headers.getSetCookie().length
+          ? { 'Set-Cookie': upstream.headers.getSetCookie() }
+          : {}),
+      });
+      response.end(await upstream.text());
+      return;
+    }
     if (path === '/api/tracks' || path === '/health') {
-      const upstream = await fetch(`http://127.0.0.1:3001${path}`);
+      const upstream = await fetch(`${apiBase}${path}`);
       const data = await upstream.json();
       if (path === '/api/tracks')
         data.tracks.forEach((track) => {

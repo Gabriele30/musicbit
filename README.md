@@ -19,6 +19,12 @@ A self-hosted music player built for everyday listening, from your desktop to yo
 - **Search across the catalog** — songs, artists and albums together, category filters and removable recent searches.
 - **Explore artists and albums** — popular tracks, discography, related artists and album playback.
 - **Make it yours** — favorites, playlists, shuffle, drag-to-reorder with keyboard controls, and undo for removed tracks.
+- **Keep your library across devices** — accounts, editable profiles, server-backed libraries, explicit conflict recovery and JSON backup/import.
+- **Personal discovery** — suggestions informed by favorites and listening, with variety controls and dismissible recommendations.
+- **Personal mixes and Taste Profile** — automatic playlists and visible artist affinity that you can correct.
+- **Wrapped all year** — actual listening minutes, top tracks/artists and monthly statistics.
+- **AI playlists** — describe a moment, preview catalog-verified proposals and save a playlist; requires a server-side OpenAI API key.
+- **Resume on another device** — explicitly continue the saved account queue and position with one tap.
 - **Keep the music going** — editable queue, repeat, staged autoplay recommendations and session restoration.
 - **Listen on your phone** — an installable PWA, full-screen player, persistent mini-player and Media Session controls where supported.
 - **Host it yourself** — React, TypeScript and Fastify, with Docker Compose included.
@@ -74,13 +80,13 @@ docker compose up --build -d
 
 Open **[localhost:8080](http://localhost:8080)**. The default configuration binds the web service to loopback. Stop it with `docker compose down`.
 
-For access from another device, use a trusted HTTPS connection and restrict access to your instance. The included TLS overlay does not add authentication. See [hosting and HTTPS](docs/setup.md#hosting-and-https).
+For access from another device, use a trusted HTTPS connection. The HTTPS overlay requires an account for catalog/audio and closes registration; provision accounts first. See [accounts](docs/accounts.md) and [hosting and HTTPS](docs/setup.md#hosting-and-https).
 
 ## Project status
 
 MusicBit is in active development. Catalog and playback use an **unofficial YouTube Music integration** and can be affected by upstream changes or availability. MusicBit is independent of YouTube, Google and Spotify.
 
-Your library and listening session are saved in this browser. There are currently **no accounts, cross-device sync, offline audio downloads, lyrics, crossfade or remote device control**. The PWA caches the app shell, not music. Playback stays paused after a reload until you press Play.
+Accounts synchronize libraries and save a separate listening session for explicit resumption on another device; guest libraries remain local. Export/import provides library recovery, and concurrent edits require an explicit choice between versions. There are currently **no offline audio downloads, lyrics, crossfade or remote speaker control**. The PWA caches the app shell, not music. Playback stays paused after a reload until you press Play. See [listening features and AI setup](docs/listening-features.md) for behavior, data handling and limits.
 
 Chromium and WebKit are covered by automated browser tests. Physical iPhone background playback, lock-screen behavior, Bluetooth and CarPlay still need device testing. See [validation](docs/validation.md) for evidence and limits.
 

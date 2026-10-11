@@ -8,9 +8,17 @@ services:
     environment:
       API_HOST: 0.0.0.0
       API_PORT: 3001
+      MUSICBIT_DB_PATH: /data/musicbit.sqlite
+      AUTH_REGISTRATION: ${AUTH_REGISTRATION:-true}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      MUSICBIT_REQUIRE_ACCOUNT: ${MUSICBIT_REQUIRE_ACCOUNT:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_PLAYLIST_MODEL: ${OPENAI_PLAYLIST_MODEL:-gpt-4o-mini}
       YOUTUBE_CATALOG_ENABLED: ${YOUTUBE_CATALOG_ENABLED:-true}
       CATALOG_TTL_MS: ${CATALOG_TTL_MS:-300000}
       CATALOG_TIMEOUT_MS: ${CATALOG_TIMEOUT_MS:-10000}
+    volumes:
+      - musicbit_data:/data
     healthcheck:
       test:
         [
@@ -38,3 +46,5 @@ services:
       interval: 15s
       timeout: 5s
       retries: 3
+volumes:
+  musicbit_data:

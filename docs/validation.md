@@ -1,5 +1,24 @@
 # Validation and historical test reports
 
+## Esperienza personale, ascolto e AI playlist — 11 ottobre 2026
+
+- `pnpm check`: lint, typecheck, **230 test unitari** in 32 file e build di produzione riusciti.
+- `pnpm test:e2e`: **70/70** test Chromium/WebKit con viewport mobile riusciti. Il run usa le porte 4707–4709 perché Windows riserva alcune porte predefinite.
+- La copertura verifica suggerimenti istantanei, coda e radio persistenti, shuffle uniforme, ripresa da un secondo dispositivo solo dopo un tap, cronologia, statistiche Wrapped, Taste Profile modificabile, mix automatici e salvataggio esplicito della preview AI.
+- Le statistiche registrano tempo di ascolto effettivo, con deduplicazione degli eventi offline; la cancellazione delle statistiche impedisce la reiniezione di eventi precedenti alla cancellazione.
+- Il server conserva la chiave AI esclusivamente nell’ambiente (`OPENAI_API_KEY`). Senza chiave la pagina spiega la configurazione e non invia richieste a servizi esterni. La suite usa un servizio AI controllato e non espone credenziali nel browser.
+- Entrambi i file Compose sono validi con `docker compose config --quiet`. Le prove fisiche iPhone, lock screen, Bluetooth e CarPlay restano necessarie prima della distribuzione pubblica.
+## Accounts, profiles and personal libraries — 11 October 2026
+
+- `pnpm check`: lint, type checks, **212 unit tests** across 26 files and production builds passed.
+- `pnpm test:e2e --workers=4`: **64/64** Chromium/WebKit mobile tests passed. Account coverage includes registration, profile edits, backup import/export, second-browser synchronization, persistent conflict recovery and logout, retaining one audio element.
+- Browser tests use a separate API on configurable port 4703 and an in-memory account database. They no longer create test accounts in the running personal instance.
+- Unit coverage includes separate libraries, rejected stale revisions, cross-tab account binding, password/session rotation, database restarts, offline conflicts, provider cancellation/deadlines and native permission probes. SQLite, native process bindings, child processes and account-file reads are blocked in the provider process.
+- Real AAC playback and seek passed in both desktop browsers after provider separation. Latest single-sample cold/cache-warm timings were 4721/353 ms during browser-test load; these are not browser comparisons, physical sound measurements, p95 statistics or an achieved startup target. [Live report](performance/account-audio.json).
+- Local account login/reload was verified over LAN HTTPS in desktop WebKit with isolated certificate-error handling, no JavaScript errors and one audio element. This does not establish iPhone certificate trust or hardware playback behavior.
+- Both Docker Compose configurations validate. The local Docker daemon is unavailable, so this change has no local container build/runtime result. No remote CI run was requested.
+- Physical iPhone long sessions, lock-screen controls, interruptions and measured cold-start optimization remain pending. Advanced OS/container isolation, shareable detail URLs, search pagination and automatic conflict merging remain roadmap work.
+
 ## Search, playlists and repository preparation — 11 October 2026
 
 - `pnpm check`: lint, type checks, **193 unit tests** across 19 files and all production builds passed.

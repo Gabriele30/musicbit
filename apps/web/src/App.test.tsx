@@ -70,7 +70,14 @@ describe('application', () => {
         ok: true,
         json: async () => ({ provider: 'demo', tracks }),
       });
-    vi.stubGlobal('fetch', fetcher);
+    vi.stubGlobal('fetch', (url: string) =>
+      url === '/api/auth/session'
+        ? Promise.resolve({
+            ok: true,
+            json: async () => ({ user: null, registrationEnabled: true }),
+          })
+        : fetcher(url),
+    );
     const { player } = setup();
     await screen.findByRole('alert');
     await userEvent.click(

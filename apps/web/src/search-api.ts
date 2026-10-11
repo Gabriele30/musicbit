@@ -76,11 +76,25 @@ export async function searchAcrossCatalog(
   q: string,
   kind: SearchKind,
   signal: AbortSignal,
+  onPartial?: (result: {
+    items: import('@musicbit/shared').CatalogItem[];
+    missingKinds: CatalogKind[];
+  }) => void,
 ) {
   const kinds: CatalogKind[] =
     kind === 'all' ? ['track', 'artist', 'album'] : [kind];
+  const partial: SearchResponse[] = [];
   const responses = await Promise.allSettled(
-    kinds.map((type) => searchCatalog(q, type, signal)),
+    kinds.map(async (type) => {
+      const result = await searchCatalog(q, type, signal);
+      partial.push(result);
+      if (!signal.aborted)
+        onPartial?.({
+          items: partial.flatMap((r) => r.items),
+          missingKinds: [],
+        });
+      return result;
+    }),
   );
   if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
   const successful = responses.flatMap((result) =>

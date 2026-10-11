@@ -13,9 +13,9 @@ separate dai percorsi normali; le demo del player richiedono `?screen=player&dem
 Il secondo intervento aggiunge risultati misti con filtri, query recenti eliminabili,
 menu playlist, rinomina su richiesta, modalità modifica con trascinamento/frecce,
 rimozione annullabile e riproduzione da un indice mantenendo la coda completa.
-Restano URL dei dettagli, paginazione della ricerca, backup e sincronizzazione.
+Il terzo intervento aggiunge account e profili, archivio SQLite, sincronizzazione con conflitti espliciti, backup/importazione, migrazione ospite e suggerimenti personali. La risoluzione audio è supervisionata in un processo separato e il deploy HTTPS può richiedere il login. Restano URL dei dettagli, paginazione, isolamento OS più forte e misure fisiche su iPhone.
 
-Le parti rimanenti delle fasi 2–4 e i criteri di ricerca con persone/dispositivi fisici restano da
+Le parti rimanenti delle fasi 2–4 (in particolare prestazioni e prove fisiche) e i criteri di ricerca con persone/dispositivi fisici restano da
 completare. Le voci seguenti descrivono la direzione complessiva, non una parità
 già raggiunta con Spotify o YouTube Music.
 

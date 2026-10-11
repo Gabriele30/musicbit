@@ -11,8 +11,10 @@ flowchart LR
   API --> Catalog[CatalogService: bounded metadata cache]
   API --> Streams[AudioStreamService: resolver and proxy]
   Catalog --> Provider[Unofficial YouTube Music adapter]
-  Streams --> Provider
-  UI --> Local[Browser local storage]
+  Streams --> Supervisor[Provider process supervisor]
+  Supervisor --> Provider
+  UI --> Local[Account-scoped browser cache and sessions]
+  API --> Accounts[Accounts and revisioned SQLite libraries]
   SW[Service worker: app shell only] --> UI
 ```
 
@@ -47,7 +49,7 @@ Shared runtime validators reject malformed identifiers, URLs and response metada
 
 The separate playback adapter resolves streams, prefers AAC-LC/m4a and keeps signed descriptors in expiring memory caches. The proxy handles Range, HEAD, stale descriptors, upstream errors and client disconnection. Upstream signed URLs stay behind the API.
 
-The adapter currently evaluates upstream player/integrity code in the API process. It is not a process security boundary. Further isolation and authenticated hosting are open work; see [SECURITY.md](../SECURITY.md).
+Audio resolution now executes upstream player/integrity code in a separate supervised process. The child receives video IDs over IPC, has a minimal environment, a 256 MB V8 heap limit and deadlines, and is recycled when idle or after bounded work. Node permissions deny filesystem writes and process creation; SQLite and native addons are disabled. This is defense in depth, not a full hostile-code sandbox; see [SECURITY.md](../SECURITY.md).
 
 ## Interface state
 
@@ -57,7 +59,7 @@ Search combines three bounded category requests, tolerates partial failures and 
 
 The library uses a versioned, validated local model for favorites, playlists, recent listening, saved albums and followed artists. Playlist menus separate listening from editing. Reordering supports drag and directional buttons; undo reinserts a removed track without overwriting later edits.
 
-These data are per browser. There is no account database or cross-device merge. Storage errors are surfaced without disabling playback. Export/import and shareable detail URLs are planned.
+Guest data remain per browser. Signed-in libraries use SQLite and revision-checked writes; polling/focus/connectivity updates synchronize devices. Conflicts preserve both versions until an explicit choice; there is no automatic merge. Account-specific request headers prevent cross-tab account changes from mixing libraries. JSON backups and guest import are available. Playback queues and recent searches remain scoped to account and browser. Shareable detail URLs remain planned. See [account contracts and operations](accounts.md).
 
 ## PWA and serving
 

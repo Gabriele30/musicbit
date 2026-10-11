@@ -20,6 +20,7 @@
     "test:e2e": "playwright test",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "assets": "node scripts/generate-assets.mjs",
+    "accounts:create": "node --env-file-if-exists=.env scripts/create-accounts.mjs",
     "smoke": "node scripts/smoke.mjs",
     "smoke:browser": "node scripts/real-audio-smoke.mjs",
     "smoke:audio": "node scripts/audio-live-smoke.mjs",

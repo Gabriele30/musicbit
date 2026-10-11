@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 
 export type IconName =
+  | 'user'
   | 'home'
   | 'search'
   | 'music'
@@ -24,6 +25,7 @@ export type IconName =
   | 'library'
   | 'heart';
 const paths: Record<IconName, string> = {
+  user: 'M20 21v-2a7 7 0 0 0-14 0v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8',
   more: 'M5 12h.01 M12 12h.01 M19 12h.01',
   settings: 'M4 7h16 M4 17h16 M8 4v6 M16 14v6',
   refresh: 'M20 7V3l-3 3a8 8 0 1 0 3 9 M20 3h-5',

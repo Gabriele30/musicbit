@@ -1,4 +1,5 @@
-import type { Track } from '@musicbit/shared';
+import { PLAYBACK_QUEUE_LIMIT, type Track } from '@musicbit/shared';
+import { shuffled } from './random';
 
 export type PlaybackStatus =
   | 'idle'
@@ -481,12 +482,17 @@ export class PlayerEngine {
     this.updateMetadata();
   }
   enqueue(track: Track) {
-    this.enqueueMany([track]);
+    return this.enqueueMany([track]);
   }
   enqueueMany(tracks: Track[]) {
-    if (!tracks.length) return;
+    if (
+      !tracks.length ||
+      this.state.queue.length + tracks.length > PLAYBACK_QUEUE_LIMIT
+    )
+      return false;
     this.patch({ queue: [...this.state.queue, ...tracks] });
     if (this.state.queue.length === tracks.length) this.updateMetadata();
+    return true;
   }
   playCollection(tracks: Track[], startIndex = 0) {
     if (!tracks.length) return;
@@ -513,6 +519,33 @@ export class PlayerEngine {
     });
     this.updateMetadata();
   }
+  /** Account changes stop the previous session while retaining the lifetime audio node. */
+  resetSession() {
+    this.clearDeadline();
+    ++this.command;
+    this.resumePosition = 0;
+    this.pendingSeek = undefined;
+    this.releaseSource();
+    this.patch({
+      queue: [],
+      index: 0,
+      position: 0,
+      duration: 0,
+      status: 'idle',
+      repeat: 'off',
+      autoplay: true,
+      autoplayTracks: [],
+      autoplayStatus: 'idle',
+      preparation: undefined,
+      catalog: undefined,
+      attempts: [],
+      events: [],
+      networkTimings: [],
+      error: null,
+    });
+    this.updateMetadata();
+    this.setPlaybackState('none');
+  }
   cycleRepeat() {
     const modes: RepeatMode[] = ['off', 'all', 'one'];
     this.patch({
@@ -536,7 +569,9 @@ export class PlayerEngine {
       this.state.queue[this.state.index]?.id !== seedId
     )
       return;
-    const queued = new Set(this.state.queue.map((track) => track.id));
+    const queued = new Set(
+      this.state.queue.slice(-200).map((track) => track.id),
+    );
     const unique = new Map(
       tracks
         .filter((track) => !queued.has(track.id))
@@ -546,27 +581,38 @@ export class PlayerEngine {
       autoplayTracks: [...unique.values()],
       autoplayStatus: status,
     });
+    if (status === 'ready' && this.state.status === 'ended' && unique.size)
+      this.advanceAutoplay('ended');
   }
   private advanceAutoplay(trigger: Trigger): boolean {
     const track =
       this.state.autoplay &&
       this.state.autoplayTracks.find(
-        (item) => !this.state.queue.some((queued) => queued.id === item.id),
+        (item) =>
+          !this.state.queue.slice(-200).some((queued) => queued.id === item.id),
       );
     if (!track) return false;
-    const index = this.state.queue.length;
-    this.patch({ queue: [...this.state.queue, track], autoplayTracks: [] });
+    const queue =
+      this.state.queue.length >= 500
+        ? this.state.queue.slice(-200)
+        : this.state.queue;
+    const index = queue.length;
+    this.patch({
+      queue: [...queue, track],
+      index: index - 1,
+      autoplayTracks: [],
+    });
     this.select(index, trigger);
     return true;
   }
   shuffleUpcoming() {
-    const queue = [...this.state.queue];
-    for (let i = queue.length - 1; i > this.state.index + 1; i--) {
-      const first = this.state.index + 1;
-      const other = first + Math.floor(Math.random() * (i - first + 1));
-      [queue[i], queue[other]] = [queue[other]!, queue[i]!];
-    }
-    this.patch({ queue });
+    this.patch({ queue: shuffled(this.state.queue, this.state.index + 1) });
+  }
+  startRadio(tracks: Track[]) {
+    if (!tracks.length) return;
+    if (!this.state.autoplay) this.toggleAutoplay();
+    if (this.state.repeat !== 'off') this.patch({ repeat: 'off' });
+    this.playCollection(tracks);
   }
   removeUpcoming(index: number) {
     if (index <= this.state.index || index >= this.state.queue.length) return;
@@ -866,7 +912,16 @@ export class PlayerEngine {
   }
   private updateMetadata() {
     const track = this.state.queue[this.state.index];
-    if (!this.session || !track || typeof MediaMetadata === 'undefined') return;
+    if (!this.session) return;
+    if (!track) {
+      try {
+        this.session.metadata = null;
+      } catch {
+        /* Unsupported individual Media Session fields do not affect playback. */
+      }
+      return;
+    }
+    if (typeof MediaMetadata === 'undefined') return;
     try {
       this.session.metadata = new MediaMetadata({
         title: track.title,

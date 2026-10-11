@@ -25,6 +25,14 @@ import { PlaylistPicker } from './components/PlaylistPicker';
 import { ActionMenu } from './components/ActionMenu';
 import { CoverArt } from './components/CoverArt';
 import { useLibrary } from './library';
+import { useAccount, type AccountModel } from './account';
+import { useLibrarySync } from './library-sync';
+import { Profile } from './components/Profile';
+import { connectSessionPersistence, SESSION_KEY } from './player/session';
+import { useCloudSession } from './player/cloud-session';
+import { useListening } from './player/listening';
+import { Wrapped } from './components/Wrapped';
+import { AiPlaylist } from './components/AiPlaylist';
 
 type Screen =
   | 'home'
@@ -32,6 +40,9 @@ type Screen =
   | 'search'
   | 'library'
   | 'queue'
+  | 'profile'
+  | 'wrapped'
+  | 'ai-playlist'
   | 'diagnostics';
 const screens: { id: Screen; label: string; icon: IconName }[] = [
   { id: 'home', label: 'Home', icon: 'home' },
@@ -48,7 +59,10 @@ export const formatTime = (seconds: number) => {
 };
 const readScreen = (): Screen => {
   const value = new URLSearchParams(location.search).get('screen');
-  return value === 'diagnostics' ||
+  return value === 'wrapped' ||
+    value === 'ai-playlist' ||
+    value === 'profile' ||
+    value === 'diagnostics' ||
     value === 'search' ||
     value === 'queue' ||
     value === 'library'
@@ -59,9 +73,65 @@ const readScreen = (): Screen => {
 };
 
 export function App({ player }: { player: PlayerEngine }) {
+  const account = useAccount();
+  const scope = account.user?.id ?? 'guest';
+  const previousScope = useRef<string | undefined>(undefined);
+  const [connectedScope, setConnectedScope] = useState<string>('guest');
+  useEffect(() => {
+    if (account.loading) return;
+    if (previousScope.current && previousScope.current !== scope)
+      player.resetSession();
+    previousScope.current = scope;
+    const disconnect = connectSessionPersistence(
+      player,
+      undefined,
+      scope === 'guest' ? SESSION_KEY : `${SESSION_KEY}:${scope}`,
+    );
+    setConnectedScope(scope);
+    return disconnect;
+  }, [player, scope, account.loading]);
+  if (!account.loading && connectedScope !== scope)
+    return (
+      <p className="banner" role="status">
+        Apriamo il tuo spazio musicale…
+      </p>
+    );
+  return <MusicApp key={scope} player={player} account={account} />;
+}
+
+function MusicApp({
+  player,
+  account,
+}: {
+  player: PlayerEngine;
+  account: AccountModel;
+}) {
   const state = useSyncExternalStore(player.subscribe, player.getSnapshot);
-  const library = useLibrary();
+  const library = useLibrary(account.user?.id ?? 'guest');
+  const sync = useLibrarySync(library, account.user?.id);
+  const cloud = useCloudSession(player, account.user?.id);
+  const listeningError = useListening(player, account.user?.id);
   const { favorites, toggleFavorite, recordHistory, storageError } = library;
+  const { recordOutcome } = library;
+  const lastListening = useRef(state);
+  useEffect(() => {
+    const previous = lastListening.current;
+    lastListening.current = state;
+    const track = previous.queue[previous.index];
+    if (
+      track &&
+      track.id !== state.queue[state.index]?.id &&
+      previous.status === 'playing'
+    )
+      recordOutcome(
+        track.id,
+        previous.duration > 0 && previous.position >= previous.duration - 3
+          ? 'completed'
+          : 'skipped',
+      );
+    else if (track && state.status === 'ended' && previous.status !== 'ended')
+      recordOutcome(track.id, 'completed');
+  }, [state, recordOutcome]);
   const [openRequest, setOpenRequest] = useState<{
     item: CatalogItem;
     nonce: number;
@@ -196,13 +266,19 @@ export function App({ player }: { player: PlayerEngine }) {
     const index = state.queue.findIndex((item) => item.id === track.id);
     if (index >= 0) player.select(index);
     else {
-      player.enqueue(track);
-      player.select(state.queue.length);
+      if (player.enqueue(track)) player.select(state.queue.length);
+      else
+        setNotice(
+          'Coda piena: rimuovi qualche brano prima di aggiungerne altri.',
+        );
     }
   };
   const enqueueTrack = (track: Track) => {
-    player.enqueue(track);
-    setNotice(`"${track.title}" aggiunta alla coda`);
+    setNotice(
+      player.enqueue(track)
+        ? `"${track.title}" aggiunta alla coda`
+        : 'Coda piena: rimuovi qualche brano prima di aggiungerne altri.',
+    );
   };
   const playAlbum = (albumTracks: Track[]) => {
     if (!albumTracks.length) return;
@@ -260,7 +336,13 @@ export function App({ player }: { player: PlayerEngine }) {
                   ? 'Chiudi coda'
                   : screen === 'player'
                     ? 'Chiudi player'
-                    : 'Chiudi diagnostica'
+                    : screen === 'profile'
+                      ? 'Chiudi profilo'
+                      : screen === 'wrapped'
+                        ? 'Chiudi Wrapped'
+                        : screen === 'ai-playlist'
+                          ? 'Chiudi playlist AI'
+                          : 'Chiudi diagnostica'
               }
               onClick={closeScreen}
             >
@@ -286,10 +368,32 @@ export function App({ player }: { player: PlayerEngine }) {
               ? 'In ascolto'
               : screen === 'queue'
                 ? 'La tua coda'
-                : (screens.find((item) => item.id === screen)?.label ??
-                  'Diagnostica')}
+                : screen === 'profile'
+                  ? 'Il tuo profilo'
+                  : screen === 'wrapped'
+                    ? 'MusicBit Wrapped'
+                    : screen === 'ai-playlist'
+                      ? 'Playlist AI'
+                      : (screens.find((item) => item.id === screen)?.label ??
+                        'Diagnostica')}
           </span>
           <div className="topbar-actions">
+            <button
+              className="profile-trigger"
+              aria-label={
+                account.user
+                  ? `Profilo di ${account.user.displayName}`
+                  : 'Accedi al tuo profilo'
+              }
+              onClick={() => setScreen('profile')}
+              style={{ background: account.user?.color ?? undefined }}
+            >
+              {account.user ? (
+                account.user.displayName.slice(0, 1).toUpperCase()
+              ) : (
+                <Icon name="user" size={20} />
+              )}
+            </button>
             {screen === 'player' && current && (
               <button
                 className="icon-button"
@@ -313,6 +417,13 @@ export function App({ player }: { player: PlayerEngine }) {
               title="Il tuo spazio"
               icon="settings"
               actions={[
+                {
+                  label: account.user
+                    ? 'Il tuo profilo'
+                    : 'Accedi o crea account',
+                  icon: 'user',
+                  onSelect: () => setScreen('profile'),
+                },
                 ...(current
                   ? [
                       {
@@ -327,6 +438,16 @@ export function App({ player }: { player: PlayerEngine }) {
                       },
                     ]
                   : []),
+                {
+                  label: 'MusicBit Wrapped',
+                  icon: 'pulse',
+                  onSelect: () => setScreen('wrapped'),
+                },
+                {
+                  label: 'Crea playlist con AI',
+                  icon: 'music',
+                  onSelect: () => setScreen('ai-playlist'),
+                },
                 {
                   label: 'Diagnostica',
                   icon: 'pulse',
@@ -352,7 +473,13 @@ export function App({ player }: { player: PlayerEngine }) {
                           ? 'Libreria'
                           : screen === 'queue'
                             ? 'A seguire'
-                            : 'Diagnostica audio'}
+                            : screen === 'wrapped'
+                              ? 'Il tuo anno in musica'
+                              : screen === 'ai-playlist'
+                                ? 'Playlist AI'
+                                : screen === 'profile'
+                                  ? 'Profilo'
+                                  : 'Diagnostica audio'}
                   </h1>
                 </div>
               </div>
@@ -367,6 +494,78 @@ export function App({ player }: { player: PlayerEngine }) {
             <p className="banner error" role="alert">
               {storageError}
             </p>
+          )}
+          {account.user && sync.message && screen !== 'profile' && (
+            <p className="banner" role="status">
+              {sync.message}{' '}
+              <button onClick={() => setScreen('profile')}>Apri profilo</button>
+            </p>
+          )}
+          {account.user && sync.status === 'loading' && (
+            <p className="banner" role="status">
+              Caricamento della tua libreria…
+            </p>
+          )}
+          {screen === 'profile' && (
+            <Profile account={account} library={library} sync={sync} />
+          )}
+          {listeningError && (
+            <p className="banner" role="status">
+              {listeningError}
+            </p>
+          )}
+          {cloud.remote?.session && (
+            <section
+              className="resume-listening"
+              aria-label="Riprendi su questo dispositivo"
+            >
+              <div>
+                <small>
+                  DA UN ALTRO DISPOSITIVO ·{' '}
+                  {new Date(cloud.remote.updatedAt).toLocaleString('it-IT')}
+                </small>
+                <strong>
+                  {
+                    cloud.remote.session.queue[cloud.remote.session.index]
+                      ?.title
+                  }
+                </strong>
+                <span>
+                  {formatTime(cloud.remote.session.position)} ·{' '}
+                  {cloud.remote.session.queue.length} brani in coda
+                </span>
+              </div>
+              <button className="primary-play-btn" onClick={cloud.resume}>
+                <Icon name="play" size={18} />
+                Riprendi qui
+              </button>
+            </section>
+          )}
+          {cloud.message && screen === 'profile' && (
+            <p className="banner" role="status">
+              {cloud.message}
+            </p>
+          )}
+          {screen === 'wrapped' && (
+            <Wrapped
+              accountId={account.user?.id}
+              onPlay={playTrack}
+              onSearch={(q) => searchFor(q)}
+            />
+          )}
+          {screen === 'ai-playlist' && (
+            <AiPlaylist
+              accountId={account.user?.id}
+              library={library}
+              onSignIn={() => setScreen('profile')}
+              onPlayAll={playAlbum}
+              onSaved={(id) => {
+                setPlaylistId(id);
+                setLibraryTab('playlists');
+                setScreen('library');
+                setNotice('Playlist AI salvata.');
+              }}
+            />
           )}
           {(screen === 'diagnostics' || demoMode) &&
             catalogStatus === 'loading' && (
@@ -394,6 +593,12 @@ export function App({ player }: { player: PlayerEngine }) {
               active={screen === 'home'}
               library={library}
               suggestions={state.autoplayTracks}
+              accountId={account.user?.id}
+              syncStatus={sync.status}
+              onPlayAll={playAlbum}
+              onWrapped={() => setScreen('wrapped')}
+              onAiPlaylist={() => setScreen('ai-playlist')}
+              onTasteProfile={() => setScreen('profile')}
               onOpen={openItem}
               onPlay={playTrack}
               onSearch={searchFor}
@@ -613,8 +818,7 @@ export function App({ player }: { player: PlayerEngine }) {
                             className="icon-button add-button"
                             aria-label={`Aggiungi ${track.title} alla coda`}
                             onClick={() => {
-                              player.enqueue(track);
-                              setNotice(`${track.title} aggiunta alla coda`);
+                              enqueueTrack(track);
                             }}
                           >
                             <Icon name="plus" size={19} />
@@ -814,6 +1018,18 @@ export function App({ player }: { player: PlayerEngine }) {
           </div>
           <div hidden={screen !== 'search'}>
             <Search
+              accountScope={account.user?.id ?? 'guest'}
+              localTracks={[
+                ...library.favorites,
+                ...library.history.map((h) => h.track),
+              ]}
+              localItems={[...library.savedAlbums, ...library.followedArtists]}
+              onStartRadio={(radioTracks) => {
+                player.startRadio(radioTracks);
+                setNotice(
+                  'Radio avviata. La musica continua con brani correlati.',
+                );
+              }}
               active={screen === 'search'}
               onDetailChange={setCatalogDetailOpen}
               onPlayTrack={(track) => {
@@ -833,8 +1049,11 @@ export function App({ player }: { player: PlayerEngine }) {
               onToggleSaved={library.toggleSavedItem}
               onAddPlaylist={setPlaylistTracks}
               onEnqueueAlbum={(albumTracks) => {
-                player.enqueueMany(albumTracks);
-                setNotice(`${albumTracks.length} brani aggiunti alla coda`);
+                setNotice(
+                  player.enqueueMany(albumTracks)
+                    ? `${albumTracks.length} brani aggiunti alla coda`
+                    : 'Coda piena: rimuovi qualche brano prima di aggiungerne altri.',
+                );
               }}
             />
           </div>

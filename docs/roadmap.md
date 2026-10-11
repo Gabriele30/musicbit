@@ -10,20 +10,25 @@ MusicBit aims to make self-hosted music comfortable for daily use. This roadmap 
 - Local playlists with editing, reordering, shuffle and undo for track removal.
 - Persistent audio, editable queue, repeat and staged autoplay recommendations.
 - Responsive desktop/mobile layouts and an installable PWA with an offline shell.
+- Accounts, editable profiles, persistent server libraries and revision-based sync with explicit conflict recovery.
+- Library JSON export/import, guest migration and personal recommendation controls.
+- Supervised provider process and optional authenticated catalog/audio access with traffic limits.
+- Immediate local search suggestions and incremental catalog categories.
+- Track/artist radio, uniform shuffle and explicit cross-device queue/position resumption.
+- Automatic personal mixes, editable artist Taste Profile and year-round Wrapped statistics.
+- AI playlist previews with verified catalog matches, enabled by a server-side OpenAI API key.
 - Deterministic unit and browser tests, plus optional live-provider probes.
 
 ## Next priorities
 
-- Library export/import and recovery from browser storage loss.
 - Shareable URLs for artists, albums and playlists, preserving back navigation.
 - Search pagination and improved matching beyond the initial result window.
 - Physical iPhone testing for background transitions, lock-screen controls and audio interruptions.
-- Provider execution isolation and clearer operational controls for hosted instances.
+- Stronger OS/container isolation for exposed providers and measured startup optimization.
 
 ## Later exploration
 
-- Optional accounts and cross-device library synchronization with conflict handling.
-- Recommendations informed by an explicit personal listening profile.
+- Automatic conflict merging and finer recommendation quality/diversity controls.
 - Interface localization and usability testing with new listeners.
 - Lyrics, gapless playback and crossfade, subject to provider support and the audio architecture.
 

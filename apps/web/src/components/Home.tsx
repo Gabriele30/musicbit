@@ -5,7 +5,11 @@ import {
   type CatalogKind,
   type FeedResponse,
   type Track,
+  personalRecommendations,
+  isCatalogItem,
+  automaticMixes,
 } from '@musicbit/shared';
+import { accountRequest } from '../account';
 import { homeFeed } from '../search-api';
 import type { LibraryModel } from '../library';
 import { Icon } from './Icon';
@@ -103,6 +107,12 @@ export function Home({
   onSearch,
   onLibrary,
   onPlaylist,
+  accountId,
+  syncStatus,
+  onPlayAll,
+  onWrapped,
+  onAiPlaylist,
+  onTasteProfile,
 }: {
   active: boolean;
   library: LibraryModel;
@@ -112,11 +122,57 @@ export function Home({
   onSearch: (q?: string, kind?: CatalogKind) => void;
   onLibrary: () => void;
   onPlaylist: (id: string) => void;
+  accountId?: string;
+  syncStatus?: string;
+  onPlayAll?: (tracks: Track[]) => void;
+  onWrapped?: () => void;
+  onAiPlaylist?: () => void;
+  onTasteProfile?: () => void;
 }) {
   const [feed, setFeed] = useState<FeedResponse>();
   const [error, setError] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [filter, setFilter] = useState<CatalogKind | 'all'>('all');
+  const [personalCandidates, setPersonalCandidates] = useState<CatalogItem[]>(
+    [],
+  );
+  useEffect(() => {
+    if (!active || !accountId || syncStatus !== 'saved') return;
+    const controller = new AbortController();
+    void accountRequest<{ items: { item: CatalogItem }[] }>(
+      '/api/me/recommendations',
+      undefined,
+      'GET',
+      controller.signal,
+    )
+      .then((data) => {
+        if (!controller.signal.aborted)
+          setPersonalCandidates(
+            data.items.map((v) => v.item).filter(isCatalogItem),
+          );
+      })
+      .catch(() => {
+        /* The normal feed and locally ranked suggestions remain usable. */
+      });
+    return () => controller.abort();
+  }, [active, accountId, syncStatus, refresh]);
+  const hasListeningProfile =
+    library.favorites.length > 0 ||
+    library.followedArtists.length > 0 ||
+    library.history.length > 0;
+  const personal = hasListeningProfile
+    ? personalRecommendations(library.snapshot, [
+        ...personalCandidates,
+        ...(feed?.sections.flatMap((s) => s.items) ?? []),
+      ])
+    : [];
+  const mixes = hasListeningProfile
+    ? automaticMixes(library.snapshot, [
+        ...personalCandidates,
+        ...(feed?.sections.flatMap((s) => s.items) ?? []),
+      ])
+    : [];
+  const [mixNotice, setMixNotice] = useState('');
   useEffect(() => {
     if (!active) return;
     const controller = new AbortController();
@@ -164,6 +220,121 @@ export function Home({
       </div>
       {filter === 'all' && (
         <>
+          <div className="experience-shortcuts">
+            <button onClick={onWrapped}>
+              <Icon name="pulse" />
+              <span>
+                <strong>Il tuo Wrapped</strong>
+                <small>Il tuo anno, ogni giorno</small>
+              </span>
+              <Icon name="arrow" size={18} />
+            </button>
+            <button onClick={onAiPlaylist}>
+              <Icon name="music" />
+              <span>
+                <strong>Crea con AI</strong>
+                <small>Descrivi la tua prossima playlist</small>
+              </span>
+              <Icon name="arrow" size={18} />
+            </button>
+            <button onClick={onTasteProfile}>
+              <Icon name="settings" />
+              <span>
+                <strong>Taste Profile</strong>
+                <small>Affina ciò che ti rappresenta</small>
+              </span>
+              <Icon name="arrow" size={18} />
+            </button>
+          </div>
+          {!!mixes.length && (
+            <section className="feed-section automatic-mixes">
+              <div className="section-heading">
+                <h2>Mix che cambiano con te</h2>
+                <span className="muted">Aggiornati dai tuoi ascolti</span>
+              </div>
+              <div className="mix-grid">
+                {mixes.map((mix, i) => (
+                  <article key={mix.id} className={`mix-card mix-${i}`}>
+                    <div className="mix-art">
+                      <Icon
+                        name={
+                          i === 0 ? 'music' : i === 1 ? 'repeat' : 'shuffle'
+                        }
+                        size={36}
+                      />
+                      <span>MUSICBIT MIX</span>
+                    </div>
+                    <h3>{mix.name}</h3>
+                    <p>{mix.description}</p>
+                    <small>{mix.tracks.length} brani</small>
+                    <div className="profile-actions">
+                      <button
+                        className="primary-play-btn"
+                        aria-label={`Riproduci ${mix.name}`}
+                        onClick={() => onPlayAll?.(mix.tracks)}
+                      >
+                        <Icon name="play" size={18} />
+                        Ascolta
+                      </button>
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          const id = library.createPlaylist(
+                            mix.name,
+                            mix.tracks,
+                          );
+                          setMixNotice(
+                            id
+                              ? `${mix.name} salvato come playlist modificabile.`
+                              : 'Impossibile salvare: limite della libreria raggiunto.',
+                          );
+                        }}
+                      >
+                        Salva mix
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              {mixNotice && <p role="status">{mixNotice}</p>}
+            </section>
+          )}
+          {!!personal.length && (
+            <section className="feed-section personal-section">
+              <div className="section-heading">
+                <h2>Scelti per te</h2>
+                <span className="muted">Dai tuoi ascolti e preferiti</span>
+              </div>
+              <div className="personal-grid">
+                {personal.slice(0, 4).map(({ item, reason }) => (
+                  <article key={item.id} className="personal-track">
+                    <button
+                      className="personal-play"
+                      onClick={() => onPlay(catalogItemToTrack(item))}
+                      aria-label={`Riproduci ${item.title}`}
+                    >
+                      <CoverArt src={item.artworkUrl} title={item.title} />
+                      <span>
+                        <strong>{item.title}</strong>
+                        <small>{item.artist}</small>
+                        <small className="recommendation-reason">
+                          {reason}
+                        </small>
+                      </span>
+                      <Icon name="play" size={18} />
+                    </button>
+                    <button
+                      className="text-button"
+                      onClick={() => library.dismissTrack(item.id)}
+                      aria-label={`Meno come ${item.title}`}
+                    >
+                      Meno come questo
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
           <TrackShelf
             title="Ascoltati di recente"
             tracks={library.history.map((entry) => entry.track)}

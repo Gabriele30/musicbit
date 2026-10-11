@@ -35,7 +35,7 @@ export function Library({
         </span>
       </div>
       <p className="muted">
-        Salvati su questo dispositivo. Per ascoltarli serve una connessione.
+        La musica che vuoi ritrovare. Per ascoltarla serve una connessione.
       </p>
       {tracks.length ? (
         <>

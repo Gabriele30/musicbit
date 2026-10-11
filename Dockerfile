@@ -26,6 +26,9 @@ COPY --from=build --chown=node:node /app/apps/api/dist ./apps/api/dist
 COPY --from=build --chown=node:node /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build --chown=node:node /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build --chown=node:node /app/packages/shared/package.json ./packages/shared/package.json
+COPY --from=build --chown=node:node /app/scripts/create-accounts.mjs ./scripts/create-accounts.mjs
+RUN mkdir -p /data && chown node:node /data && chmod 700 /data
+ENV MUSICBIT_DB_PATH=/data/musicbit.sqlite
 USER node
 EXPOSE 3001
 CMD ["node", "apps/api/dist/server.js"]

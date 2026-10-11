@@ -1,6 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer, type SetStateAction } from 'react';
 import {
-  isCatalogItem,
+  isLocalLibrary,
+  emptyLibrary,
+  emptyTaste,
+  cleanLibrary,
+  type LocalLibrary,
+  type Playlist,
+  type ListeningTaste,
   isTracksResponse,
   type CatalogItem,
   type Track,
@@ -8,32 +14,8 @@ import {
 
 export const FAVORITES_KEY = 'musicbit.favorites.v1';
 export const LIBRARY_KEY = 'musicbit.library.v1';
-export interface Playlist {
-  id: string;
-  name: string;
-  tracks: Track[];
-  updatedAt: number;
-}
-export interface HistoryEntry {
-  track: Track;
-  playedAt: number;
-}
-export interface LocalLibrary {
-  version: 1;
-  favorites: Track[];
-  playlists: Playlist[];
-  history: HistoryEntry[];
-  savedAlbums: CatalogItem[];
-  followedArtists: CatalogItem[];
-}
-const empty = (): LocalLibrary => ({
-  version: 1,
-  favorites: [],
-  playlists: [],
-  history: [],
-  savedAlbums: [],
-  followedArtists: [],
-});
+export type { Playlist, HistoryEntry, LocalLibrary } from '@musicbit/shared';
+const empty = emptyLibrary;
 const validTracks = (tracks: unknown): tracks is Track[] =>
   Array.isArray(tracks) &&
   tracks.length <= 1000 &&
@@ -48,95 +30,98 @@ export function readFavorites(): Track[] {
     return [];
   }
 }
-export function readLibrary(): LocalLibrary {
-  const fallback = { ...empty(), favorites: readFavorites() };
+export function readLibrary(scope = 'guest'): LocalLibrary {
+  const fallback = {
+    ...empty(),
+    favorites: scope === 'guest' ? readFavorites() : [],
+  };
   try {
-    const raw = localStorage.getItem(LIBRARY_KEY);
+    const raw = localStorage.getItem(
+      scope === 'guest' ? LIBRARY_KEY : `${LIBRARY_KEY}:${scope}`,
+    );
     if (!raw || raw.length > 5_000_000) return fallback;
     const data = JSON.parse(raw) as LocalLibrary;
-    if (
-      data?.version !== 1 ||
-      !validTracks(data.favorites) ||
-      !Array.isArray(data.playlists) ||
-      data.playlists.length > 100 ||
-      !data.playlists.every(
-        (list) =>
-          list &&
-          typeof list.id === 'string' &&
-          typeof list.name === 'string' &&
-          list.name.length > 0 &&
-          list.name.length <= 80 &&
-          Number.isFinite(list.updatedAt) &&
-          validTracks(list.tracks),
-      ) ||
-      new Set(data.playlists.map((list) => list.id)).size !==
-        data.playlists.length ||
-      !Array.isArray(data.history) ||
-      data.history.length > 100 ||
-      !data.history.every(
-        (entry) =>
-          entry &&
-          validTracks([entry.track]) &&
-          Number.isFinite(entry.playedAt),
-      ) ||
-      !Array.isArray(data.savedAlbums) ||
-      data.savedAlbums.length > 200 ||
-      !data.savedAlbums.every(
-        (item) => isCatalogItem(item) && item.kind === 'album',
-      ) ||
-      !Array.isArray(data.followedArtists) ||
-      data.followedArtists.length > 200 ||
-      !data.followedArtists.every(
-        (item) => isCatalogItem(item) && item.kind === 'artist',
-      )
-    )
-      return fallback;
-    return {
-      version: 1,
-      favorites: data.favorites,
-      playlists: data.playlists,
-      history: data.history,
-      savedAlbums: data.savedAlbums,
-      followedArtists: data.followedArtists,
-    };
+    if (!isLocalLibrary(data)) return fallback;
+    return cleanLibrary(data);
   } catch {
     return fallback;
   }
 }
-export function useLibrary() {
-  const [library, setLibrary] = useState(readLibrary);
-  const [storageError, setStorageError] = useState('');
+export function useLibrary(scope = 'guest') {
+  type LibraryState = { library: LocalLibrary; storageError: string };
+  type LibraryAction =
+    | { edit: SetStateAction<LocalLibrary> }
+    | { error: string };
+  const [{ library, storageError }, dispatch] = useReducer(
+    (current: LibraryState, action: LibraryAction): LibraryState => {
+      if ('error' in action)
+        return current.storageError === action.error
+          ? current
+          : { ...current, storageError: action.error };
+      const next =
+        typeof action.edit === 'function'
+          ? action.edit(current.library)
+          : action.edit;
+      if (!isLocalLibrary(next))
+        return {
+          ...current,
+          storageError:
+            'La libreria ha raggiunto il limite di spazio. Esporta un backup e riduci la raccolta prima di aggiungere altri elementi.',
+        };
+      return { library: next, storageError: '' };
+    },
+    scope,
+    (key) => ({ library: readLibrary(key), storageError: '' }),
+  );
+  const setLibrary = useCallback(
+    (edit: SetStateAction<LocalLibrary>) => dispatch({ edit }),
+    [],
+  );
+  const setStorageError = useCallback(
+    (error: string) => dispatch({ error }),
+    [],
+  );
   useEffect(() => {
     try {
-      localStorage.setItem(LIBRARY_KEY, JSON.stringify(library));
       localStorage.setItem(
-        FAVORITES_KEY,
-        JSON.stringify({ version: 1, tracks: library.favorites }),
+        scope === 'guest' ? LIBRARY_KEY : `${LIBRARY_KEY}:${scope}`,
+        JSON.stringify(library),
       );
+      if (scope === 'guest')
+        localStorage.setItem(
+          FAVORITES_KEY,
+          JSON.stringify({ version: 1, tracks: library.favorites }),
+        );
       setStorageError('');
     } catch {
       setStorageError(
         'Impossibile salvare la libreria su questo dispositivo. Verifica lo spazio o le impostazioni del browser.',
       );
     }
-  }, [library]);
-  const toggleFavorite = useCallback((track: Track) => {
-    setLibrary((current) => ({
-      ...current,
-      favorites: current.favorites.some((item) => item.id === track.id)
-        ? current.favorites.filter((item) => item.id !== track.id)
-        : [track, ...current.favorites].slice(0, 1000),
-    }));
-  }, []);
-  const recordHistory = useCallback((track: Track) => {
-    setLibrary((current) => ({
-      ...current,
-      history: [
-        { track, playedAt: Date.now() },
-        ...current.history.filter((entry) => entry.track.id !== track.id),
-      ].slice(0, 100),
-    }));
-  }, []);
+  }, [library, scope, setStorageError]);
+  const toggleFavorite = useCallback(
+    (track: Track) => {
+      setLibrary((current) => ({
+        ...current,
+        favorites: current.favorites.some((item) => item.id === track.id)
+          ? current.favorites.filter((item) => item.id !== track.id)
+          : [track, ...current.favorites].slice(0, 1000),
+      }));
+    },
+    [setLibrary],
+  );
+  const recordHistory = useCallback(
+    (track: Track) => {
+      setLibrary((current) => ({
+        ...current,
+        history: [
+          { track, playedAt: Date.now() },
+          ...current.history.filter((entry) => entry.track.id !== track.id),
+        ].slice(0, 100),
+      }));
+    },
+    [setLibrary],
+  );
   const clearHistory = () =>
     setLibrary((current) => ({ ...current, history: [] }));
   const createPlaylist = (name: string, tracks: Track[] = []) => {
@@ -251,8 +236,89 @@ export function useLibrary() {
           : [item, ...current[key]].slice(0, 200),
       };
     });
+  const replaceLibrary = useCallback(
+    (value: LocalLibrary) => {
+      if (!isLocalLibrary(value)) throw new Error('Libreria non valida.');
+      setLibrary(cleanLibrary(value));
+    },
+    [setLibrary],
+  );
+  const updateTaste = useCallback(
+    (edit: (taste: ListeningTaste) => ListeningTaste) => {
+      setLibrary((current) => ({
+        ...current,
+        taste: edit(current.taste ?? emptyTaste()),
+      }));
+    },
+    [setLibrary],
+  );
+  const dismissTrack = (id: string) =>
+    updateTaste((taste) => ({
+      ...taste,
+      dismissed: [...new Set([id, ...taste.dismissed])].slice(0, 500),
+    }));
+  const setNovelty = (novelty: ListeningTaste['novelty']) =>
+    updateTaste((taste) => ({ ...taste, novelty }));
+  const resetTaste = () => updateTaste(() => emptyTaste());
+  const setArtistPreference = (
+    artist: string,
+    preference: 'auto' | 'more' | 'less' | 'blocked',
+  ) =>
+    updateTaste((taste) => ({
+      ...taste,
+      artistPreferences: [
+        ...(preference === 'auto' ? [] : [{ artist, preference }]),
+        ...(taste.artistPreferences ?? []).filter(
+          (p) =>
+            p.artist.trim().toLocaleLowerCase() !==
+            artist.trim().toLocaleLowerCase(),
+        ),
+      ].slice(0, 200),
+    }));
+  const toggleTasteExclusion = (id: string) =>
+    updateTaste((taste) => ({
+      ...taste,
+      excludedFromTaste: taste.excludedFromTaste?.includes(id)
+        ? taste.excludedFromTaste.filter((value) => value !== id)
+        : [id, ...(taste.excludedFromTaste ?? [])].slice(0, 500),
+    }));
+  const restoreDismissed = (id: string) =>
+    updateTaste((taste) => ({
+      ...taste,
+      dismissed: taste.dismissed.filter((value) => value !== id),
+    }));
+  const recordOutcome = useCallback(
+    (id: string, outcome: 'completed' | 'skipped') =>
+      updateTaste((taste) => {
+        const previous = taste.signals.find((s) => s.id === id) ?? {
+          id,
+          completed: 0,
+          skipped: 0,
+        };
+        return {
+          ...taste,
+          signals: [
+            {
+              ...previous,
+              [outcome]: Math.min(1000000, previous[outcome] + 1),
+            },
+            ...taste.signals.filter((s) => s.id !== id),
+          ].slice(0, 500),
+        };
+      }),
+    [updateTaste],
+  );
   return {
     ...library,
+    snapshot: library,
+    replaceLibrary,
+    dismissTrack,
+    setNovelty,
+    resetTaste,
+    setArtistPreference,
+    toggleTasteExclusion,
+    restoreDismissed,
+    recordOutcome,
     toggleFavorite,
     recordHistory,
     clearHistory,

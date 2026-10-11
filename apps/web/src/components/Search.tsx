@@ -22,6 +22,10 @@ import { Icon } from './Icon';
 import { ActionMenu, type MenuAction } from './ActionMenu';
 import { CoverArt } from './CoverArt';
 import { CatalogShelf } from './Home';
+import {
+  searchSuggestions,
+  type SearchSuggestion,
+} from '../search-suggestions';
 
 const labels: Record<SearchKind, string> = {
   all: 'Tutto',
@@ -128,6 +132,10 @@ export function Search({
   onToggleSaved,
   onAddPlaylist,
   onDetailChange,
+  accountScope = 'guest',
+  localTracks = [],
+  localItems = [],
+  onStartRadio,
 }: {
   active?: boolean;
   onPlayTrack?: (track: Track) => void;
@@ -142,17 +150,43 @@ export function Search({
   onToggleSaved?: (item: CatalogItem) => void;
   onAddPlaylist?: (tracks: Track[]) => void;
   onDetailChange?: (open: boolean) => void;
+  accountScope?: string;
+  localTracks?: Track[];
+  localItems?: CatalogItem[];
+  onStartRadio?: (tracks: Track[]) => void;
 }) {
   const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false),
+    [suggestionIndex, setSuggestionIndex] = useState(-1);
   const [kind, setKind] = useState<SearchKind>('all');
   const [result, setResult] =
     useState<Awaited<ReturnType<typeof searchAcrossCatalog>>>();
-  const [recent, setRecent] = useState(readRecentSearches);
+  const [recent, setRecent] = useState(() => readRecentSearches(accountScope));
   const updateRecent = (values: string[]) => {
     setRecent(values);
-    saveRecentSearches(values);
+    saveRecentSearches(values, accountScope);
   };
   const remember = () => updateRecent(rememberSearch(recent, query));
+  const suggestions = searchSuggestions(
+    query,
+    recent,
+    localTracks,
+    localItems,
+    result?.items ?? [],
+  );
+  const chooseSuggestion = (suggestion: SearchSuggestion) => {
+    setFocused(false);
+    setSuggestionIndex(-1);
+    updateRecent(rememberSearch(recent, suggestion.query ?? query));
+    if (suggestion.query) setQuery(suggestion.query);
+    else if (suggestion.track) onPlayTrack?.(suggestion.track);
+    else if (
+      suggestion.item?.kind === 'track' &&
+      suggestion.item.playback.available
+    )
+      onPlayTrack?.(catalogItemToTrack(suggestion.item));
+    else if (suggestion.item) selectItem(suggestion.item);
+  };
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(
     'idle',
   );
@@ -225,6 +259,7 @@ export function Search({
   }, [active]);
 
   useEffect(() => {
+    if (!active) return;
     const controller = new AbortController();
     const value = query.trim();
     setResult(undefined);
@@ -235,7 +270,12 @@ export function Search({
     }
     setStatus('loading');
     const timer = setTimeout(() => {
-      searchAcrossCatalog(value, kind, controller.signal)
+      searchAcrossCatalog(value, kind, controller.signal, (data) => {
+        if (!controller.signal.aborted) {
+          setResult(data);
+          setStatus('ready');
+        }
+      })
         .then((data) => {
           if (controller.signal.aborted) return;
           setResult(data);
@@ -254,12 +294,12 @@ export function Search({
               : current,
           );
         });
-    }, 350);
+    }, 150);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, kind, retry]);
+  }, [query, kind, retry, active]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -370,6 +410,23 @@ export function Search({
             </div>
           </div>
           <div className="detail-playback-actions">
+            {onStartRadio &&
+              item.kind !== 'album' &&
+              playableTracks.length > 0 && (
+                <button
+                  className="secondary-btn"
+                  onClick={() =>
+                    onStartRadio(
+                      item.kind === 'track'
+                        ? playableTracks.slice(0, 1)
+                        : playableTracks,
+                    )
+                  }
+                >
+                  <Icon name="pulse" size={18} />
+                  Avvia radio {item.kind === 'artist' ? 'artista' : 'brano'}
+                </button>
+              )}
             {playableTracks.length > 0 && (
               <button
                 type="button"
@@ -522,13 +579,57 @@ export function Search({
               <Icon name="search" />
               <input
                 id="music-search"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls="search-suggestions"
+                aria-expanded={focused && suggestions.length > 0}
+                aria-activedescendant={
+                  focused &&
+                  suggestionIndex >= 0 &&
+                  suggestionIndex < suggestions.length
+                    ? `search-suggestion-${suggestionIndex}`
+                    : undefined
+                }
                 type="search"
                 inputMode="search"
                 autoComplete="off"
                 maxLength={120}
                 placeholder="Cerca brani, artisti o album…"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setFocused(true);
+                  setSuggestionIndex(-1);
+                }}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    setFocused(false);
+                    setSuggestionIndex(-1);
+                  }
+                  if (event.key === 'ArrowDown' && suggestions.length) {
+                    event.preventDefault();
+                    setFocused(true);
+                    setSuggestionIndex((i) => (i + 1) % suggestions.length);
+                  }
+                  if (event.key === 'ArrowUp' && suggestions.length) {
+                    event.preventDefault();
+                    setFocused(true);
+                    setSuggestionIndex((i) =>
+                      i <= 0 ? suggestions.length - 1 : i - 1,
+                    );
+                  }
+                  if (
+                    event.key === 'Enter' &&
+                    focused &&
+                    suggestionIndex >= 0 &&
+                    suggestions[suggestionIndex]
+                  ) {
+                    event.preventDefault();
+                    chooseSuggestion(suggestions[suggestionIndex]!);
+                  }
+                }}
               />
               {query && (
                 <button
@@ -540,6 +641,40 @@ export function Search({
                 </button>
               )}
             </div>
+            {focused && suggestions.length > 0 && (
+              <ul
+                id="search-suggestions"
+                className="search-suggestions"
+                role="listbox"
+                aria-label="Suggerimenti di ricerca"
+              >
+                {suggestions.map((suggestion, i) => (
+                  <li key={suggestion.id} role="presentation">
+                    <button
+                      id={`search-suggestion-${i}`}
+                      type="button"
+                      role="option"
+                      aria-selected={i === suggestionIndex}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => chooseSuggestion(suggestion)}
+                    >
+                      <Icon
+                        name={
+                          suggestion.track || suggestion.item?.kind === 'track'
+                            ? 'play'
+                            : 'search'
+                        }
+                        size={18}
+                      />
+                      <span>
+                        <strong>{suggestion.label}</strong>
+                        <small>{suggestion.subtitle}</small>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <div
               className="catalog-filters"
               role="group"

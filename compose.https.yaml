@@ -1,4 +1,9 @@
 services:
+  api:
+    environment:
+      AUTH_COOKIE_SECURE: 'true'
+      AUTH_REGISTRATION: 'false'
+      MUSICBIT_REQUIRE_ACCOUNT: 'true'
   web:
     ports: !reset []
   caddy:
