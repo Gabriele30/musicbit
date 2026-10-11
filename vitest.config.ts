@@ -2,7 +2,12 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    include: ['apps/**/*.test.{ts,tsx}', 'packages/**/*.test.ts'],
+    include: [
+      'apps/**/*.test.{ts,tsx}',
+      'packages/**/*.test.ts',
+      'experiments/playback/**/*.test.ts',
+      'experiments/youtube-playback/**/*.test.ts',
+    ],
     projects: [
       {
         test: {
@@ -15,7 +20,11 @@ export default defineConfig({
         test: {
           name: 'web',
           environment: 'jsdom',
-          include: ['apps/web/**/*.test.{ts,tsx}'],
+          include: [
+            'apps/web/**/*.test.{ts,tsx}',
+            'experiments/playback/src/**/*.test.ts',
+            'experiments/youtube-playback/src/**/*.test.ts',
+          ],
           setupFiles: ['apps/web/src/test/setup.ts'],
         },
       },

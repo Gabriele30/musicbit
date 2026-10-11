@@ -58,6 +58,31 @@ export function registerCatalogRoutes(
   demoProviderId: string,
 ) {
   app.addHook('onClose', async () => service.close());
+  app.get('/api/feed', (request, reply) =>
+    respond(request, reply, (signal) => service.home(signal)),
+  );
+  app.get<{ Params: { id: string } }>(
+    '/api/recommendations/:id',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          additionalProperties: false,
+          properties: { id: { type: 'string', minLength: 11, maxLength: 11 } },
+        },
+      },
+    },
+    (request, reply) => {
+      if (!isCatalogId('track', request.params.id))
+        return reply
+          .code(400)
+          .send({ code: 'INVALID_INPUT', error: 'Identificativo non valido.' });
+      return respond(request, reply, (signal) =>
+        service.recommendations(request.params.id, signal),
+      );
+    },
+  );
   app.get('/api/providers', async (_request, reply) => {
     reply.header('Cache-Control', 'no-store');
     return {

@@ -8,11 +8,14 @@ import { DemoMusicProvider } from './providers/demo.js';
 import { CatalogService } from './catalog/service.js';
 import { registerCatalogRoutes } from './catalog/routes.js';
 import { CatalogError } from './catalog/errors.js';
+import { AudioStreamService } from './audio/stream-service.js';
+import { registerAudioRoutes } from './audio/routes.js';
 
 export function buildApp(
   options: FastifyServerOptions = {},
   provider: MusicProvider = new DemoMusicProvider(),
   catalog: CatalogService = new CatalogService(),
+  audioService: AudioStreamService = new AudioStreamService(),
 ) {
   const logger = options.logger;
   const safeLogger = logger
@@ -33,6 +36,8 @@ export function buildApp(
     ajv: { customOptions: { removeAdditional: false } },
   });
   registerCatalogRoutes(app, catalog, provider.id);
+  registerAudioRoutes(app, audioService);
+  app.addHook('onClose', async () => audioService.close());
   app.get<{ Reply: HealthResponse }>('/health', async () => ({
     status: 'ok',
     service: 'musicbit-api',

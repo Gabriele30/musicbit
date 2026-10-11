@@ -7,6 +7,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
+COPY experiments/playback/package.json experiments/playback/package.json
+COPY experiments/youtube-playback/package.json experiments/youtube-playback/package.json
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build

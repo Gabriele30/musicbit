@@ -19,6 +19,10 @@ function fixture(
 ) {
   const provider: CatalogProvider = {
     id: 'youtube',
+    home: vi.fn(async () => [
+      { id: 'discovery', title: 'Discovery', items: [item] },
+    ]),
+    recommendations: vi.fn(async () => [item]),
     search: vi.fn(async () => {
       if (options.fail)
         throw new Error('private-query cookie=secret remote-payload');
@@ -43,6 +47,28 @@ afterEach(async () => {
   await Promise.all(apps.splice(0).map((app) => app.close()));
 });
 describe('catalog routes', () => {
+  it('caches discovery and radio separately and rejects invalid seeds', async () => {
+    const { app, provider } = fixture();
+    expect((await app.inject('/api/feed')).json().sections[0].title).toBe(
+      'Discovery',
+    );
+    expect((await app.inject('/api/feed')).headers['x-musicbit-cache']).toBe(
+      'hit',
+    );
+    const radio = await app.inject(`/api/recommendations/${item.id}`);
+    expect(radio.statusCode).toBe(200);
+    expect(radio.json()).toMatchObject({ seedId: item.id, items: [item] });
+    expect(
+      (await app.inject(`/api/recommendations/${item.id}`)).headers[
+        'x-musicbit-cache'
+      ],
+    ).toBe('hit');
+    expect((await app.inject('/api/recommendations/invalid')).statusCode).toBe(
+      400,
+    );
+    expect(provider.home).toHaveBeenCalledOnce();
+    expect(provider.recommendations).toHaveBeenCalledOnce();
+  });
   it('validates search, supplies defaults and exposes cache timing', async () => {
     const { app, provider } = fixture();
     const first = await app.inject('/api/search?q=test');

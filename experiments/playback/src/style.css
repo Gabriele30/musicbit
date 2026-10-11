@@ -1,0 +1,115 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #eef5f0;
+  background: #101312;
+  color-scheme: dark;
+  line-height: 1.5;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 760px;
+  margin: auto;
+  padding: max(24px, env(safe-area-inset-top)) 18px
+    max(24px, env(safe-area-inset-bottom));
+}
+header {
+  margin: 12px 0 30px;
+}
+.eyebrow {
+  color: #96e8b5;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+}
+h1 {
+  font-size: 2.3rem;
+  letter-spacing: -0.05em;
+  margin: 8px 0;
+}
+h2 {
+  font-size: 1.15rem;
+  margin-top: 0;
+}
+p {
+  overflow-wrap: anywhere;
+}
+section {
+  border: 1px solid #34413a;
+  background: #1a211d;
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+form {
+  display: grid;
+  gap: 10px;
+}
+label {
+  font-size: 0.9rem;
+}
+input,
+select,
+button {
+  font: inherit;
+  border-radius: 10px;
+  border: 1px solid #4b5d51;
+  min-height: 48px;
+  padding: 10px 14px;
+  max-width: 100%;
+}
+input,
+select {
+  width: 100%;
+  background: #101312;
+}
+button {
+  background: #b8edc9;
+  color: #15261b;
+  cursor: pointer;
+  font-weight: 600;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+ul {
+  padding: 0;
+  list-style: none;
+}
+li {
+  margin: 10px 0;
+}
+li button {
+  width: 100%;
+  text-align: left;
+  background: #263b2e;
+  color: #eef5f0;
+}
+.hint,
+footer {
+  color: #b8c5bc;
+  font-size: 0.85rem;
+}
+pre {
+  background: #101312;
+  border-radius: 10px;
+  padding: 12px;
+  max-height: 440px;
+  overflow: auto;
+  font-size: 0.75rem;
+}

@@ -13,3 +13,5 @@ Thumbs.db
 playwright-report/
 test-results/
 artifacts/
+# Ad-hoc provider inspection can print signed media URLs; keep it local.
+apps/api/inspect-format.mjs

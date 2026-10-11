@@ -34,6 +34,74 @@ function gateway(): MusicMetadataGateway {
 }
 
 describe('YouTube catalog provider with deterministic metadata mocks', () => {
+  it('builds a mixed home feed and radio without leaking raw provider data', async () => {
+    const client = gateway();
+    client.home = vi.fn(async () => ({
+      sections: [
+        {
+          header: { title: { toString: () => 'Discover' } },
+          contents: [
+            song,
+            song,
+            { id: 'MPRalbum123', item_type: 'album', title: 'Album' },
+            { id: 'PLunsupported', item_type: 'playlist', title: 'Playlist' },
+          ],
+        },
+      ],
+    }));
+    client.recommendations = vi.fn(async () => ({
+      contents: [
+        { ...song, video_id: id },
+        { ...song, id: 'lmnopqrstuv', video_id: 'lmnopqrstuv' },
+      ],
+    }));
+    const provider = new YouTubeCatalogProvider(client);
+    const sections = await provider.home(abort());
+    expect(sections[0]?.title).toBe('Discover');
+    expect(sections[0]?.items.map((item) => item.kind)).toEqual([
+      'track',
+      'album',
+    ]);
+    expect(sections[0]?.items.every(isCatalogItem)).toBe(true);
+    expect(
+      (await provider.recommendations(id, abort())).map((item) => item.id),
+    ).toEqual(['lmnopqrstuv']);
+    expect(JSON.stringify(sections)).not.toContain('secret');
+  });
+  it('exposes artist songs, discography and related artists with navigable references', async () => {
+    const client = gateway();
+    client.details = vi.fn(async () => ({
+      header: { title: 'Artist' },
+      sections: [
+        {
+          contents: [
+            {
+              ...song,
+              artists: [{ name: 'Artist', channel_id: artistId }],
+              album: { id: 'MPRalbum123', name: 'Album' },
+            },
+            { id: 'MPRalbum123', item_type: 'album', title: 'Album' },
+            {
+              id: 'UCzyxwvutsrqponmlkjihgfe',
+              item_type: 'artist',
+              name: 'Similar artist',
+            },
+          ],
+        },
+      ],
+    }));
+    const detail = await new YouTubeCatalogProvider(client).details(
+      'artist',
+      artistId,
+      abort(),
+    );
+    expect(detail?.tracks?.[0]).toMatchObject({
+      artistId,
+      albumId: 'MPRalbum123',
+    });
+    expect(detail?.albums?.[0]?.title).toBe('Album');
+    expect(detail?.relatedArtists?.[0]?.title).toBe('Similar artist');
+  });
   it('normalizes tracks, deduplicates and never returns media or playback capability', async () => {
     const provider = new YouTubeCatalogProvider(gateway());
     const items = await provider.search(
@@ -47,7 +115,8 @@ describe('YouTube catalog provider with deterministic metadata mocks', () => {
       artist: 'Artist',
       album: 'Album',
       durationSeconds: 123,
-      playback: { available: false },
+      playback: { available: true },
+      audioUrl: `/api/audio/${id}`,
     });
     expect(JSON.stringify(items)).not.toContain('streaming');
     expect(await provider.listTracks()).toEqual([]);

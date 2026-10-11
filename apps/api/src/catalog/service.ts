@@ -98,6 +98,23 @@ export class CatalogService {
     if (!result.value) throw new CatalogError('NOT_FOUND');
     return { item: result.value, timing: result.timing };
   }
+  async home(signal: AbortSignal) {
+    const result = await this.run(
+      JSON.stringify([this.provider.id, 'home']),
+      (inner) => this.provider.home?.(inner) ?? Promise.resolve([]),
+      signal,
+    );
+    return { sections: result.value, timing: result.timing };
+  }
+  async recommendations(id: string, signal: AbortSignal) {
+    const result = await this.run(
+      JSON.stringify([this.provider.id, 'radio', id]),
+      (inner) =>
+        this.provider.recommendations?.(id, inner) ?? Promise.resolve([]),
+      signal,
+    );
+    return { seedId: id, items: result.value, timing: result.timing };
+  }
   close() {
     this.cache.close();
   }

@@ -120,6 +120,10 @@ export class MetadataCache {
     return { value, timing: { cache, elapsedMs: performance.now() - start } };
   }
 
+  evict(key: string) {
+    this.values.delete(key);
+  }
+
   close() {
     for (const flight of this.flights.values())
       flight.controller.abort(new CatalogError('CANCELLED'));

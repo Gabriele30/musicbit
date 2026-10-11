@@ -1,6 +1,8 @@
 packages:
   - apps/*
   - packages/*
+  - experiments/playback
+  - experiments/youtube-playback
 
 allowBuilds:
   esbuild: true

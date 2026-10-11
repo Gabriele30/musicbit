@@ -1,3 +1,8 @@
+import type { PlaybackMime } from './playback.js';
+export * from './playback.js';
+
+export type AudioMimeType = PlaybackMime;
+
 /** An authorized, directly playable source. URLs are resolved by the provider. */
 export interface Track {
   id: string;
@@ -6,10 +11,13 @@ export interface Track {
   album: string;
   audioUrl: string;
   artworkUrl: string;
-  mimeType: 'audio/mpeg';
+  mimeType: AudioMimeType;
   sourceUrl: string;
   permission: string;
   attribution: string;
+  durationSeconds?: number;
+  artistId?: string;
+  albumId?: string;
 }
 
 export interface TracksResponse {
@@ -43,13 +51,31 @@ export interface CatalogItem {
   album?: string;
   durationSeconds?: number;
   year?: string;
-  /** Catalog metadata does not confer permission to play the source. */
-  playback: { available: false; reason: 'catalog-only' };
+  audioUrl?: string;
+  artistId?: string;
+  albumId?: string;
+  playback: { available: boolean; reason?: string };
 }
 export interface CatalogDetail extends CatalogItem {
   description?: string;
-  /** Album track listing, metadata only. No recommendations. */
+  /** Album tracks or the artist's most popular tracks. */
   tracks?: CatalogItem[];
+  albums?: CatalogItem[];
+  relatedArtists?: CatalogItem[];
+}
+export interface FeedSection {
+  id: string;
+  title: string;
+  items: CatalogItem[];
+}
+export interface FeedResponse {
+  sections: FeedSection[];
+  timing: CatalogTiming;
+}
+export interface RecommendationsResponse {
+  seedId: string;
+  items: CatalogItem[];
+  timing: CatalogTiming;
 }
 export interface CatalogQuery {
   q: string;
@@ -58,6 +84,8 @@ export interface CatalogQuery {
 }
 export interface CatalogProvider {
   readonly id: string;
+  home?(signal: AbortSignal): Promise<FeedSection[]>;
+  recommendations?(id: string, signal: AbortSignal): Promise<CatalogItem[]>;
   search(query: CatalogQuery, signal: AbortSignal): Promise<CatalogItem[]>;
   details(
     kind: CatalogKind,
@@ -95,6 +123,25 @@ export interface CatalogErrorResponse {
   code: string;
 }
 
+/** Helper to transform a catalog item into a playable Track */
+export function catalogItemToTrack(item: CatalogItem): Track {
+  return {
+    id: item.id,
+    title: item.title,
+    artist: item.artist,
+    album: item.album || 'Singolo',
+    audioUrl: item.audioUrl || `/api/audio/${encodeURIComponent(item.id)}`,
+    artworkUrl: item.artworkUrl || '/icons/icon-192.png',
+    mimeType: 'audio/mp4',
+    sourceUrl: item.sourceUrl,
+    permission: 'YouTube Music playback',
+    attribution: `${item.artist} · YouTube Music`,
+    durationSeconds: item.durationSeconds,
+    artistId: item.artistId,
+    albumId: item.albumId,
+  };
+}
+
 /** Shared validation for routing, cache keys and callers. */
 export function isCatalogKind(value: unknown): value is CatalogKind {
   return value === 'track' || value === 'artist' || value === 'album';
@@ -118,14 +165,26 @@ export function isCatalogItem(value: unknown): value is CatalogItem {
     typeof item.title === 'string' &&
     item.title.length > 0 &&
     typeof item.artist === 'string' &&
+    (item.artistId === undefined ||
+      (typeof item.artistId === 'string' &&
+        isCatalogId('artist', item.artistId))) &&
+    (item.albumId === undefined ||
+      (typeof item.albumId === 'string' &&
+        isCatalogId('album', item.albumId))) &&
+    (item.album === undefined || typeof item.album === 'string') &&
+    (item.year === undefined || typeof item.year === 'string') &&
+    (item.durationSeconds === undefined ||
+      (typeof item.durationSeconds === 'number' &&
+        Number.isFinite(item.durationSeconds) &&
+        item.durationSeconds > 0)) &&
     typeof item.sourceUrl === 'string' &&
     /^https:\/\/music\.youtube\.com\//.test(item.sourceUrl) &&
     (item.artworkUrl === undefined ||
       (typeof item.artworkUrl === 'string' &&
         isCatalogArtwork(item.artworkUrl))) &&
-    playback?.available === false &&
-    playback.reason === 'catalog-only' &&
-    !('audioUrl' in item)
+    typeof playback?.available === 'boolean' &&
+    (item.audioUrl === undefined ||
+      (typeof item.audioUrl === 'string' && isAudioUrl(item.audioUrl)))
   );
 }
 export function isCatalogArtwork(value: string): boolean {
@@ -170,7 +229,12 @@ export function isTracksResponse(value: unknown): value is TracksResponse {
         fields.every(
           (field) => typeof item[field] === 'string' && item[field].length > 0,
         ) &&
-        item.mimeType === 'audio/mpeg' &&
+        typeof item.mimeType === 'string' &&
+        item.mimeType.startsWith('audio/') &&
+        (item.durationSeconds === undefined ||
+          (typeof item.durationSeconds === 'number' &&
+            Number.isFinite(item.durationSeconds) &&
+            item.durationSeconds > 0)) &&
         isAudioUrl(String(item.audioUrl))
       );
     }) &&
@@ -188,3 +252,4 @@ function isAudioUrl(value: string): boolean {
     return false;
   }
 }
+export * from './youtube-playback.js';

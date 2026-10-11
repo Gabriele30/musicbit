@@ -1,0 +1,796 @@
+{
+  "schemaVersion": 1,
+  "auditedAt": "2026-10-11",
+  "kind": "offline-source-provenance",
+  "decision": "NO-GO under current constraints; no authorized direct source and incompatible resolver operations",
+  "runtimeStreamAttempts": 0,
+  "runtimeBenchmarks": null,
+  "repositories": {
+    "simpmusic": {
+      "slug": "maxrave-dev/SimpMusic",
+      "sha": "0e08a12633a50f0758e820a35050ac4e9e066c8f",
+      "checkout": "SimpMusic",
+      "pathEnvironment": "M6_SIMPMUSIC_PATH"
+    },
+    "core": {
+      "slug": "maxrave-dev/core",
+      "sha": "b9f4ceac52e7c25cb059ea78141784dc164e0161",
+      "checkout": "SimpMusic/core",
+      "pathEnvironment": "M6_CORE_PATH"
+    },
+    "pipepipe": {
+      "slug": "maxrave-dev/PipePipeExtractor",
+      "sha": "f8982ca9e7757b196139d746b3069c74b79ded1a",
+      "checkout": "SimpMusic-PipePipeExtractor",
+      "pathEnvironment": "M6_PIPEPIPE_PATH"
+    },
+    "bravepipe": {
+      "slug": "maxrave-dev/BravePipeExtractor",
+      "sha": "0fcaf19ecc56fe875ddceaee381217a59514f3cf",
+      "checkout": "SimpMusic-BravePipeExtractor",
+      "pathEnvironment": "M6_BRAVEPIPE_PATH"
+    },
+    "quickjs": {
+      "slug": "dokar3/quickjs-kt",
+      "sha": "a081755bcdb18ee6afa7ffee25b8fa976f06d31f",
+      "checkout": "SimpMusic-quickjs-kt",
+      "pathEnvironment": "M6_QUICKJS_PATH"
+    }
+  },
+  "references": [
+    {
+      "id": "S-settings",
+      "repository": "simpmusic",
+      "path": "settings.gradle.kts",
+      "first": 1,
+      "last": 89
+    },
+    {
+      "id": "S-build",
+      "repository": "simpmusic",
+      "path": "build.gradle.kts",
+      "first": 1,
+      "last": 56
+    },
+    {
+      "id": "S-versions",
+      "repository": "simpmusic",
+      "path": "gradle/libs.versions.toml",
+      "first": 1,
+      "last": 231
+    },
+    {
+      "id": "S-wrapper",
+      "repository": "simpmusic",
+      "path": "gradle/wrapper/gradle-wrapper.properties",
+      "first": 1,
+      "last": 6
+    },
+    {
+      "id": "S-desktop",
+      "repository": "simpmusic",
+      "path": "desktopApp/build.gradle.kts",
+      "first": 75,
+      "last": 96
+    },
+    {
+      "id": "S-license",
+      "repository": "simpmusic",
+      "path": "LICENSE",
+      "first": 1,
+      "last": 18
+    },
+    {
+      "id": "C-license",
+      "repository": "core",
+      "path": "LICENSE",
+      "first": 1,
+      "last": 18
+    },
+    {
+      "id": "C-stream",
+      "repository": "core",
+      "path": "data/src/commonMain/kotlin/com/maxrave/data/repository/StreamRepositoryImpl.kt",
+      "first": 1,
+      "last": 403
+    },
+    {
+      "id": "C-youtube",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/YouTube.kt",
+      "first": 1320,
+      "last": 1615
+    },
+    {
+      "id": "C-live",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/YouTube.kt",
+      "first": 1434,
+      "last": 1485
+    },
+    {
+      "id": "C-other",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/YouTube.kt",
+      "first": 1950,
+      "last": 1955
+    },
+    {
+      "id": "C-http",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/Ytmusic.kt",
+      "first": 98,
+      "last": 275
+    },
+    {
+      "id": "C-player",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/Ytmusic.kt",
+      "first": 275,
+      "last": 504
+    },
+    {
+      "id": "C-tidal",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/Ytmusic.kt",
+      "first": 1304,
+      "last": 1340
+    },
+    {
+      "id": "C-extractor",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/jvmMain/kotlin/com/maxrave/kotlinytmusicscraper/extractor/Extractor.jvm.kt",
+      "first": 1,
+      "last": 166
+    },
+    {
+      "id": "C-faraday",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/jvmMain/kotlin/com/maxrave/kotlinytmusicscraper/extractor/FaradayJsDecoder.kt",
+      "first": 1,
+      "last": 111
+    },
+    {
+      "id": "C-engine",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/cipher/FaradayCipherEngine.kt",
+      "first": 1,
+      "last": 288
+    },
+    {
+      "id": "C-config",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/cipher/RemotePlayerConfigStore.kt",
+      "first": 1,
+      "last": 424
+    },
+    {
+      "id": "C-quickjs",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/cipher/QuickJsEngine.kt",
+      "first": 1,
+      "last": 262
+    },
+    {
+      "id": "C-safe-http",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/cipher/RestrictedHttpFetch.kt",
+      "first": 1,
+      "last": 42
+    },
+    {
+      "id": "C-pipe-utils",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/jvmMain/kotlin/com/maxrave/kotlinytmusicscraper/extractor/NewPipeUtils.kt",
+      "first": 1,
+      "last": 163
+    },
+    {
+      "id": "C-brave-utils",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/jvmMain/kotlin/com/maxrave/kotlinytmusicscraper/extractor/BraveNewPipeUtils.kt",
+      "first": 1,
+      "last": 96
+    },
+    {
+      "id": "C-order",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/extractor/AudioTrackOrder.kt",
+      "first": 1,
+      "last": 51
+    },
+    {
+      "id": "C-format",
+      "repository": "core",
+      "path": "domain/src/commonMain/kotlin/com/maxrave/domain/data/entities/NewFormatEntity.kt",
+      "first": 1,
+      "last": 35
+    },
+    {
+      "id": "C-response",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/models/response/PlayerResponse.kt",
+      "first": 1,
+      "last": 120
+    },
+    {
+      "id": "C-curl",
+      "repository": "core",
+      "path": "service/ktorExt/src/commonMain/kotlin/com/maxrave/ktorext/curl/CurlLoggerPlugin.kt",
+      "first": 1,
+      "last": 137
+    },
+    {
+      "id": "C-scraper-build",
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/build.gradle.kts",
+      "first": 1,
+      "last": 136
+    },
+    {
+      "id": "C-common-build",
+      "repository": "core",
+      "path": "common/build.gradle.kts",
+      "first": 1,
+      "last": 95
+    },
+    {
+      "id": "C-domain-build",
+      "repository": "core",
+      "path": "domain/build.gradle.kts",
+      "first": 1,
+      "last": 81
+    },
+    {
+      "id": "C-data-build",
+      "repository": "core",
+      "path": "data/build.gradle.kts",
+      "first": 1,
+      "last": 158
+    },
+    {
+      "id": "C-ktor-build",
+      "repository": "core",
+      "path": "service/ktorExt/build.gradle.kts",
+      "first": 1,
+      "last": 99
+    },
+    {
+      "id": "C-http-engine",
+      "repository": "core",
+      "path": "service/ktorExt/src/jvmMain/kotlin/com/maxrave/ktorext/Engine.jvm.kt",
+      "first": 1,
+      "last": 7
+    },
+    {
+      "id": "C-media-build",
+      "repository": "core",
+      "path": "media/media-jvm/build.gradle.kts",
+      "first": 1,
+      "last": 28
+    },
+    {
+      "id": "C-mpv-library",
+      "repository": "core",
+      "path": "media/media-jvm/src/main/java/com/simpmusic/media_jvm/mpv/MpvLibrary.kt",
+      "first": 1,
+      "last": 40
+    },
+    {
+      "id": "C-itags",
+      "repository": "core",
+      "path": "common/src/commonMain/kotlin/com/maxrave/common/Config.kt",
+      "first": 266,
+      "last": 361
+    },
+    {
+      "id": "C-mpv-load",
+      "repository": "core",
+      "path": "media/media-jvm/src/main/java/com/simpmusic/media_jvm/mpv/MpvPlayerAdapter.kt",
+      "first": 1453,
+      "last": 1545
+    },
+    {
+      "id": "C-mpv-end",
+      "repository": "core",
+      "path": "media/media-jvm/src/main/java/com/simpmusic/media_jvm/mpv/MpvPlayerAdapter.kt",
+      "first": 1624,
+      "last": 1641
+    },
+    {
+      "id": "C-mpv-next",
+      "repository": "core",
+      "path": "media/media-jvm/src/main/java/com/simpmusic/media_jvm/mpv/MpvPlayerAdapter.kt",
+      "first": 1883,
+      "last": 1925
+    },
+    {
+      "id": "C-mpv-precache",
+      "repository": "core",
+      "path": "media/media-jvm/src/main/java/com/simpmusic/media_jvm/mpv/MpvPlayerAdapter.kt",
+      "first": 2833,
+      "last": 2906
+    },
+    {
+      "id": "C-mpv-resolve",
+      "repository": "core",
+      "path": "media/media-jvm/src/main/java/com/simpmusic/media_jvm/mpv/MpvPlayerAdapter.kt",
+      "first": 3115,
+      "last": 3252
+    },
+    {
+      "id": "C-media3",
+      "repository": "core",
+      "path": "media/media3/src/main/java/com/maxrave/media3/di/Media3ServiceModule.kt",
+      "first": 298,
+      "last": 365
+    },
+    {
+      "id": "P-info",
+      "repository": "pipepipe",
+      "path": "extractor/src/main/java/dev/maxrave/pipepipe/extractor/stream/StreamInfo.java",
+      "first": 91,
+      "last": 150
+    },
+    {
+      "id": "P-fetch",
+      "repository": "pipepipe",
+      "path": "extractor/src/main/java/dev/maxrave/pipepipe/extractor/services/youtube/extractors/YoutubeStreamExtractor.java",
+      "first": 2190,
+      "last": 2369
+    },
+    {
+      "id": "P-sabr",
+      "repository": "pipepipe",
+      "path": "extractor/src/main/java/dev/maxrave/pipepipe/extractor/services/youtube/extractors/YoutubeStreamExtractor.java",
+      "first": 945,
+      "last": 1016
+    },
+    {
+      "id": "P-decoder",
+      "repository": "pipepipe",
+      "path": "extractor/src/main/java/dev/maxrave/pipepipe/extractor/services/youtube/YoutubeApiDecoder.java",
+      "first": 30,
+      "last": 307
+    },
+    {
+      "id": "P-metadata",
+      "repository": "pipepipe",
+      "path": "extractor/src/main/java/dev/maxrave/pipepipe/extractor/services/youtube/YoutubeJavaScriptPlayerManager.java",
+      "first": 212,
+      "last": 282
+    },
+    {
+      "id": "P-default",
+      "repository": "pipepipe",
+      "path": "extractor/src/main/java/dev/maxrave/pipepipe/extractor/NewPipe.java",
+      "first": 43,
+      "last": 55
+    },
+    {
+      "id": "P-build",
+      "repository": "pipepipe",
+      "path": "extractor/build.gradle",
+      "first": 1,
+      "last": 41
+    },
+    {
+      "id": "P-root",
+      "repository": "pipepipe",
+      "path": "build.gradle",
+      "first": 1,
+      "last": 42
+    },
+    {
+      "id": "P-license",
+      "repository": "pipepipe",
+      "path": "LICENSE",
+      "first": 1,
+      "last": 18
+    },
+    {
+      "id": "B-stream",
+      "repository": "bravepipe",
+      "path": "extractor/src/main/java/org/schabi/newpipe/extractor/services/youtube/extractors/YoutubeStreamExtractor.java",
+      "first": 806,
+      "last": 905
+    },
+    {
+      "id": "B-js",
+      "repository": "bravepipe",
+      "path": "extractor/src/main/java/org/schabi/newpipe/extractor/utils/JavaScript.java",
+      "first": 1,
+      "last": 35
+    },
+    {
+      "id": "B-js-manager",
+      "repository": "bravepipe",
+      "path": "extractor/src/main/java/org/schabi/newpipe/extractor/services/youtube/YoutubeJavaScriptPlayerManager.java",
+      "first": 30,
+      "last": 170
+    },
+    {
+      "id": "B-build",
+      "repository": "bravepipe",
+      "path": "extractor/build.gradle.kts",
+      "first": 1,
+      "last": 177
+    },
+    {
+      "id": "B-root",
+      "repository": "bravepipe",
+      "path": "build.gradle.kts",
+      "first": 1,
+      "last": 25
+    },
+    {
+      "id": "B-versions",
+      "repository": "bravepipe",
+      "path": "gradle/libs.versions.toml",
+      "first": 1,
+      "last": 35
+    },
+    {
+      "id": "B-license",
+      "repository": "bravepipe",
+      "path": "LICENSE",
+      "first": 1,
+      "last": 18
+    },
+    {
+      "id": "Q-modules",
+      "repository": "quickjs",
+      "path": ".gitmodules",
+      "first": 1,
+      "last": 6
+    },
+    {
+      "id": "Q-loader",
+      "repository": "quickjs",
+      "path": "quickjs/src/jvmMain/kotlin/com/dokar/quickjs/NativeLibraryLoader.jvm.kt",
+      "first": 14,
+      "last": 110
+    },
+    {
+      "id": "Q-build",
+      "repository": "quickjs",
+      "path": "quickjs/build.gradle.kts",
+      "first": 1,
+      "last": 151
+    },
+    {
+      "id": "Q-native-build",
+      "repository": "quickjs",
+      "path": "build-logic/src/main/kotlin/com/dokar/quickjs/buildQuickJsNativeLibrary.kt",
+      "first": 1,
+      "last": 247
+    },
+    {
+      "id": "Q-license",
+      "repository": "quickjs",
+      "path": "LICENSE.txt",
+      "first": 1,
+      "last": 18
+    }
+  ],
+  "evidence": [
+    {
+      "repository": "simpmusic",
+      "path": "settings.gradle.kts",
+      "sha256": "b33d2f6395d4c38ff4c8bfa883444eab7a54a125ad5c1322ae9eddb49131c6df",
+      "lines": 89
+    },
+    {
+      "repository": "simpmusic",
+      "path": "build.gradle.kts",
+      "sha256": "44acecc12efdd42f8570004356017e7a86f9c9519afb6104eee33be806924009",
+      "lines": 56
+    },
+    {
+      "repository": "simpmusic",
+      "path": "gradle/libs.versions.toml",
+      "sha256": "2fd42dabdf2099cf234fd4fa47c4b7d098480216fd1e0ee245500e5cd75764db",
+      "lines": 289
+    },
+    {
+      "repository": "simpmusic",
+      "path": "gradle/wrapper/gradle-wrapper.properties",
+      "sha256": "8d4f131877d3ce6065db7c96238d624e178b468706b38d391164da3eaa235d6f",
+      "lines": 6
+    },
+    {
+      "repository": "simpmusic",
+      "path": "desktopApp/build.gradle.kts",
+      "sha256": "51d9e7cec4bd927a0fcb5c437e4cc956aa9e6b34ab1792afbf0bc37317190b92",
+      "lines": 587
+    },
+    {
+      "repository": "simpmusic",
+      "path": "LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "lines": 674
+    },
+    {
+      "repository": "core",
+      "path": "LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "lines": 674
+    },
+    {
+      "repository": "core",
+      "path": "data/src/commonMain/kotlin/com/maxrave/data/repository/StreamRepositoryImpl.kt",
+      "sha256": "32999cabdfc1e9aeb0af8fee7fb72b804bf1f80b372f1d708318d7f9faf0fb9a",
+      "lines": 403
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/YouTube.kt",
+      "sha256": "d0e6574a76cb6204c37696d9960128473b9f537ed93647068c27553b482fea03",
+      "lines": 2347
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/Ytmusic.kt",
+      "sha256": "866638f697a4dc295f597af74a2e2e81da302a0421c74b5158cabcbd16753740",
+      "lines": 1376
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/jvmMain/kotlin/com/maxrave/kotlinytmusicscraper/extractor/Extractor.jvm.kt",
+      "sha256": "49041e25f2b65b9eb6db98337495c1d3921a6ef7085980ffa2669710bd0119ec",
+      "lines": 166
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/jvmMain/kotlin/com/maxrave/kotlinytmusicscraper/extractor/FaradayJsDecoder.kt",
+      "sha256": "1336eaaf0fd0cf73e2c2ee67c7410f7eea559193a16e3b83acb4321f72696bdb",
+      "lines": 111
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/cipher/FaradayCipherEngine.kt",
+      "sha256": "afe8f62e5252946dcd013d015034c40ca5028bc4c36bc0f2d50e0b4d6aa1d121",
+      "lines": 288
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/cipher/RemotePlayerConfigStore.kt",
+      "sha256": "1d642c965e9a085c0fa6f0ea642de1475f8194921671cc772908153cdbf4b1fb",
+      "lines": 424
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/cipher/QuickJsEngine.kt",
+      "sha256": "9eee88d13f732b52cdf4d15857194d117df8624f9180b21e6f63a9699ed04b82",
+      "lines": 262
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/cipher/RestrictedHttpFetch.kt",
+      "sha256": "45beed67b8fa0ce755fec64139d795d9485ca31fa07a9b614eb3375d71f2f2ac",
+      "lines": 42
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/jvmMain/kotlin/com/maxrave/kotlinytmusicscraper/extractor/NewPipeUtils.kt",
+      "sha256": "b59fa65dca2896b3d815e210daa06b11d21b5088280e33eca166b7a4d935ed99",
+      "lines": 163
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/jvmMain/kotlin/com/maxrave/kotlinytmusicscraper/extractor/BraveNewPipeUtils.kt",
+      "sha256": "a8161bc42e6dbdaa61865bf252796b56a06ca36812d62d357877cb39c2ef9865",
+      "lines": 96
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/extractor/AudioTrackOrder.kt",
+      "sha256": "c6edcc2dec140459694fc953d0933fcffb8520cd1297132e40a2a5075219f155",
+      "lines": 51
+    },
+    {
+      "repository": "core",
+      "path": "domain/src/commonMain/kotlin/com/maxrave/domain/data/entities/NewFormatEntity.kt",
+      "sha256": "5e7c47a6d2dcdea7a8db9347fbbeb42bf069f40bc4f3f0c9385b42ee8c1b0a6d",
+      "lines": 35
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/src/commonMain/kotlin/com/maxrave/kotlinytmusicscraper/models/response/PlayerResponse.kt",
+      "sha256": "ac650f71955c69518affb1e0e5e6dd372e2c9f44375d5136104c31c11e45d5ad",
+      "lines": 120
+    },
+    {
+      "repository": "core",
+      "path": "service/ktorExt/src/commonMain/kotlin/com/maxrave/ktorext/curl/CurlLoggerPlugin.kt",
+      "sha256": "df7e67d2b6ad6a981d0473e7887903b781e420b7f3f26713884ae929b70bef8c",
+      "lines": 137
+    },
+    {
+      "repository": "core",
+      "path": "service/kotlinYtmusicScraper/build.gradle.kts",
+      "sha256": "51ac412df969ca0be7d4d355bccf29b9564ce89f8331643c44cff1e8abf46846",
+      "lines": 136
+    },
+    {
+      "repository": "core",
+      "path": "common/build.gradle.kts",
+      "sha256": "a91184449269e386530e017922ba7ce2054898d635adc0dee4419a1cf8238c86",
+      "lines": 95
+    },
+    {
+      "repository": "core",
+      "path": "domain/build.gradle.kts",
+      "sha256": "31627ec066e586d4b4ccfb398fffc4177ae91cb5ef99bb4fe5c772270476dcc3",
+      "lines": 81
+    },
+    {
+      "repository": "core",
+      "path": "data/build.gradle.kts",
+      "sha256": "a154b3fbbb15e5869189de52daf189bb309bb3c1421bfbad440180494266f823",
+      "lines": 158
+    },
+    {
+      "repository": "core",
+      "path": "service/ktorExt/build.gradle.kts",
+      "sha256": "6cfc61922fddbd3fdab07bf9f860d53ed4fcc1507ecd65e8036181d8d77a187e",
+      "lines": 99
+    },
+    {
+      "repository": "core",
+      "path": "service/ktorExt/src/jvmMain/kotlin/com/maxrave/ktorext/Engine.jvm.kt",
+      "sha256": "bf376e44ac60e89ded2586388696b09af97eabd2de2eea86a46aca23057526de",
+      "lines": 7
+    },
+    {
+      "repository": "core",
+      "path": "media/media-jvm/build.gradle.kts",
+      "sha256": "75c7eb6a5566b5e7d2917efd240cd224b3f4c3f90bf752b2a8f4781afdc3612a",
+      "lines": 28
+    },
+    {
+      "repository": "core",
+      "path": "media/media-jvm/src/main/java/com/simpmusic/media_jvm/mpv/MpvLibrary.kt",
+      "sha256": "aafe76bad8712e5002e1c6e3ea5e4acdb92edd5b7528fd30de1e6015bb12eec9",
+      "lines": 701
+    },
+    {
+      "repository": "core",
+      "path": "common/src/commonMain/kotlin/com/maxrave/common/Config.kt",
+      "sha256": "5ccdfd3ef695b37615506a1ee155ffeb1619f223357277562569a8b4d2c2ee66",
+      "lines": 725
+    },
+    {
+      "repository": "core",
+      "path": "media/media-jvm/src/main/java/com/simpmusic/media_jvm/mpv/MpvPlayerAdapter.kt",
+      "sha256": "df988d0dc9c2140164cadc5230f7be0063931bd64f4079e4529aec678099366f",
+      "lines": 3295
+    },
+    {
+      "repository": "core",
+      "path": "media/media3/src/main/java/com/maxrave/media3/di/Media3ServiceModule.kt",
+      "sha256": "de13d3e55b3d3079341d49fda2a4b2c62998ddfc46d9a58ecb170c3644d8ee68",
+      "lines": 630
+    },
+    {
+      "repository": "pipepipe",
+      "path": "extractor/src/main/java/dev/maxrave/pipepipe/extractor/stream/StreamInfo.java",
+      "sha256": "820e86bb282713066f149f8d8d85f03fb05d1a80117be21e3e0596d1ac83727d",
+      "lines": 1077
+    },
+    {
+      "repository": "pipepipe",
+      "path": "extractor/src/main/java/dev/maxrave/pipepipe/extractor/services/youtube/extractors/YoutubeStreamExtractor.java",
+      "sha256": "1e89395a25cadaa9b786ba126af0cf40314bbea3b45ca656224baea060da9412",
+      "lines": 3240
+    },
+    {
+      "repository": "pipepipe",
+      "path": "extractor/src/main/java/dev/maxrave/pipepipe/extractor/services/youtube/YoutubeApiDecoder.java",
+      "sha256": "4da19fc5439062cefe29b17f2aa92e464558dc87ab308972220e53b6dd73d075",
+      "lines": 339
+    },
+    {
+      "repository": "pipepipe",
+      "path": "extractor/src/main/java/dev/maxrave/pipepipe/extractor/services/youtube/YoutubeJavaScriptPlayerManager.java",
+      "sha256": "0bb92d836d6e8a248579ff0ff434ad44a099e7e0440968ce64c6c31f2bff0587",
+      "lines": 303
+    },
+    {
+      "repository": "pipepipe",
+      "path": "extractor/src/main/java/dev/maxrave/pipepipe/extractor/NewPipe.java",
+      "sha256": "6b808b4b928f6ca667294592c719838b6d23392b33af226eff652ace888a1ea2",
+      "lines": 228
+    },
+    {
+      "repository": "pipepipe",
+      "path": "extractor/build.gradle",
+      "sha256": "074e8f0d837ce5fc81555492db3742e3070f1c7bb061303dc96043146fad6086",
+      "lines": 41
+    },
+    {
+      "repository": "pipepipe",
+      "path": "build.gradle",
+      "sha256": "59087291a40c7c7116e17fd4a5ea94f539907f2d606c48dae494d223e65be5e6",
+      "lines": 42
+    },
+    {
+      "repository": "pipepipe",
+      "path": "LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "lines": 674
+    },
+    {
+      "repository": "bravepipe",
+      "path": "extractor/src/main/java/org/schabi/newpipe/extractor/services/youtube/extractors/YoutubeStreamExtractor.java",
+      "sha256": "2ebff6eb517c366a98e88ea85064dfaa14a3a063dca1467455d6a262075aa77c",
+      "lines": 1559
+    },
+    {
+      "repository": "bravepipe",
+      "path": "extractor/src/main/java/org/schabi/newpipe/extractor/utils/JavaScript.java",
+      "sha256": "9c7bab7695c48fba7ad5fa411a94e0195a75c594154cf4579520dfc59a184587",
+      "lines": 35
+    },
+    {
+      "repository": "bravepipe",
+      "path": "extractor/src/main/java/org/schabi/newpipe/extractor/services/youtube/YoutubeJavaScriptPlayerManager.java",
+      "sha256": "9959c4b2e2f7b2ba265c372172499529177f9ffc0ce06903a4614a188a8e9cdb",
+      "lines": 354
+    },
+    {
+      "repository": "bravepipe",
+      "path": "extractor/build.gradle.kts",
+      "sha256": "d99c307252b9be4730a8e7c5ea088163dae576ab47756981cbc04b4c5de75e98",
+      "lines": 177
+    },
+    {
+      "repository": "bravepipe",
+      "path": "build.gradle.kts",
+      "sha256": "2c2803e294d74a11b20cf22f5f2e87b9d45c3af74efe04d0194057df080c6802",
+      "lines": 67
+    },
+    {
+      "repository": "bravepipe",
+      "path": "gradle/libs.versions.toml",
+      "sha256": "3dc9911217fc8c21e9f3a847cab45e4fd715d720cbee2dc13ca0c1aab727ce6a",
+      "lines": 35
+    },
+    {
+      "repository": "bravepipe",
+      "path": "LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "lines": 674
+    },
+    {
+      "repository": "quickjs",
+      "path": ".gitmodules",
+      "sha256": "b1421ca239ffecd122cbcefc344dcbd2666753be95d92e42dcc03fffd168de82",
+      "lines": 6
+    },
+    {
+      "repository": "quickjs",
+      "path": "quickjs/src/jvmMain/kotlin/com/dokar/quickjs/NativeLibraryLoader.jvm.kt",
+      "sha256": "01662eb823876e651dfb741f4ec03c39230f0b6a581af07c81d755b5bf9a51d7",
+      "lines": 112
+    },
+    {
+      "repository": "quickjs",
+      "path": "quickjs/build.gradle.kts",
+      "sha256": "40497032bd5168d7ebda39b3679d41e71785a5620b8044dc4716241902c13dac",
+      "lines": 151
+    },
+    {
+      "repository": "quickjs",
+      "path": "build-logic/src/main/kotlin/com/dokar/quickjs/buildQuickJsNativeLibrary.kt",
+      "sha256": "d1af13f78b5d4f822493df0d1b784e3315072f571916bb50ca1b98f4c927dab7",
+      "lines": 247
+    },
+    {
+      "repository": "quickjs",
+      "path": "LICENSE.txt",
+      "sha256": "b57a9ee546cffc4958d7a3b8ae6757963c3880bbf421d1a570e8064d575818a9",
+      "lines": 201
+    }
+  ]
+}

@@ -22,12 +22,19 @@
     "assets": "node scripts/generate-assets.mjs",
     "smoke": "node scripts/smoke.mjs",
     "smoke:browser": "node scripts/real-audio-smoke.mjs",
+    "smoke:audio": "node scripts/audio-live-smoke.mjs",
     "smoke:catalog": "node scripts/catalog-smoke.mjs",
     "benchmark": "node scripts/benchmark.mjs",
     "benchmark:catalog": "node --env-file-if-exists=.env scripts/catalog-benchmark.mjs",
+    "benchmark:playback": "node scripts/playback-benchmark.mjs",
     "test:https": "node scripts/https-test.mjs",
     "experiment:hls": "node experiments/hls/server.mjs",
+    "experiment:playback": "node --env-file-if-exists=.env experiments/playback/server.mjs",
+    "experiment:youtube": "node --env-file-if-exists=.env experiments/youtube-playback/server.mjs",
+    "benchmark:youtube": "node --env-file-if-exists=.env scripts/youtube-playback-benchmark.mjs",
+    "smoke:youtube:https": "node scripts/youtube-playback-https-smoke.mjs",
     "smoke:hls": "node scripts/hls-smoke.mjs",
+    "smoke:playback:https": "node scripts/playback-https-smoke.mjs",
     "smoke:https": "node scripts/https-smoke.mjs"
   },
   "devDependencies": {
@@ -47,5 +54,11 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.71.1",
     "vitest": "^4.1.11"
+  },
+  "description": "A self-hosted music player with discovery, playlists and a mobile PWA.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gabriele30/musicbit.git"
   }
 }

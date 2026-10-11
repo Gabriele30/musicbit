@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#101312" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="/__playback/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/__playback/icon.png" />
+    <title>MusicBit · Playback Lab</title>
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="eyebrow">MUSICBIT · M4</span>
+        <h1>Playback Lab</h1>
+        <p>Esperimento separato. Il player principale resta invariato.</p>
+      </header>
+      <section aria-labelledby="search-title">
+        <h2 id="search-title">1 · Cerca e seleziona</h2>
+        <form id="search-form">
+          <label for="catalog">Catalogo</label>
+          <select id="catalog">
+            <option value="demo">Demo autorizzate · SoundHelix</option>
+            <option value="youtube">YouTube Music · solo metadati</option>
+          </select>
+          <label for="query">Titolo o artista</label
+          ><input id="query" value="SoundHelix" maxlength="120" required />
+          <button type="submit">Cerca</button>
+        </form>
+        <p id="search-status" role="status"></p>
+        <ul id="results"></ul>
+      </section>
+      <section aria-labelledby="source-title">
+        <h2 id="source-title">2 · Risolvi la sorgente</h2>
+        <p id="selected">Seleziona un risultato.</p>
+        <p id="resolution" role="status">Nessuna sorgente.</p>
+        <button id="resolve" disabled>Risolvi di nuovo</button>
+        <p id="rights"></p>
+        <p class="hint">
+          Un risultato di catalogo non è un'autorizzazione alla riproduzione. I
+          risultati YouTube non hanno audio in questo laboratorio.
+        </p>
+      </section>
+      <section aria-labelledby="play-title">
+        <h2 id="play-title">3 · Prepara e riproduci</h2>
+        <p class="hint">
+          Preparazione facoltativa: il browser può scaricare anche l'intero MP3.
+          Usa lo stesso elemento audio e richiede di mettere in pausa. Il costo
+          viene misurato separatamente.
+        </p>
+        <div class="actions">
+          <button id="prepare" disabled>Prepara audio</button
+          ><button id="play" disabled>Riproduci</button
+          ><button id="pause">Pausa</button
+          ><button id="cancel">Annulla preparazione</button>
+        </div>
+        <p id="play-status" role="status">Inattivo</p>
+        <div class="actions">
+          <button id="next">Risolvi prossima demo</button
+          ><button id="play-next" disabled>Riproduci prossima</button>
+        </div>
+        <p id="next-status">
+          La risoluzione anticipata salva solo il descrittore: non carica un
+          secondo audio.
+        </p>
+      </section>
+      <section aria-labelledby="diagnostic-title">
+        <h2 id="diagnostic-title">Diagnostica</h2>
+        <p class="hint">
+          Click → playing misura l'evento del browser, non il primo suono
+          fisico. loadstart è un proxy della richiesta; loadeddata indica dati
+          decodificati. Il buffering stimato include rete e decodifica.
+        </p>
+        <button id="export">Esporta JSON</button>
+        <pre id="diagnostic" aria-live="off"></pre>
+      </section>
+      <footer>
+        Nessun service worker o cache audio del laboratorio. Per i test su
+        iPhone usa HTTPS e registra dispositivo, iOS e modalità Safari/PWA.
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
