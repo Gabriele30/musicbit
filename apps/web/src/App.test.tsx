@@ -21,6 +21,7 @@ const tracks: Track[] = [1, 2, 3].map((id) => ({
   attribution: 'Author',
 }));
 function setup() {
+  history.replaceState(null, '', '/?screen=player&demo=1');
   const audio = document.createElement('audio');
   vi.spyOn(audio, 'play').mockResolvedValue();
   vi.spyOn(audio, 'pause').mockImplementation(() => {});
@@ -42,15 +43,19 @@ describe('application', () => {
     const user = userEvent.setup();
     await screen.findByRole('button', { name: 'Riproduci Demo 1' });
     await user.click(screen.getByRole('button', { name: 'Play', exact: true }));
+    await user.click(screen.getByRole('button', { name: 'Impostazioni' }));
     await user.click(
-      screen.getAllByRole('button', { name: 'Diagnostica' })[0]!,
+      screen.getByRole('button', { name: 'Diagnostica', exact: true }),
     );
     expect(
       screen.getByRole('heading', { name: 'Diagnostica' }),
     ).toBeInTheDocument();
     expect(player.audio).toBe(audio);
     expect(audio.play).toHaveBeenCalledOnce();
-    await user.click(screen.getAllByRole('button', { name: /^Coda/ })[0]!);
+    await user.click(
+      screen.getByRole('button', { name: 'Apri player: Demo 1' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Coda', exact: true }));
     await user.click(
       screen.getByRole('button', { name: 'Rimuovi posizione 2' }),
     );

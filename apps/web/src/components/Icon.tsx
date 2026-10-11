@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 
 export type IconName =
+  | 'home'
   | 'search'
   | 'music'
   | 'play'
@@ -14,8 +15,22 @@ export type IconName =
   | 'download'
   | 'close'
   | 'up'
-  | 'down';
+  | 'down'
+  | 'repeat'
+  | 'shuffle'
+  | 'more'
+  | 'settings'
+  | 'refresh'
+  | 'library'
+  | 'heart';
 const paths: Record<IconName, string> = {
+  more: 'M5 12h.01 M12 12h.01 M19 12h.01',
+  settings: 'M4 7h16 M4 17h16 M8 4v6 M16 14v6',
+  refresh: 'M20 7V3l-3 3a8 8 0 1 0 3 9 M20 3h-5',
+  library: 'M4 4v16 M9 4v16 M14 5l5-1 3 15-5 1Z',
+  home: 'M3 10l9-7 9 7v11h-6v-7H9v7H3Z',
+  heart:
+    'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z',
   search: 'M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
   music:
     'M9 18V5l12-2v13 M9 5l12-2 M9 18a3 3 0 1 1-3-3c1.66 0 3 1.34 3 3 M21 16a3 3 0 1 1-3-3c1.66 0 3 1.34 3 3',
@@ -31,6 +46,10 @@ const paths: Record<IconName, string> = {
   close: 'M6 6l12 12 M18 6L6 18',
   up: 'M6 14l6-6 6 6',
   down: 'M6 10l6 6 6-6',
+  repeat:
+    'M17 2l4 4-4 4 M3 11V8a2 2 0 0 1 2-2h16 M7 22l-4-4 4-4 M21 13v3a2 2 0 0 1-2 2H3',
+  shuffle:
+    'M3 5h3l12 14h3 M18 16l3 3-3 3 M3 19h3l4-5 M14 10l4-5h3 M18 2l3 3-3 3',
 };
 export function Icon({
   name,
@@ -52,7 +71,7 @@ export function Icon({
           : 'none'
       }
       stroke="currentColor"
-      strokeWidth="1.7"
+      strokeWidth={name === 'more' ? 4 : 1.7}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"

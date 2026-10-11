@@ -1,8 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openPlayer, openQueue, openDiagnostics } from './navigation';
 
 // Test server supplies local PCM WAVs to the real native media pipeline.
 async function fixture(page: Page) {
-  await page.goto('/');
+  await page.goto('/?screen=player&demo=1');
   await expect(
     page.getByRole('button', {
       name: 'Riproduci SoundHelix Song 1',
@@ -18,6 +19,7 @@ test('explicit preparation keeps one audio element, does not autoplay and export
   await page.locator('audio').evaluate((audio) => {
     audio.dataset.instance = 'prepared';
   });
+  await openDiagnostics(page);
   await page
     .getByRole('button', { name: 'Prepara traccia', exact: true })
     .click();
@@ -36,14 +38,12 @@ test('explicit preparation keeps one audio element, does not autoplay and export
   const loads = await page
     .locator('audio')
     .evaluate((audio: HTMLAudioElement) => audio.currentSrc);
+  await openPlayer(page);
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await expect(
     page.getByRole('status').filter({ hasText: /^In riproduzione$/ }),
   ).toBeVisible();
-  await page
-    .getByRole('navigation', { name: 'Navigazione mobile' })
-    .getByRole('button', { name: 'Diagnostica' })
-    .click();
+  await openDiagnostics(page);
   await page.getByRole('button', { name: 'Suono udito' }).click();
   const downloadEvent = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Esporta JSON' }).click();
@@ -159,10 +159,7 @@ test('native audio survives screens and supports controls, seeking and queue cha
         .evaluate((audio: HTMLAudioElement) => audio.currentTime),
     )
     .toBeGreaterThanOrEqual(9.9);
-  await page
-    .getByRole('navigation', { name: 'Navigazione mobile' })
-    .getByRole('button', { name: 'Diagnostica' })
-    .click();
+  await openDiagnostics(page);
   await expect(
     page.getByRole('heading', { name: 'Diagnostica', exact: true }),
   ).toBeVisible();
@@ -172,16 +169,10 @@ test('native audio survives screens and supports controls, seeking and queue cha
     'data-instance',
     'original',
   );
-  await page
-    .getByRole('navigation', { name: 'Navigazione mobile' })
-    .getByRole('button', { name: 'Coda' })
-    .click();
+  await openQueue(page);
   await page.getByRole('button', { name: 'Rimuovi posizione 3' }).click();
   await expect(page.locator('.queue-list li')).toHaveCount(2);
-  await page
-    .getByRole('navigation', { name: 'Navigazione mobile' })
-    .getByRole('button', { name: 'Player', exact: true })
-    .click();
+  await openPlayer(page);
   const width = await page.evaluate(() => ({
     content: document.documentElement.scrollWidth,
     viewport: window.innerWidth,
@@ -217,7 +208,7 @@ test('shows a failed source and recovers by selecting another track', async ({
     data.tracks[0].audioUrl = '/__test_media/missing.wav';
     await route.fulfill({ json: data });
   });
-  await page.goto('/');
+  await page.goto('/?screen=player&demo=1');
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await expect(page.getByRole('alert')).toBeVisible();
   await page
@@ -241,7 +232,7 @@ test('production PWA has install metadata and an offline shell without cached me
   expect(
     manifest.icons.some((icon: { sizes: string }) => icon.sizes === '512x512'),
   ).toBe(true);
-  await page.goto('/');
+  await page.goto('/?screen=player&demo=1');
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
@@ -252,9 +243,9 @@ test('production PWA has install metadata and an offline shell without cached me
     .toBe(true);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Premi play. Prenditi spazio.',
-  );
+  await expect(
+    page.getByRole('heading', { name: 'SoundHelix Song 1', exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole('alert')).toContainText('API');
   const cached = await page.evaluate(async () =>
     (
@@ -274,4 +265,55 @@ test('production PWA has install metadata and an offline shell without cached me
     ),
   ).toBe(false);
   await context.setOffline(false);
+});
+
+test('reload restores queue order, repeat and position without autoplay', async ({
+  page,
+}) => {
+  await fixture(page);
+  await page
+    .getByRole('button', { name: 'Traccia successiva', exact: true })
+    .click();
+  await expect(
+    page.getByRole('status').filter({ hasText: /^In riproduzione$/ }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Pausa', exact: true }).click();
+  await page
+    .getByRole('slider', { name: 'Posizione nella traccia' })
+    .fill('12');
+  await page
+    .getByRole('button', { name: 'Ripetizione: disattivata', exact: true })
+    .click();
+  await openQueue(page);
+  await page.getByRole('button', { name: 'Rimuovi posizione 3' }).click();
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'Coda di riproduzione' }),
+  ).toBeVisible();
+  await expect(page.locator('.queue-list li')).toHaveCount(2);
+  expect(
+    await page.locator('audio').evaluate((audio: HTMLAudioElement) => ({
+      paused: audio.paused,
+      source: audio.getAttribute('src'),
+    })),
+  ).toEqual({ paused: true, source: null });
+  await openPlayer(page);
+  await expect(
+    page.getByRole('button', {
+      name: 'Ripetizione: tutta la coda',
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'SoundHelix Song 2', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+    )
+    .toBeGreaterThanOrEqual(11.9);
+  await expect(page.locator('audio')).toHaveCount(1);
 });

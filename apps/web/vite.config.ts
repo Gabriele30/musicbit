@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '../..', '');
-  const devPort = Number(env.WEB_DEV_PORT || 4175);
+  const devPort = Number(env.WEB_DEV_PORT || 5173);
   if (!Number.isInteger(devPort) || devPort < 1 || devPort > 65535) {
     throw new Error('WEB_DEV_PORT deve essere tra 1 e 65535');
   }

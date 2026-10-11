@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Track } from '@musicbit/shared';
 import { PlayerEngine } from './engine';
+import { connectSessionPersistence, SESSION_KEY } from './session';
 
 const tracks: Track[] = [1, 2, 3].map((id) => ({
   id: `track-${id}`,
@@ -33,6 +34,7 @@ class FakeAudio extends EventTarget {
   load = vi.fn();
   play = vi.fn(() => {
     this.paused = false;
+    this.ended = false;
     return Promise.resolve();
   });
   pause = vi.fn(() => {
@@ -40,6 +42,7 @@ class FakeAudio extends EventTarget {
     this.dispatchEvent(new Event('pause'));
   });
   emit(name: string) {
+    if (name === 'ended') this.ended = true;
     this.dispatchEvent(new Event(name));
   }
 }
@@ -67,9 +70,189 @@ afterEach(() => {
   if (descriptor) Object.defineProperty(navigator, 'mediaSession', descriptor);
   else Reflect.deleteProperty(navigator, 'mediaSession');
   vi.useRealTimers();
+  localStorage.clear();
 });
 
 describe('persistent player', () => {
+  it('starts a collection at the selected track while preserving previous tracks and the user gesture', () => {
+    const { audio, player } = setup();
+    player.playCollection(tracks, 1);
+    expect(audio.play).toHaveBeenCalledOnce();
+    expect(audio.src).toBe(tracks[1]!.audioUrl);
+    expect(player.getSnapshot().queue).toEqual(tracks);
+    expect(player.getSnapshot().index).toBe(1);
+    player.previous();
+    expect(audio.src).toBe(tracks[0]!.audioUrl);
+  });
+  it('corrects doubled proxy durations without cutting the end, then stops the silent tail', () => {
+    const { audio, player } = setup();
+    player.playCollection([
+      {
+        ...tracks[0]!,
+        audioUrl: '/api/audio/abcdefghijk',
+        durationSeconds: 180,
+      },
+    ]);
+    audio.duration = 360;
+    audio.emit('playing');
+    audio.currentTime = 179.9;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot()).toMatchObject({
+      status: 'playing',
+      duration: 180,
+    });
+    expect(audio.play).toHaveBeenCalledOnce();
+    audio.currentTime = 181;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot()).toMatchObject({
+      status: 'ended',
+      position: 180,
+    });
+    expect(audio.paused).toBe(true);
+    player.play();
+    expect(audio.currentTime).toBe(0);
+  });
+  it('advances beyond a doubled silent tail to the next queued song', () => {
+    const { audio, player } = setup();
+    player.playCollection([
+      {
+        ...tracks[0]!,
+        audioUrl: '/api/audio/abcdefghijk',
+        durationSeconds: 180,
+      },
+      tracks[1]!,
+    ]);
+    audio.duration = 360;
+    audio.emit('playing');
+    audio.currentTime = 181;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot().index).toBe(1);
+    expect(audio.play).toHaveBeenCalledTimes(2);
+  });
+  it('uses staged recommendations after explicit queue entries, respecting the autoplay switch', () => {
+    const { audio, player } = setup();
+    player.playCollection(tracks.slice(0, 2));
+    player.setRecommendations(tracks[0]!.id, [tracks[2]!]);
+    audio.emit('playing');
+    audio.emit('ended');
+    expect(player.getSnapshot().index).toBe(1);
+    player.setRecommendations(tracks[0]!.id, [tracks[2]!]);
+    expect(player.getSnapshot().autoplayTracks).toEqual([]);
+    player.setRecommendations(tracks[1]!.id, [
+      tracks[0]!,
+      tracks[2]!,
+      tracks[2]!,
+    ]);
+    expect(player.getSnapshot().autoplayTracks).toEqual([tracks[2]]);
+    audio.emit('playing');
+    audio.emit('ended');
+    expect(player.getSnapshot().queue.at(-1)?.id).toBe(tracks[2]!.id);
+    expect(player.getSnapshot().index).toBe(2);
+    player.setRecommendations(tracks[2]!.id, [
+      { ...tracks[0]!, id: 'new-song' },
+    ]);
+    player.toggleAutoplay();
+    audio.emit('playing');
+    audio.emit('ended');
+    expect(player.getSnapshot().status).toBe('ended');
+    expect(audio.play).toHaveBeenCalledTimes(3);
+  });
+  it('plays the complete native duration even when catalog metadata is shorter', () => {
+    const { audio, player } = setup();
+    player.enqueue({ ...tracks[0]!, durationSeconds: 60 });
+    player.select(3);
+    audio.emit('playing');
+    audio.currentTime = 119.75;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot()).toMatchObject({
+      index: 3,
+      status: 'playing',
+      duration: 120,
+    });
+    expect(audio.play).toHaveBeenCalledOnce();
+    audio.emit('ended');
+    expect(player.getSnapshot().status).toBe('ended');
+  });
+  it('repeats a brano, allows manual next, and wraps the entire queue', () => {
+    const { audio, player } = setup();
+    player.cycleRepeat();
+    player.select(2);
+    audio.emit('playing');
+    audio.emit('ended');
+    expect(player.getSnapshot().index).toBe(0);
+    player.cycleRepeat();
+    audio.currentTime = 120;
+    audio.emit('playing');
+    audio.emit('ended');
+    expect(player.getSnapshot().index).toBe(0);
+    expect(audio.currentTime).toBe(0);
+    player.next();
+    expect(player.getSnapshot().index).toBe(1);
+    player.cycleRepeat();
+    player.select(2);
+    audio.emit('playing');
+    audio.emit('ended');
+    expect(player.getSnapshot().status).toBe('ended');
+  });
+  it('shuffles only upcoming tracks without interrupting the selected source', () => {
+    const { audio, player } = setup();
+    player.enqueue(tracks[0]!);
+    player.select(1);
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    player.shuffleUpcoming();
+    expect(player.getSnapshot().queue.map((track) => track.id)).toEqual([
+      'track-1',
+      'track-2',
+      'track-1',
+      'track-3',
+    ]);
+    expect(audio.src).toBe(tracks[1]!.audioUrl);
+    expect(audio.load).toHaveBeenCalledOnce();
+  });
+  it('restores duplicate queue entries, repeat and position without autoplay or preload', () => {
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify({
+        version: 1,
+        queue: [tracks[0], tracks[0]],
+        index: 1,
+        position: 37,
+        repeat: 'all',
+      }),
+    );
+    const audio = new FakeAudio();
+    const player = new PlayerEngine(audio as unknown as HTMLAudioElement);
+    engines.push(player);
+    const disconnect = connectSessionPersistence(player);
+    expect(player.getSnapshot()).toMatchObject({
+      index: 1,
+      position: 37,
+      repeat: 'all',
+      status: 'paused',
+    });
+    expect(audio.load).not.toHaveBeenCalled();
+    expect(audio.play).not.toHaveBeenCalled();
+    player.setCatalog(tracks);
+    expect(player.getSnapshot().queue).toHaveLength(2);
+    player.play();
+    expect(audio.play).toHaveBeenCalledOnce();
+    audio.emit('loadedmetadata');
+    expect(audio.currentTime).toBe(37);
+    player.pause();
+    expect(JSON.parse(localStorage.getItem(SESSION_KEY)!).position).toBe(37);
+    disconnect();
+  });
+  it('ignores corrupt sessions and keeps playback usable when storage is blocked', () => {
+    localStorage.setItem(SESSION_KEY, '{broken');
+    const { audio, player } = setup();
+    const disconnect = connectSessionPersistence(player);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    player.play();
+    expect(audio.play).toHaveBeenCalledOnce();
+    disconnect();
+  });
   it('prepares without autoplay and consumes the same source without loading again', () => {
     const { audio, player, tick } = setup();
     player.prepare();
@@ -234,14 +417,26 @@ describe('persistent player', () => {
   it('auto advances at ended and stops at the end of the queue', () => {
     const { audio, player } = setup();
     player.play();
+    audio.emit('playing');
     audio.emit('ended');
     expect(player.getSnapshot().index).toBe(1);
     expect(player.getSnapshot().attempts.at(-1)?.trigger).toBe('ended');
+    audio.emit('playing');
     audio.emit('ended');
+    audio.emit('playing');
     audio.emit('ended');
     expect(player.getSnapshot().status).toBe('ended');
     expect(player.getSnapshot().index).toBe(2);
     expect(audio.play).toHaveBeenCalledTimes(3);
+  });
+  it('does not skip the whole queue when a decoder jumps to EOS without playing', () => {
+    const { audio, player } = setup();
+    player.play();
+    audio.currentTime = 120;
+    audio.emit('ended');
+    expect(player.getSnapshot()).toMatchObject({ index: 0, status: 'error' });
+    expect(player.getSnapshot().error).toContain('prima di avviare');
+    expect(audio.play).toHaveBeenCalledOnce();
   });
   it('restarts the current track on previous after three seconds and clamps seeking', () => {
     const { audio, player } = setup();

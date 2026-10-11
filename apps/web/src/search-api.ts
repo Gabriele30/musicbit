@@ -5,6 +5,8 @@ import {
   type DetailResponse,
   type ProvidersResponse,
   type SearchResponse,
+  type FeedResponse,
+  type RecommendationsResponse,
 } from '@musicbit/shared';
 
 export class SearchError extends Error {}
@@ -62,11 +64,40 @@ export async function searchCatalog(
     data.provider !== 'youtube' ||
     data.type !== type ||
     !Array.isArray(data.items) ||
-    !data.items.every(isCatalogItem) ||
+    !data.items.every((item) => isCatalogItem(item) && item.kind === type) ||
     !validTiming(data.timing)
   )
     throw new SearchError('Risposta del catalogo non valida.');
   return data as SearchResponse;
+}
+
+export type SearchKind = CatalogKind | 'all';
+export async function searchAcrossCatalog(
+  q: string,
+  kind: SearchKind,
+  signal: AbortSignal,
+) {
+  const kinds: CatalogKind[] =
+    kind === 'all' ? ['track', 'artist', 'album'] : [kind];
+  const responses = await Promise.allSettled(
+    kinds.map((type) => searchCatalog(q, type, signal)),
+  );
+  if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+  const successful = responses.flatMap((result) =>
+    result.status === 'fulfilled' ? [result.value] : [],
+  );
+  if (!successful.length) {
+    const failure = responses.find((result) => result.status === 'rejected');
+    throw failure?.status === 'rejected'
+      ? failure.reason
+      : new SearchError('Ricerca non disponibile.');
+  }
+  return {
+    items: successful.flatMap((response) => response.items),
+    missingKinds: kinds.filter(
+      (_, index) => responses[index]?.status === 'rejected',
+    ),
+  };
 }
 function validTiming(value: unknown): boolean {
   const timing = value as SearchResponse['timing'] | undefined;
@@ -93,11 +124,64 @@ export async function catalogDetails(
     item.id !== id ||
     item.kind !== kind ||
     !validTiming(data.timing) ||
+    [
+      ['albums', 'album'],
+      ['relatedArtists', 'artist'],
+    ].some(([key, kind]) => {
+      const values = item[key as 'albums' | 'relatedArtists'];
+      return (
+        values !== undefined &&
+        (!Array.isArray(values) ||
+          !values.every((entry) => isCatalogItem(entry) && entry.kind === kind))
+      );
+    }) ||
     (item.tracks !== undefined &&
-      (!Array.isArray(item.tracks) || !item.tracks.every(isCatalogItem)))
+      (!Array.isArray(item.tracks) ||
+        !item.tracks.every(
+          (track) => isCatalogItem(track) && track.kind === 'track',
+        )))
   )
     throw new SearchError('Dettagli del catalogo non validi.');
   return data as DetailResponse;
+}
+export async function homeFeed(signal: AbortSignal): Promise<FeedResponse> {
+  const data = (await request(
+    '/api/feed',
+    signal,
+  )) as Partial<FeedResponse> | null;
+  if (
+    !data ||
+    !validTiming(data.timing) ||
+    !Array.isArray(data.sections) ||
+    data.sections.length > 30 ||
+    !data.sections.every(
+      (section) =>
+        typeof section.id === 'string' &&
+        typeof section.title === 'string' &&
+        Array.isArray(section.items) &&
+        section.items.every(isCatalogItem),
+    )
+  )
+    throw new SearchError('Feed musicale non valido.');
+  return data as FeedResponse;
+}
+export async function recommendations(
+  id: string,
+  signal: AbortSignal,
+): Promise<RecommendationsResponse> {
+  const data = (await request(
+    `/api/recommendations/${encodeURIComponent(id)}`,
+    signal,
+  )) as Partial<RecommendationsResponse> | null;
+  if (
+    !data ||
+    data.seedId !== id ||
+    !validTiming(data.timing) ||
+    !Array.isArray(data.items) ||
+    !data.items.every((item) => isCatalogItem(item) && item.kind === 'track')
+  )
+    throw new SearchError('Suggerimenti non validi.');
+  return data as RecommendationsResponse;
 }
 export async function providerStatus(
   signal: AbortSignal,

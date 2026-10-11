@@ -8,6 +8,14 @@ export type PlaybackStatus =
   | 'ended'
   | 'error';
 export type Trigger = 'tap' | 'media-session' | 'ended';
+export type RepeatMode = 'off' | 'all' | 'one';
+export interface SavedSession {
+  queue: Track[];
+  index: number;
+  position: number;
+  repeat: RepeatMode;
+  autoplay?: boolean;
+}
 export interface PlaybackAttempt {
   id: number;
   trackId: string;
@@ -79,6 +87,10 @@ export interface PlayerState {
   }[];
   mediaSession: boolean;
   mediaActions: string[];
+  repeat: RepeatMode;
+  autoplay: boolean;
+  autoplayTracks: Track[];
+  autoplayStatus: 'idle' | 'loading' | 'ready' | 'error';
 }
 
 const mediaErrorMessages: Record<number, string> = {
@@ -101,6 +113,10 @@ export class PlayerEngine {
     events: [],
     mediaSession: false,
     mediaActions: [],
+    repeat: 'off',
+    autoplay: true,
+    autoplayTracks: [],
+    autoplayStatus: 'idle',
     buffer: { readyState: 0, networkState: 0, ranges: [], ahead: 0 },
     networkTimings: [],
   };
@@ -113,6 +129,8 @@ export class PlayerEngine {
   private session: MediaSession | undefined;
   private deadline: ReturnType<typeof setTimeout> | undefined;
   private observer: PerformanceObserver | undefined;
+  private resumePosition = 0;
+  private pendingSeek: number | undefined;
 
   constructor(
     readonly audio: HTMLAudioElement,
@@ -156,7 +174,14 @@ export class PlayerEngine {
     on('abort', () => {});
     on('seeking', () => {});
     on('seeked', () => {});
-    on('loadedmetadata', () => this.syncPosition());
+    on('loadedmetadata', () => {
+      this.syncPosition();
+      if (this.pendingSeek !== undefined && this.state.duration > 0) {
+        const position = this.pendingSeek;
+        this.pendingSeek = undefined;
+        this.seek(Math.min(position, Math.max(0, this.state.duration - 0.1)));
+      }
+    });
     on('durationchange', () => this.syncPosition());
     on('timeupdate', () => this.syncPosition());
     on('playing', () => {
@@ -198,12 +223,23 @@ export class PlayerEngine {
       ),
     );
     on('ended', () => {
-      if (this.state.index < this.state.queue.length - 1)
-        this.select(this.state.index + 1, 'ended');
-      else {
-        this.patch({ status: 'ended', position: this.state.duration });
-        this.setPlaybackState('paused');
+      if (
+        !audio.ended ||
+        this.state.status === 'error' ||
+        this.state.status === 'paused'
+      )
+        return;
+      const attempt = this.state.attempts.find(
+        (item) => item.id === this.activeAttempt,
+      );
+      if (!attempt) return;
+      if (attempt.playingAt === undefined) {
+        this.fail(
+          'Il browser ha terminato lo stream prima di avviare l’audio. Tocca Riprova o scegli un altro brano.',
+        );
+        return;
       }
+      this.handleTrackEnded();
     });
     document.addEventListener('visibilitychange', this.visibilityChanged);
     for (const event of ['pagehide', 'pageshow', 'online', 'offline'])
@@ -384,6 +420,8 @@ export class PlayerEngine {
     this.clearDeadline();
     ++this.command;
     this.activeAttempt = undefined;
+    this.resumePosition = 0;
+    this.pendingSeek = undefined;
     this.source = track.audioUrl;
     this.patch({
       error: null,
@@ -443,7 +481,92 @@ export class PlayerEngine {
     this.updateMetadata();
   }
   enqueue(track: Track) {
-    this.patch({ queue: [...this.state.queue, track] });
+    this.enqueueMany([track]);
+  }
+  enqueueMany(tracks: Track[]) {
+    if (!tracks.length) return;
+    this.patch({ queue: [...this.state.queue, ...tracks] });
+    if (this.state.queue.length === tracks.length) this.updateMetadata();
+  }
+  playCollection(tracks: Track[], startIndex = 0) {
+    if (!tracks.length) return;
+    const index = Number.isInteger(startIndex)
+      ? Math.max(0, Math.min(startIndex, tracks.length - 1))
+      : 0;
+    this.source = undefined;
+    this.resumePosition = 0;
+    this.pendingSeek = undefined;
+    this.patch({ queue: [...tracks], index });
+    this.select(index);
+  }
+  restoreSession(session: SavedSession) {
+    if (this.source || this.state.queue.length || !session.queue.length) return;
+    this.resumePosition = session.position;
+    this.patch({
+      index: session.index,
+      position: session.position,
+      repeat: session.repeat,
+      autoplay: session.autoplay ?? true,
+      queue: [...session.queue],
+      status: 'paused',
+      duration: session.queue[session.index]?.durationSeconds ?? 0,
+    });
+    this.updateMetadata();
+  }
+  cycleRepeat() {
+    const modes: RepeatMode[] = ['off', 'all', 'one'];
+    this.patch({
+      repeat: modes[(modes.indexOf(this.state.repeat) + 1) % modes.length]!,
+    });
+  }
+  toggleAutoplay() {
+    this.patch({
+      autoplay: !this.state.autoplay,
+      autoplayTracks: [],
+      autoplayStatus: 'idle',
+    });
+  }
+  setRecommendations(
+    seedId: string,
+    tracks: Track[],
+    status: PlayerState['autoplayStatus'] = 'ready',
+  ) {
+    if (
+      !this.state.autoplay ||
+      this.state.queue[this.state.index]?.id !== seedId
+    )
+      return;
+    const queued = new Set(this.state.queue.map((track) => track.id));
+    const unique = new Map(
+      tracks
+        .filter((track) => !queued.has(track.id))
+        .map((track) => [track.id, track]),
+    );
+    this.patch({
+      autoplayTracks: [...unique.values()],
+      autoplayStatus: status,
+    });
+  }
+  private advanceAutoplay(trigger: Trigger): boolean {
+    const track =
+      this.state.autoplay &&
+      this.state.autoplayTracks.find(
+        (item) => !this.state.queue.some((queued) => queued.id === item.id),
+      );
+    if (!track) return false;
+    const index = this.state.queue.length;
+    this.patch({ queue: [...this.state.queue, track], autoplayTracks: [] });
+    this.select(index, trigger);
+    return true;
+  }
+  shuffleUpcoming() {
+    const queue = [...this.state.queue];
+    for (let i = queue.length - 1; i > this.state.index + 1; i--) {
+      const first = this.state.index + 1;
+      const other = first + Math.floor(Math.random() * (i - first + 1));
+      [queue[i], queue[other]] = [queue[other]!, queue[i]!];
+    }
+    this.patch({ queue });
   }
   removeUpcoming(index: number) {
     if (index <= this.state.index || index >= this.state.queue.length) return;
@@ -476,6 +599,11 @@ export class PlayerEngine {
       );
     }
     const token = ++this.command;
+    const restart = this.state.status === 'ended';
+    if (this.state.queue[this.state.index]?.id !== track.id)
+      this.patch({ autoplayTracks: [], autoplayStatus: 'idle' });
+    const resumeAt = index === this.state.index ? this.resumePosition : 0;
+    this.resumePosition = 0;
     const prepared =
       index === this.state.index &&
       this.source === track.audioUrl &&
@@ -509,13 +637,14 @@ export class PlayerEngine {
       index,
       status: 'loading',
       error: null,
-      position: load ? 0 : this.audio.currentTime,
-      duration: load ? 0 : this.state.duration,
+      position: load ? resumeAt : this.audio.currentTime,
+      duration: load ? track.durationSeconds || 0 : this.state.duration,
       attempts: [...this.state.attempts, attempt].slice(-20),
     });
     this.updateMetadata();
     this.audio.preload = 'none';
     if (load) {
+      this.pendingSeek = resumeAt > 0 ? resumeAt : undefined;
       this.source = track.audioUrl;
       const requestIssuedAt = this.now();
       this.patch({
@@ -526,7 +655,7 @@ export class PlayerEngine {
       // No fetch/blob/WebAudio indirection: preserve the native iOS audio pipeline.
       this.audio.src = track.audioUrl;
       this.audio.load();
-    } else if (this.audio.ended) this.audio.currentTime = 0;
+    } else if (this.audio.ended || restart) this.audio.currentTime = 0;
     // Keep play in the synchronous user gesture stack; catch failures afterwards.
     try {
       void this.audio.play().catch((error: unknown) => {
@@ -565,10 +694,16 @@ export class PlayerEngine {
   next(trigger: Trigger = 'tap') {
     if (this.state.index < this.state.queue.length - 1)
       this.select(this.state.index + 1, trigger);
+    else if (this.state.repeat === 'all') {
+      this.audio.currentTime = 0;
+      this.select(0, trigger);
+    } else this.advanceAutoplay(trigger);
   }
   previous(trigger: Trigger = 'tap') {
     if (this.audio.currentTime > 3) this.seek(0);
     else if (this.state.index > 0) this.select(this.state.index - 1, trigger);
+    else if (this.state.repeat === 'all')
+      this.select(this.state.queue.length - 1, trigger);
   }
   seek(seconds: number) {
     if (!Number.isFinite(seconds) || this.state.duration <= 0) return;
@@ -602,17 +737,76 @@ export class PlayerEngine {
     });
     this.setPlaybackState('paused');
   }
+  private isHandlingEnded = false;
+  private handleTrackEnded() {
+    if (this.isHandlingEnded) return;
+    this.isHandlingEnded = true;
+    try {
+      this.clearDeadline();
+      this.endWaiting();
+      if (this.state.repeat === 'one') {
+        this.audio.currentTime = 0;
+        this.select(this.state.index, 'ended');
+      } else if (this.state.index < this.state.queue.length - 1) {
+        this.select(this.state.index + 1, 'ended');
+      } else if (this.state.repeat === 'all') {
+        this.audio.currentTime = 0;
+        this.select(0, 'ended');
+      } else if (!this.advanceAutoplay('ended')) {
+        this.audio.pause();
+        this.patch({ status: 'ended', position: this.state.duration });
+        this.setPlaybackState('paused');
+      }
+    } finally {
+      this.isHandlingEnded = false;
+    }
+  }
+
   private syncPosition() {
-    const duration = Number.isFinite(this.audio.duration)
+    const track = this.state.queue[this.state.index];
+    const rawAudioDuration = Number.isFinite(this.audio.duration)
       ? this.audio.duration
       : 0;
-    this.patch({ duration, position: this.audio.currentTime || 0 });
+
+    // Some proxied AAC streams report twice their actual duration. Restrict the
+    // workaround to that signature; ordinary catalog estimates never cut audio.
+    const known = track?.durationSeconds ?? 0;
+    const doubled =
+      !!track?.audioUrl.startsWith('/api/audio/') &&
+      known >= 30 &&
+      rawAudioDuration >= known * 1.8 &&
+      rawAudioDuration <= known * 2.2;
+    const duration = doubled
+      ? known
+      : rawAudioDuration > 0
+        ? rawAudioDuration
+        : known;
+
+    const currentPosition = this.audio.currentTime || 0;
+    this.patch({
+      duration,
+      position: doubled ? Math.min(currentPosition, duration) : currentPosition,
+    });
+
+    // Allow the complete catalog duration plus a grace period, never -0.5s.
+    if (
+      doubled &&
+      currentPosition >= known + 1 &&
+      this.state.status === 'playing' &&
+      !this.audio.paused &&
+      !this.audio.seeking
+    ) {
+      this.log('duration:doubled-tail');
+      this.handleTrackEnded();
+      return;
+    }
+
     if (duration > 0 && typeof this.session?.setPositionState === 'function') {
       try {
         this.session.setPositionState({
           duration,
           playbackRate: this.audio.playbackRate,
-          position: Math.min(this.audio.currentTime, duration),
+          position: Math.min(currentPosition, duration),
         });
       } catch {
         /* Some browsers expose the method but reject position updates. */

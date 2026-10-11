@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { catalogDetails, providerStatus, searchCatalog } from './search-api';
+import {
+  catalogDetails,
+  homeFeed,
+  recommendations,
+  providerStatus,
+  searchCatalog,
+  searchAcrossCatalog,
+} from './search-api';
 
 const item = {
   id: 'abcdefghijk',
@@ -16,6 +23,77 @@ afterEach(() => {
   vi.useRealTimers();
 });
 describe('catalog HTTP client', () => {
+  it('keeps available categories when one search category fails and reports the missing category', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string) => {
+        const kind = new URL(path, 'https://example.com').searchParams.get(
+          'type',
+        );
+        return kind === 'track'
+          ? new Response(
+              JSON.stringify({
+                provider: 'youtube',
+                type: kind,
+                items: [item],
+                timing,
+              }),
+            )
+          : new Response('{}', { status: 503 });
+      }),
+    );
+    const result = await searchAcrossCatalog('Bach', 'all', signal());
+    expect(result.items).toEqual([item]);
+    expect(result.missingKinds).toEqual(['artist', 'album']);
+  });
+  it('validates home cards and the radio seed before passing them to playback', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              sections: [{ id: 'new', title: 'Discover', items: [item] }],
+              timing,
+            }),
+          ),
+      ),
+    );
+    expect((await homeFeed(signal())).sections[0]?.items).toEqual([item]);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ seedId: 'wrong-seed', items: [item], timing }),
+          ),
+      ),
+    );
+    await expect(recommendations(item.id, signal())).rejects.toThrow(
+      'Suggerimenti non validi',
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              sections: [
+                {
+                  id: 'new',
+                  title: 'Discover',
+                  items: [{ ...item, audioUrl: 'javascript:bad' }],
+                },
+              ],
+              timing,
+            }),
+          ),
+      ),
+    );
+    await expect(homeFeed(signal())).rejects.toThrow(
+      'Feed musicale non valido',
+    );
+  });
   it('encodes input and validates normalized metadata separately from audio', async () => {
     const fetcher = vi.fn<typeof fetch>(
       async () =>
@@ -35,8 +113,8 @@ describe('catalog HTTP client', () => {
     expect(fetcher.mock.calls[0]?.[0]).toContain('q=A+%26+B');
   });
   it.each([
-    { ...item, audioUrl: 'https://x.example/audio' },
-    { ...item, playback: { available: true } },
+    { ...item, audioUrl: 'javascript:alert(1)' },
+    { ...item, playback: { available: 'not-a-bool' } },
     { ...item, sourceUrl: 'javascript:alert(1)' },
     { ...item, artworkUrl: 'https://evil.example/image' },
     { ...item, id: 'bad' },
@@ -76,7 +154,7 @@ describe('catalog HTTP client', () => {
           JSON.stringify({
             item: {
               ...item,
-              tracks: [{ ...item, playback: { available: true } }],
+              tracks: [{ ...item, id: 'bad-id' }],
             },
             timing,
           }),

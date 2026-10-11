@@ -99,6 +99,6 @@ const server = createServer(async (request, response) => {
     response.end();
   }
 });
-server.listen(4174, '127.0.0.1');
+server.listen(Number(process.env.MUSICBIT_E2E_PORT || 4174), '127.0.0.1');
 for (const signal of ['SIGTERM', 'SIGINT'])
   process.on(signal, () => server.close(() => process.exit(0)));

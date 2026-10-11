@@ -36,7 +36,7 @@ export function PreparationControls({
           ? 'Preparazione in corso…'
           : ready
             ? 'Dati pronti nel browser. Tocca Play.'
-            : 'Facoltativo, a player fermo: ricarica dall’inizio e può scaricare l’intero MP3. Nessun autoplay.'}
+            : 'Facoltativo, a player fermo: ricarica dall’inizio e può scaricare l’intero file audio. Nessun autoplay.'}
       </p>
     </div>
   );
