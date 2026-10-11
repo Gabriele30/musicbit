@@ -15,8 +15,17 @@ export function registerAudioRoutes(
     '/api/audio/:id/info',
     async (request, reply) => {
       reply.header('Cache-Control', 'private, no-store');
-      const resolved = await service.resolve(request.params.id);
-      return { durationSeconds: resolved.durationSeconds ?? null };
+      try {
+        const resolved = await service.resolve(request.params.id);
+        return { durationSeconds: resolved.durationSeconds ?? null };
+      } catch (error) {
+        if (error instanceof AudioResolutionError)
+          return reply.code(error.status).send({
+            code: error.code,
+            error: error.message,
+          });
+        throw error;
+      }
     },
   );
   app.route<{ Params: { id: string } }>({

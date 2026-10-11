@@ -29,7 +29,7 @@ export class ProviderProcess {
     }
   >();
   private idle?: ReturnType<typeof setTimeout>;
-  constructor(private timeoutMs = 12000) {}
+  constructor(private timeoutMs = 45000) {}
   private start() {
     if (this.child) return this.child;
     const worker = new URL('./provider-worker.js', import.meta.url);

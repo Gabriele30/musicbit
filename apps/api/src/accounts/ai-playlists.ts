@@ -71,8 +71,18 @@ async function configuredPlan(
         tasteArtists: artists,
       }),
       stream: false,
-      format: schema,
-      options: { temperature: 0.3, num_predict: 1800, num_ctx: 4096 },
+      format: {
+        ...schema,
+        properties: {
+          ...schema.properties,
+          songs: { ...schema.properties.songs, minItems: count, maxItems: count },
+        },
+      },
+      options: {
+        temperature: 0.3,
+        num_predict: Math.min(1800, 200 + count * 70),
+        num_ctx: 4096,
+      },
     }),
   });
   if (!response.ok)

@@ -45,7 +45,7 @@ export class ProviderAudioResolver {
   ) {
     this.cache = new MetadataCache(
       5 * 60 * 1000,
-      options.timeoutMs ?? 12000,
+      options.timeoutMs ?? 45000,
       options.capacity ?? 100,
       options.maxConcurrent ?? 8,
     );

@@ -140,7 +140,7 @@ export class PlayerEngine {
     if (!/^\/api\/audio\/[A-Za-z0-9_-]{11}$/.test(track.audioUrl)) return;
     const controller = new AbortController();
     this.durationRequest = controller;
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 50000);
     void fetch(`${track.audioUrl}/info`, {
       credentials: 'same-origin',
       cache: 'no-store',

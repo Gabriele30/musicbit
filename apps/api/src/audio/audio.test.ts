@@ -21,6 +21,17 @@ const resolved: ResolvedAudioStream = {
 };
 
 describe('Audio routes and streaming', () => {
+  it('reports bounded metadata timeouts as retryable audio errors', async () => {
+    const service = new AudioStreamService();
+    vi.spyOn(service, 'resolve').mockRejectedValue(
+      new AudioResolutionError('Riprova.', 'TIMEOUT', 504),
+    );
+    const app = buildApp({}, undefined, undefined, service);
+    const response = await app.inject('/api/audio/olqW16cSEVs/info');
+    expect(response.statusCode).toBe(504);
+    expect(response.json()).toEqual({ code: 'TIMEOUT', error: 'Riprova.' });
+    await app.close();
+  });
   it('returns duration metadata without exposing a signed stream URL', async () => {
     const service = new AudioStreamService();
     vi.spyOn(service, 'resolve').mockResolvedValue({

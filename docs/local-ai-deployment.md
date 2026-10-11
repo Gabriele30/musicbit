@@ -9,6 +9,8 @@ docker compose -f compose.yaml -f compose.local-ai.yaml exec ollama ollama pull 
 
 Set `WEB_PORT` to a free loopback port and use Tailscale Serve on an unused HTTPS port. Preserve existing Serve mappings. Access requires membership of the server's tailnet.
 
+On slower CPUs, set `OLLAMA_PLAYLIST_MODEL=qwen2.5:0.5b` and pull that model instead. If a host VPN filters Docker traffic, allow the MusicBit Docker subnet in its local network allowlist. Do not disable the VPN firewall globally.
+
 Account libraries use the persistent `musicbit_data` volume. Ollama models use `ollama_data`. Never commit the database, passwords, private keys or `.env`.
 
 The audio player fetches `/api/audio/:id/info` after synchronous native Play to recover the provider's duration, including tracks without feed duration. The existing doubled-AAC workaround then advances at the full duration plus one second, avoiding the silent tail without an early cut. External sources continue using native duration.
