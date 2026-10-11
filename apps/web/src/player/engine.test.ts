@@ -70,10 +70,39 @@ afterEach(() => {
   if (descriptor) Object.defineProperty(navigator, 'mediaSession', descriptor);
   else Reflect.deleteProperty(navigator, 'mediaSession');
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   localStorage.clear();
 });
 
 describe('persistent player', () => {
+  it('recovers a missing feed duration after synchronous play and skips the doubled silent tail', async () => {
+    let resolve!: (value: Response) => void;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((done) => {
+            resolve = done;
+          }),
+      ),
+    );
+    const { audio, player } = setup();
+    player.playCollection([
+      { ...tracks[0]!, audioUrl: '/api/audio/olqW16cSEVs' },
+      tracks[1]!,
+    ]);
+    expect(audio.play).toHaveBeenCalledOnce();
+    audio.duration = 376;
+    audio.emit('playing');
+    resolve(new Response(JSON.stringify({ durationSeconds: 188 })));
+    await vi.waitFor(() => expect(player.getSnapshot().duration).toBe(188));
+    audio.currentTime = 187.9;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot().index).toBe(0);
+    audio.currentTime = 189;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot().index).toBe(1);
+  });
   it('persists playlists larger than 500 tracks and rejects queue overflow without interrupting audio', () => {
     const { player, audio } = setup();
     const queue = Array.from({ length: 1000 }, (_, i) => ({

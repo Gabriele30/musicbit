@@ -89,7 +89,7 @@ export function AiPlaylist({
               { prompt, count, useTaste },
               'POST',
               controller.signal,
-              65000,
+              190000,
             )
               .then((data) => {
                 if (
@@ -148,9 +148,9 @@ export function AiPlaylist({
             </label>
           </div>
           <p className="muted">
-            La descrizione viene inviata a OpenAI. Se attivi Taste Profile,
-            inviamo anche fino a 10 artisti affini. Password, cronologia
-            completa e file audio restano esclusi.
+            La descrizione viene elaborata dal modello AI configurato sul
+            server. Se attivi Taste Profile, inviamo anche fino a 10 artisti
+            affini. Password, cronologia completa e file audio restano esclusi.
           </p>
           {available === false && (
             <p className="banner">

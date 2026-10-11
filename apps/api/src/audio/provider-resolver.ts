@@ -291,9 +291,12 @@ export class ProviderAudioResolver {
       contentLength: format.content_length
         ? Number(format.content_length)
         : undefined,
-      durationSeconds: format.approx_duration_ms
-        ? Math.round(Number(format.approx_duration_ms) / 1000)
-        : undefined,
+      durationSeconds:
+        Number(info.basic_info.duration) > 0
+          ? Number(info.basic_info.duration)
+          : format.approx_duration_ms
+            ? Math.round(Number(format.approx_duration_ms) / 1000)
+            : undefined,
       expiresAt,
       patches: patches?.length ? patches : undefined,
     };

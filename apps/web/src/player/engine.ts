@@ -132,6 +132,37 @@ export class PlayerEngine {
   private observer: PerformanceObserver | undefined;
   private resumePosition = 0;
   private pendingSeek: number | undefined;
+  private durationRequest: AbortController | undefined;
+  private resolvedDurations = new Map<string, number>();
+
+  private resolveDuration(track: Track) {
+    this.durationRequest?.abort();
+    if (!/^\/api\/audio\/[A-Za-z0-9_-]{11}$/.test(track.audioUrl)) return;
+    const controller = new AbortController();
+    this.durationRequest = controller;
+    void fetch(`${track.audioUrl}/info`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
+    })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data = (await response.json()) as { durationSeconds?: number };
+        if (
+          controller.signal.aborted ||
+          !Number.isFinite(data.durationSeconds) ||
+          !(data.durationSeconds! > 0)
+        )
+          return;
+        if (this.resolvedDurations.size >= 1000) this.resolvedDurations.clear();
+        this.resolvedDurations.set(track.id, data.durationSeconds!);
+        if (this.state.queue[this.state.index]?.id === track.id)
+          this.syncPosition();
+      })
+      .catch(() => {
+        /* Catalog duration remains the offline fallback. */
+      });
+  }
 
   constructor(
     readonly audio: HTMLAudioElement,
@@ -720,6 +751,8 @@ export class PlayerEngine {
       this.fail('Impossibile avviare l’audio. Tocca Riprova.');
     }
     if (this.state.status === 'loading') this.armDeadline();
+    // play() above must stay synchronous in the gesture; metadata follows it.
+    if (load) this.resolveDuration(track);
   }
   play(trigger: Trigger = 'tap') {
     this.select(this.state.index, trigger);
@@ -816,7 +849,10 @@ export class PlayerEngine {
 
     // Some proxied AAC streams report twice their actual duration. Restrict the
     // workaround to that signature; ordinary catalog estimates never cut audio.
-    const known = track?.durationSeconds ?? 0;
+    const known =
+      (track && this.resolvedDurations.get(track.id)) ??
+      track?.durationSeconds ??
+      0;
     const doubled =
       !!track?.audioUrl.startsWith('/api/audio/') &&
       known >= 30 &&
@@ -957,6 +993,7 @@ export class PlayerEngine {
   }
   /** For tests / explicit application teardown only, never on navigation. */
   destroy() {
+    this.durationRequest?.abort();
     this.clearDeadline();
     this.observer?.disconnect();
     ++this.command;

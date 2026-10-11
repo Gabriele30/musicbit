@@ -21,6 +21,19 @@ const resolved: ResolvedAudioStream = {
 };
 
 describe('Audio routes and streaming', () => {
+  it('returns duration metadata without exposing a signed stream URL', async () => {
+    const service = new AudioStreamService();
+    vi.spyOn(service, 'resolve').mockResolvedValue({
+      ...resolved,
+      durationSeconds: 188,
+    });
+    const app = buildApp({}, undefined, undefined, service);
+    const response = await app.inject('/api/audio/olqW16cSEVs/info');
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ durationSeconds: 188 });
+    expect(response.body).not.toContain('signed-token');
+    await app.close();
+  });
   it('serves a canonical AAC representation for partial ranges with matching length', async () => {
     const service = new AudioStreamService();
     vi.spyOn(service, 'resolve').mockResolvedValue({

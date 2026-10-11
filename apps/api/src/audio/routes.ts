@@ -11,6 +11,14 @@ export function registerAudioRoutes(
   service: AudioStreamService,
   options: { headerTimeoutMs?: number; idleTimeoutMs?: number } = {},
 ) {
+  app.get<{ Params: { id: string } }>(
+    '/api/audio/:id/info',
+    async (request, reply) => {
+      reply.header('Cache-Control', 'private, no-store');
+      const resolved = await service.resolve(request.params.id);
+      return { durationSeconds: resolved.durationSeconds ?? null };
+    },
+  );
   app.route<{ Params: { id: string } }>({
     method: ['GET', 'HEAD'],
     url: '/api/audio/:id',

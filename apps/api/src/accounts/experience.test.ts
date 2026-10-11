@@ -134,6 +134,45 @@ describe('cross-device listening and Wrapped', () => {
   });
 });
 describe('AI playlist verification', () => {
+  it('generates with a local Ollama model without an API key', async () => {
+    vi.stubEnv('AI_PROVIDER', 'ollama');
+    vi.stubEnv('OPENAI_API_KEY', '');
+    const request = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          done: true,
+          response: JSON.stringify({
+            name: 'Mix locale',
+            description: 'Musica selezionata.',
+            songs: [{ title: item.title, artist: item.artist }],
+          }),
+        }),
+      ),
+    );
+    const catalog = new CatalogService({
+      id: 'youtube',
+      search: async () => [item],
+      details: async () => undefined,
+    });
+    try {
+      const service = new AiPlaylistService();
+      expect(service.available()).toBe(true);
+      const result = await service.generate(
+        'Una playlist',
+        5,
+        undefined,
+        catalog,
+        new AbortController().signal,
+      );
+      expect(result.tracks).toHaveLength(1);
+      expect(String(request.mock.calls[0]?.[0])).toContain('/api/generate');
+      expect(JSON.parse(String(request.mock.calls[0]?.[1]?.body)).model).toBe(
+        'qwen2.5:1.5b',
+      );
+    } finally {
+      catalog.close();
+    }
+  });
   it('resolves model suggestions against catalog metadata, reports missing songs and deduplicates tracks', async () => {
     const plan = vi.fn(async () => ({
       name: 'Night mix',
