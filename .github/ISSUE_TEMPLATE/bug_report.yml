@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible problem with MusicBit.
+labels: [bug]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Open…\n2. Select…\n3. Observe…"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, OS and MusicBit commit
+      placeholder: Safari / iOS version, installed PWA or browser tab, commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or sanitized diagnostics
+      description: Remove cookies, tokens, signed audio URLs and personal data. For playback, mention screen lock or audio interruptions.

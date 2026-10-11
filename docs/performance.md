@@ -126,3 +126,38 @@ solo il browser sperimentale. Usare etichette diverse per conservare ogni prova.
 Fonti: [preload audio (MDN)](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio),
 [Resource Timing e restrizioni TAO](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStart),
 [Safari media (Apple)](https://developer.apple.com/documentation/webkit/delivering-video-content-for-safari).
+
+## Confronto M4 con il player invariato
+
+Il [report M4](playback-feasibility.md) confronta il prototipo isolato con
+PlayerEngine M3, senza modificarlo. Dati prima e seconda sessione:
+[m4-live.json](performance/m4-live.json),
+[m4-final-live.json](performance/m4-final-live.json).
+
+Il primo campione riproduce 7678,6 ms, di cui 7275,1 ms nella fase proxy CDP.
+Seconda sessione con scenari ruotati, cinque campioni/scenario: mediana diretto
+principale 256,8 ms, lab freddo 259,6 ms; preparati 14,7 e 14,8 ms, dopo
+215,7 e 203,5 ms di preparazione. Risoluzione descrittore fredda 14,8 ms client /
+0,100 ms server; calda 15,4 / 0,031 ms. Nessun beneficio dimostrato per una
+sostituzione dell'engine; cache del descrittore distinta dal buffer audio.
+
+25 avvii iniziali e 5 cambi riusciti nella sessione finale; staging del solo
+descrittore conserva il brano corrente in 5/5 prove. URL statici autorizzati,
+non sorgenti YouTube. Campioni desktop muti, cache OS/rete non controllate;
+nessuna nuova validazione fisica iOS o primo suono.
+
+# Verifica M5
+
+Misure finali reali in [m5-live.json](performance/m5-live.json): cinque campioni
+catalogo YouTube Music, p50/p95 cold **508,2/593,5 ms**, warm **1,61/2,11 ms**,
+loopback desktop. Cinque blocchi `DISABLED`, zero richieste upstream del provider
+media M5; risoluzione stream, preparazione, click→playing e next nativi **non
+misurati**, conservati null. Non sono cinque errori HTTP o cinque tentativi falliti
+di streaming. Iframe ufficiale separato: ready in 653,6 ms, click→stato playing
+1303,5 ms su Carefree, un campione foreground. Nessuna prova al suono/iPhone.
+Prima prova iframe con errore di inizializzazione `2` conservata in
+[m5-initial-live.json](performance/m5-initial-live.json); passando l'ID iniziale
+al costruttore la ripetizione è riuscita. Rete/cache esterne non controllate:
+nessuna rivendicazione di miglioramento delle prestazioni.
+Il player principale non è stato ottimizzato/modificato in M5.
+[Metodo, fattibilità e comandi](youtube-playback-feasibility.md).

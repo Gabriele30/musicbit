@@ -1,333 +1,119 @@
-# MusicBit · Milestone 3
+# MusicBit
 
-PWA musicale personale self-hosted, mobile-first, con React, Vite e Fastify.
-Un solo `HTMLAudioElement` gestisce l’intera sessione passando tra Player, Cerca,
-Coda e Diagnostica. Catalogo YouTube Music con `youtubei.js` **solo metadati**:
-ricerca brani/artisti/album, copertine e dettagli; nessuna estrazione audio,
-download o proxy YouTube. Nessun login, database o raccomandazione.
-HLS è presente solo come laboratorio separato con toni originali.
+**Your music. Your space.**
 
-**Stato:** M1/M2 preservate, M3 implementata. L’utente ha confermato sul proprio
-iPhone foreground, schermo bloccato, cambio automatico e PWA installata in M2.
-CarPlay e regressione fisica M3 restano da verificare. Gli E2E WebKit emulati
-non dimostrano il comportamento iOS; dettagli del dispositivo e misure al suono
-non sono stati forniti.
-Vedi [checklist](docs/ios-checklist.md) e [registro prove](docs/ios-test-report.md).
+A self-hosted music player built for everyday listening, from your desktop to your phone. Discover music, build playlists and keep listening as you move through the app.
 
-## Cerca: catalogo M3
+[![CI](https://github.com/Gabriele30/musicbit/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabriele30/musicbit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Node.js 24](https://img.shields.io/badge/node.js-24-5FA04E?logo=nodedotjs&logoColor=white)
+![pnpm 11](https://img.shields.io/badge/pnpm-11-F69220?logo=pnpm&logoColor=white)
 
-Apri **Cerca** oppure `/?screen=search`, scrivi almeno due caratteri e scegli
-Brani, Artisti o Album. Debounce 350 ms; tocca un risultato per i dettagli e,
-negli album, l’elenco dei brani. Tutti sono marcati **solo catalogo**, senza Play
-o aggiunta alla coda. Il collegamento esterno apre YouTube Music. Le tre demo
-autorizzate continuano a suonare mentre navighi; il motore audio M2 è invariato.
+![MusicBit desktop: discovery, recent listening and persistent player](docs/assets/desktop.png)
 
-La libreria usa un’API privata non ufficiale: disponibilità e risultati possono
-cambiare. Configurazione `.env` e Compose: `YOUTUBE_CATALOG_ENABLED=false` disabilita
-il provider; `CATALOG_TTL_MS=300000` e `CATALOG_TIMEOUT_MS=10000` regolano cache e
-deadline. Nessuna chiamata YouTube viene fatta all’avvio o aprendo il solo Player.
-La cache è in memoria, limitata a 200 chiavi, con deduplicazione e cancellazione;
-non è una libreria musicale offline. Le miniature vengono caricate direttamente
-dal browser senza referrer. Consulta [API e architettura](docs/catalog.md) e
-[limiti e conformità](docs/catalog-compliance.md).
+[Get started](#get-started) · [Features](#features) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md)
 
-```sh
-# Dopo pnpm build; contatta il servizio reale, escluso dalla CI
-pnpm benchmark:catalog
-# Con pnpm start attivo, prova UI + provider reali + continuità audio demo:
-pnpm smoke:catalog
-```
+## Features
 
-Benchmark locale del 10 ottobre: p50 HTTP senza cache **444–512 ms**, con cache
-**1–2 ms**, cinque campioni per tipo. Definizione di freddo, p95 e dati grezzi in
-[catalog-performance.md](docs/catalog-performance.md). Non include debounce,
-rete dell’iPhone, miniature o tempo al suono.
+- **Discover music** — a home feed, recent listening, followed artists and saved albums.
+- **Search across the catalog** — songs, artists and albums together, category filters and removable recent searches.
+- **Explore artists and albums** — popular tracks, discography, related artists and album playback.
+- **Make it yours** — favorites, playlists, shuffle, drag-to-reorder with keyboard controls, and undo for removed tracks.
+- **Keep the music going** — editable queue, repeat, staged autoplay recommendations and session restoration.
+- **Listen on your phone** — an installable PWA, full-screen player, persistent mini-player and Media Session controls where supported.
+- **Host it yourself** — React, TypeScript and Fastify, with Docker Compose included.
 
-M2 mantiene il percorso nativo `src/load/play`, aggiunge preparazione **esplicita**
-della traccia corrente, timeout/cancellazione e misure API, rete, buffer e lifecycle.
-Apri `/?screen=diagnostics` per la diagnostica mobile con controlli ed export JSON.
-Il comando **Prepara traccia** ricarica dall’inizio e può scaricare l’intero MP3:
-il browser decide quanto precaricare e può ignorare il suggerimento su iOS.
+<table>
+  <tr>
+    <td><img src="docs/assets/home.png" width="240" alt="Mobile discovery feed" /></td>
+    <td><img src="docs/assets/artist.png" width="240" alt="Artist page with popular songs" /></td>
+    <td><img src="docs/assets/player.png" width="240" alt="Full-screen mobile player" /></td>
+  </tr>
+  <tr><td>Discover</td><td>Explore</td><td>Listen</td></tr>
+</table>
 
-La prima misura M1 ripetuta ha rilevato 7,60 s click→playing, di cui circa 7,27 s
-nella fase proxy del browser. Con traccia preparata, tre campioni desktop M2
-hanno dato **13,7–15,5 ms**, preceduti da **207,5–275,2 ms di preparazione**.
-Rete/cache di sistema non controllate: questi risultati **non validano la soglia
-0,5–1,5 s su iPhone**. Dati, fasi e limiti in [performance.md](docs/performance.md).
+Screenshots show the running application. The interface is currently in Italian; documentation and contribution guides are in English.
 
-## HTTPS per la prova iPhone
+## Get started
 
-È disponibile un server HTTPS locale con CA dedicata, senza Docker e senza
-modificare automaticamente la fiducia dei dispositivi:
+Requires **Node.js 24.x** and **pnpm 11.25.0**.
 
 ```sh
-pnpm build
-pnpm start
-# In un secondo terminale:
-pnpm test:https --share-ca
+git clone https://github.com/Gabriele30/musicbit.git
+cd musicbit
+npm install --global pnpm@11.25.0
+pnpm install --frozen-lockfile
 ```
 
-Lo script stampa gli URL LAN sulla porta **4443**. L’opzione `--share-ca` espone
-**solo il certificato pubblico** sulla 4444 per installarlo su iPhone. Installa
-e abilita la fiducia completa della CA sul telefono, quindi apri l’URL HTTPS
-senza avvisi TLS. Procedura esatta, firewall, rimozione CA e alternativa Tailscale
-in [ios-https.md](docs/ios-https.md). Il PC deve restare acceso; la raggiungibilità
-dal telefono va verificata sul telefono.
-
-Su questo PC è stato verificato `https://192.168.1.69:4443` da desktop con controllo
-CA/SAN e service worker. L’utente ha poi confermato i test iPhone M2 elencati sopra.
-Tailscale è disponibile, ma Serve risulta disabilitato: l’abilitazione
-amministrativa è ancora da completare. Dopo una nuova build chiudi e riapri tutti
-i client PWA/Safari per ricevere l’aggiornamento, senza interrompere l’audio durante
-un ascolto. Verifica il badge **M3**, poi apri Cerca.
-
-## Esperimenti e misurazioni M2
-
-Con `pnpm start` attivo, `pnpm benchmark` misura tre avvii reali Chromium e salva
-JSON in `docs/performance/manual.json`. Non usa una cache HTTP o il service worker.
-Per evitare di sovrascrivere un report, cambia `BENCHMARK_LABEL` (variabile di shell).
-
-```powershell
-$env:BENCHMARK_LABEL = 'mia-rete-prepared'
-$env:BENCHMARK_PREPARE = '1'
-pnpm benchmark
-Remove-Item Env:BENCHMARK_PREPARE
-```
-
-`BENCHMARK_RUNS` accetta 1–20. Su Debian usa
-`BENCHMARK_LABEL=mia-rete BENCHMARK_PREPARE=1 pnpm benchmark`.
-`pnpm smoke:https` verifica HTTPS con la CA locale; richiede `pnpm test:https`
-attivo. Per verificare l’IP LAN imposta `MUSICBIT_HTTPS_URL=https://<IP-LAN>:4443`.
-
-Il laboratorio continuo HLS richiede **FFmpeg e ffprobe nel PATH** (oppure
-`FFMPEG_PATH`/`FFPROBE_PATH` come variabili di shell):
+Copy `.env.example` to `.env` once, then start the app:
 
 ```sh
-pnpm experiment:hls
-# In un altro terminale, con HTTPS di test attivo:
-# https://<IP-LAN>:4443/__hls/
-```
-
-Genera AAC live da toni originali per massimo 5 minuti, su porta loopback 4180;
-Ctrl+C ferma server/encoder. Nessun MP3 remoto viene convertito. La pagina usa
-solo HLS nativo e segnala i browser che non lo dichiarano. `pnpm smoke:hls`
-esegue una prova server autonoma di circa 15 secondi: rolling playlist,
-continuità PTS e decodifica, senza provare l’audio su iPhone. Ferma prima un
-eventuale laboratorio sulla stessa porta. Analisi e limiti in [hls-feasibility.md](docs/hls-feasibility.md).
-
-## Requisiti e avvio locale
-
-Node.js **24.x** (verificato con 24.14.0), pnpm **11.25.0**. Docker è facoltativo.
-Installa pnpm se manca: `npm install --global pnpm@11.25.0`.
-
-Dalla radice del repository, su Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-pnpm install
+# macOS / Linux
+cp .env.example .env
 pnpm dev
 ```
 
-Su Debian/macOS sostituisci la copia con `cp .env.example .env`. Copia solo al
-primo avvio, per non sovrascrivere una configurazione esistente.
+On Windows PowerShell, use `Copy-Item .env.example .env` instead of `cp`.
 
-- Interfaccia: <http://localhost:4175>.
-- API: <http://127.0.0.1:3001/health> e <http://127.0.0.1:3001/api/tracks>.
-- `pnpm dev` compila shared e avvia Vite/Fastify in watch. Ctrl+C arresta entrambi.
-- Vite inoltra `/api/*` e `/health` all’API; nessun CORS richiesto.
-- Il file `.env` in radice è letto da API e Vite. `API_PROXY_TARGET` configura il
-  proxy; il browser usa URL relativi. API_PORT e target proxy devono concordare.
-- Porte: 4175 sviluppo (`WEB_DEV_PORT`), 4173 preview, 3001 API (`API_PORT`).
-  La 4175 evita le riserve Hyper-V/Windows osservate intorno alla porta 5173.
+Open **[localhost:4175](http://localhost:4175)**. The API runs at `127.0.0.1:3001`; Vite proxies API requests to it. If you change `API_PORT`, update `API_PROXY_TARGET` too.
 
-Il service worker è disattivato in sviluppo. Per verificare la **PWA production**:
+To try the production PWA locally:
 
 ```sh
 pnpm build
 pnpm start
 ```
 
-Apri <http://localhost:4173>. `start` esegue API compilata e Vite preview, che serve
-solo per verifica locale. `localhost` è un contesto sicuro sul desktop; l’IP LAN
-in HTTP non lo è sul telefono. Per provare la PWA su iPhone usa HTTPS attendibile.
+Open **[localhost:4173](http://localhost:4173)**. The service worker is enabled in the production build; development uses Vite without it. See the [setup guide](docs/setup.md) for configuration and HTTPS on a phone.
 
-## Build, lint e test
+### Docker
+
+```sh
+docker compose up --build -d
+```
+
+Open **[localhost:8080](http://localhost:8080)**. The default configuration binds the web service to loopback. Stop it with `docker compose down`.
+
+For access from another device, use a trusted HTTPS connection and restrict access to your instance. The included TLS overlay does not add authentication. See [hosting and HTTPS](docs/setup.md#hosting-and-https).
+
+## Project status
+
+MusicBit is in active development. Catalog and playback use an **unofficial YouTube Music integration** and can be affected by upstream changes or availability. MusicBit is independent of YouTube, Google and Spotify.
+
+Your library and listening session are saved in this browser. There are currently **no accounts, cross-device sync, offline audio downloads, lyrics, crossfade or remote device control**. The PWA caches the app shell, not music. Playback stays paused after a reload until you press Play.
+
+Chromium and WebKit are covered by automated browser tests. Physical iPhone background playback, lock-screen behavior, Bluetooth and CarPlay still need device testing. See [validation](docs/validation.md) for evidence and limits.
+
+[Roadmap](docs/roadmap.md) · [Architecture](docs/architecture.md) · [Privacy and providers](docs/providers.md)
+
+## Development
 
 ```sh
 pnpm check
 pnpm exec playwright install chromium webkit
 pnpm test:e2e
+pnpm format:check
 ```
 
-`check` esegue ESLint, typecheck, Vitest e build. Gli E2E richiedono una build
-aggiornata: esegui prima `pnpm build` se non hai eseguito `check`. Playwright
-avvia l’API e un host locale della build production sulla porta 4174, che serve
-fixture WAV tramite HTTP reale (necessario per la pipeline media nativa WebKit).
-Riutilizza solo un’eventuale API locale già attiva; in CI non la riutilizza.
-Su Debian installa i browser con
-`pnpm exec playwright install --with-deps chromium webkit`.
-
-Con `pnpm start` attivo in un altro terminale:
-
-```sh
-pnpm smoke
-pnpm smoke --audio
-pnpm smoke:browser
-```
-
-Smoke verifica endpoint, manifest, SW e grafiche. `--audio` verifica i tre MP3
-pubblici con Range da 1 KiB senza salvarli. Gli E2E usano il vero elemento audio
-con un WAV generato in memoria: nessuna dipendenza dai server esterni e nessuna
-pretesa di aver verificato iPhone/CarPlay.
-
-`smoke:browser` è un controllo opzionale con rete reale: riproduce i tre MP3 in
-Chromium desktop, verifica playing/avanzamento e salva screenshot/JSON in `artifacts`.
-Non fa parte della CI deterministica e non prova l’uscita audio fisica o iOS.
-
-Comandi singoli: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:watch`.
-`pnpm assets` rigenera le grafiche originali già incluse. La CI in
-`.github/workflows/ci.yml` comprende anche build/runtime Docker; non è stata
-avviata su GitHub. Esiti effettivi in [validation.md](docs/validation.md).
-
-## Docker locale
-
-Serve Docker Engine avviato e Compose **2.24.4+** (motore Linux su Windows).
-
-```sh
-docker compose config --quiet
-docker compose up --build -d --wait
-```
-
-Apri <http://localhost:8080>. Nginx serve la build e inoltra API/health a Fastify.
-L’API non espone porte sull’host; il web è su `127.0.0.1:${WEB_PORT:-8080}`.
-
-```sh
-docker compose ps
-docker compose logs --tail=100 api web
-docker compose down
-```
-
-## Deploy Debian HTTPS
-
-1. Installa Docker Engine e Compose dalla [guida Debian ufficiale](https://docs.docker.com/engine/install/debian/).
-2. Copia il repository sul server; non servono `node_modules` o `dist` locali.
-   Dalla radice esegui `cp .env.example .env`.
-3. Imposta `MUSICBIT_DOMAIN` con un dominio reale **senza schema**, `ACME_EMAIL`
-   con la tua email. Punta il DNS A al server; usa AAAA solo con IPv6 funzionante.
-4. Rendi raggiungibili TCP 80 e 443 (UDP 443 facoltativo per HTTP/3). Non esporre
-   3001 o 8080. Dalla radice:
-
-```sh
-docker compose -f compose.yaml -f compose.https.yaml config --quiet
-docker compose -f compose.yaml -f compose.https.yaml up --build -d --wait
-docker compose -f compose.yaml -f compose.https.yaml logs --tail=100 caddy
-```
-
-Caddy ottiene/rinnova TLS e inoltra a Nginx; l’override rimuove la porta HTTP
-locale di Nginx. Apri `https://TUO_DOMINIO`, controlla `/health`, `/api/tracks` e
-l’assenza di errori TLS. Mantieni i volumi `caddy_data` e `caddy_config` per
-conservare i certificati. Per aggiornare copia le modifiche e ripeti `up --build
--d --wait`; per arrestare usa gli stessi due `-f` con `down`, senza `-v`.
-
-M1 non include autenticazione: un dominio pubblico espone interfaccia e catalogo
-demo. Per uso esclusivamente personale limita l’accesso alla tua rete/VPN con
-HTTPS attendibile e DNS coerente.
-
-## Installazione su iPhone
-
-1. In Safari apri il dominio **HTTPS con certificato attendibile**. `localhost`
-   sul telefono indica il telefono stesso, non il PC.
-2. Attendi il catalogo e avvia una traccia con un tocco esplicito.
-3. Condividi (o Altro → Condividi) → **Aggiungi alla schermata Home**.
-4. Se disponibile lascia attivo **Apri come app web**, poi tocca **Aggiungi**.
-5. Avvia dall’icona Home e verifica l’apertura senza barra Safari.
-6. Esegui la [checklist](docs/ios-checklist.md) in Safari e dalla Home e registra
-   prove, versione iOS e JSON diagnostico nel [registro](docs/ios-test-report.md).
-
-I menu dipendono da iOS: [riferimento Apple](https://support.apple.com/it-it/guide/iphone/iphea86e5236/ios).
-Incluse icone PNG 192, 512, maskable 512 e Apple touch 180 px.
-
-## Playback e diagnostica
-
-Il catalogo viene caricato all’avvio. `preload="none"` è il comportamento predefinito;
-la preparazione esplicita abilita `auto` prima di Play. Il `preconnect` M1 resta
-un suggerimento di connessione, senza garanzie su proxy/rete/iOS. `src`, `load()`
-e `play()` vengono eseguiti nello stack sincrono del gesto, senza fetch/blob o
-Web Audio. Le promise rifiutate e i comandi rapidi superati vengono gestiti.
-
-La coda è in memoria, accetta duplicati e consente riordino/rimozione delle tracce
-a seguire. `ended` avanza; l’ultima traccia ferma la coda. Precedente dopo 3 secondi
-riparte da zero, altrimenti seleziona la precedente. Il seek usa la durata reale.
-Media Session espone titolo, artista, album e cover e registra singolarmente le
-azioni play/pause/previous/next/seek/stop accettate dal browser.
-
-Diagnostica conserva gli ultimi 20 avvii e 100 eventi, includendo la visibilità
-della pagina. Esporta JSON con user agent, secure context, standalone e timeOrigin.
-I tempi usano `performance.now()`: comando, assegnazione sorgente, primo
-`loadstart`, primo `loadeddata`, primo `playing`. `loadstart` è un indicatore di
-caricamento, **non l’istante HTTP esatto**; `loadeddata` significa dati decodificati,
-**non TTFB**. Resource Timing cross-origin può essere oscurato dalla sorgente.
-Alla ripresa il buffer può evitare nuovi eventi: i valori mancanti restano “—”.
-Il trigger distingue tocco, Media Session e fine traccia. `playing` non misura la
-latenza fisica di speaker/Bluetooth.
-
-Il SW conserva solo app shell e grafiche, non API o audio. Un aggiornamento
-avvisa senza forzare reload durante l’ascolto: chiudi e riapri tutti i client
-al termine della sessione. Offline + reload mostra UI e avviso catalogo assente.
-
-## Sorgenti autorizzate
-
-**SoundHelix Song 1, 2 e 3 — T. Schürger / SoundHelix**, MP3 HTTPS pubblici da
-`www.soundhelix.com/examples/mp3/`. La [pagina originale](https://www.soundhelix.com/audio-examples)
-consente l’uso con attribuzione a SoundHelix e all’artista. Non si attribuisce
-qui una licenza CC: il permesso è quello esplicito del sito. Fonte, permesso e
-attribuzioni sono inclusi nei contratti/API e nell’interfaccia.
-Le copertine sono originali, riproducibili con `scripts/generate-assets.mjs`.
-L’audio è riprodotto direttamente: nessuna copia, download offline, conversione o
-ritrasmissione. Disponibilità e latenza dipendono dalla sorgente.
-
-## Struttura ed estensione
+`pnpm check` runs lint, TypeScript checks, unit tests and production builds. On Linux, add `--with-deps` to the Playwright installation command. Browser tests use local audio fixtures and run without depending on the live catalog.
 
 ```text
-apps/web/src/player/engine.ts     audio persistente, stato, tempi e Media Session
-apps/web/src/components/         diagnostica, icone e stato PWA
-apps/web/src/components/Search.tsx ricerca e dettagli catalogo
-apps/web/src/search-api.ts        client catalogo, timeout e validazione
-apps/web/src/App.tsx              Player, Cerca, Coda e navigazione responsive
-apps/web/src/catalog.ts           libreria demo, timeout e telemetria API
-apps/api/src/app.ts               factory Fastify testabile senza porte
-apps/api/src/providers/demo.ts    provider demo
-apps/api/src/providers/youtube.ts provider metadati YouTube isolato
-apps/api/src/catalog/             API, cache TTL e single-flight
-packages/shared/src/index.ts     tipi, validazione runtime e MusicProvider
-tests/e2e/                       PWA/audio browser con fixture deterministica
-scripts/benchmark.mjs            benchmark remoto con fasi HTTP e media
-scripts/catalog-benchmark.mjs    benchmark live catalogo, p50/p95
-scripts/https-test.mjs           HTTPS LAN con CA locale opzionale
-experiments/hls/                 laboratorio live con toni originali
-deploy/                         Nginx e Caddy
-docs/                           architettura, checklist e registro verifiche
+apps/web/          React PWA and persistent playback engine
+apps/api/          Fastify API, catalog adapters and audio proxy
+packages/shared/  Shared contracts and runtime validation
+experiments/      Separate playback laboratories
+tests/e2e/        Chromium and WebKit regression tests
+docs/             Setup, architecture, roadmap and validation
 ```
 
-Un nuovo provider implementa `MusicProvider`, con capacità opzionale `catalog`;
-`CatalogProvider` viene iniettato nel servizio metadati e `Track` resta il solo
-contratto del player. Vedi [architettura](docs/architecture.md). Shared è compilato
-prima delle app; dopo modifiche ai contratti riavvia `pnpm dev` o esegui
-`pnpm --filter @musicbit/shared build`.
+## Contributing
 
-## Limiti e lavori aperti
+Bug reports, focused pull requests and real-device test results are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) to set up the project and understand the playback rules. Report security issues privately using [SECURITY.md](SECURITY.md).
 
-- Regressione M3 su iPhone e CarPlay da eseguire. Le conferme iPhone M2 dell’utente
-  non costituiscono misure di latenza né validazione di altre versioni/reti/dispositivi.
-- CarPlay: nessuna app nativa, icona MusicBit o navigazione catalogo; si verifica
-  l’eventuale integrazione “In riproduzione” offerta da iOS.
-- Nessun catalogo/audio offline, ripristino coda, proxy musica, transcoding o HLS nel player,
-  gapless, repeat o TTFB cross-origin garantito.
-- Docker/deploy pubblico richiedono motore attivo, server e dominio validi.
-- La CA locale richiede fiducia e raggiungibilità verificate sul telefono;
-  Tailscale Serve non ancora abilitato. HLS ha solo evidenze server/PTS.
-- Catalogo YouTube sperimentale: prima pagina, massimo 25 risultati per richiesta,
-  fino a 100 brani per dettaglio album, senza ricerca paginata o audio YouTube.
-  Nessun aggiramento di blocchi/login; termini del servizio da valutare prima del deploy.
-- Branch locale dedicato; nessun contatto GitHub, push o PR. La sincronizzazione
-  tramite GitHub Desktop è lasciata all’utente come richiesto.
+If MusicBit is useful to you, a star helps others discover it. Useful bug reports and thoughtful contributions help it improve.
+
+## Credits and license
+
+MusicBit is available under the [MIT license](LICENSE).
+
+Built with React, Vite, Fastify, Workbox, youtubei.js and bgutils-js. See [third-party notices](THIRD_PARTY_NOTICES.md) for dependencies, demo audio and artwork attribution.

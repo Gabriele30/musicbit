@@ -1,0 +1,88 @@
+{
+  "testedAt": "2026-10-10T17:46:38.085Z",
+  "base": "https://192.168.1.100:4463",
+  "checks": [
+    {
+      "path": "/__youtube/health",
+      "status": 200,
+      "authorized": true
+    },
+    {
+      "path": "/__youtube/",
+      "status": 200,
+      "authorized": true
+    },
+    {
+      "path": "/__youtube/manifest.webmanifest",
+      "status": 200,
+      "authorized": true
+    },
+    {
+      "path": "/__youtube/icon.png",
+      "status": 200,
+      "authorized": true
+    }
+  ],
+  "secureContext": true,
+  "serviceWorkerRegistered": false,
+  "mobileLayout": true,
+  "audioCount": 1,
+  "iframeCount": 0,
+  "diagnostic": {
+    "native": {
+      "status": "idle",
+      "error": null,
+      "position": 0,
+      "readyState": 0,
+      "networkState": 0,
+      "ranges": [],
+      "mediaSession": true,
+      "mediaActions": ["play", "pause", "nexttrack"],
+      "visibility": "visible",
+      "standalone": false,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+      "timeOrigin": 1791654397845.2,
+      "exportedAt": "2026-10-10T17:46:37.985Z",
+      "clickToPlayingMs": null,
+      "initialBufferEstimateMs": null,
+      "attempts": [],
+      "preparations": [],
+      "events": [
+        {
+          "event": "pageshow",
+          "at": 27.59999999962747,
+          "visibility": "visible"
+        }
+      ]
+    },
+    "resolutions": [
+      {
+        "videoId": "m5fixture01",
+        "roundTripMs": 14.599999999627471,
+        "result": {
+          "resolution": {
+            "status": "unavailable",
+            "code": "NO_AUTHORIZED_SOURCE"
+          },
+          "timing": {
+            "cache": "miss",
+            "elapsedMs": 0.45539999999891734
+          },
+          "diagnostic": {
+            "enabled": false,
+            "authorized": false,
+            "outcome": "DISABLED",
+            "upstreamMs": null,
+            "formats": []
+          }
+        }
+      }
+    ],
+    "official": [],
+    "codecs": {
+      "aac": "probably",
+      "opus": "probably"
+    }
+  },
+  "limitation": "Desktop Chromium. Node validates CA/SAN. Browser SPKI exception only in this process. No stream or physical iPhone/background/CarPlay success claimed."
+}

@@ -1,0 +1,18 @@
+{
+  "testedAt": "2026-10-10T16:54:49.635Z",
+  "base": "http://127.0.0.1:4173",
+  "browser": "156.0.8078.4",
+  "tlsVerified": false,
+  "secureContext": true,
+  "serviceWorkerRegistered": true,
+  "results": 15,
+  "searchTiming": {
+    "cache": "miss",
+    "elapsedMs": 662.8433999999979
+  },
+  "singleAudioPreserved": true,
+  "demoPositionBefore": 0.575562,
+  "demoPositionAfter": 1.977089,
+  "playerError": null,
+  "limitation": "Chromium desktop with mobile viewport; physical output muted. TLS browser override limited to this certificate SPKI, Node verifies CA/SAN. No OS/iPhone trust installation, physical iPhone test or CarPlay validation."
+}

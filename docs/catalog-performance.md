@@ -71,7 +71,7 @@ senza usare il benchmark come polling periodico.
 
 `pnpm smoke:catalog` è un controllo live della build su preview: richiede
 `pnpm start` e conserva un solo audio SoundHelix mentre apre ricerca e dettagli
-reali. Prova completata su `https://192.168.1.69:4443`, usando
+reali. Prova completata su `https://192.168.1.100:4443`, usando
 `MUSICBIT_BASE_URL` nella shell: CA/SAN verificati da Node, contesto sicuro,
 service worker registrato, 15 risultati, API 565,0 ms, posizione demo
 0,47→1,80 s durante la ricerca, nessun errore e nessun Play di catalogo.

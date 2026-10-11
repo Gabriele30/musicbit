@@ -1,6 +1,6 @@
 # Ambiente HTTPS per iPhone
 
-Il server locale M2 è già stato provato dal PC all’IP LAN 192.168.1.69 sulla porta
+Il server locale M2 è già stato provato dal PC all’IP LAN 192.168.1.100 sulla porta
 4443: CA/SAN, API, manifest, SW e schermata mobile. **Raggiungibilità e fiducia
 sull’iPhone non verificate dall’agente.** L’utente ha successivamente confermato
 PWA e playback M2; regressione M3 da verificare. Nessuna CA è stata installata automaticamente.
@@ -11,7 +11,7 @@ PWA e playback M2; regressione M3 da verificare. Nessuna CA è stata installata 
    il collegamento al PC. Chiudere vecchi server sulle medesime porte prima di riavviarli.
 2. Dalla radice: `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm start`.
 3. Secondo terminale: `pnpm test:https --share-ca`. Scegliere l’IP LAN stampato,
-   tipicamente `https://192.168.1.69:4443/?screen=diagnostics` su questo PC.
+   tipicamente `https://192.168.1.100:4443/?screen=diagnostics` su questo PC.
 4. Se Windows chiede l’accesso alla rete per Node, consentire sulla rete privata
    usata dal test. Verificare che firewall/AP permettano TCP 4443 e, solo durante
    trasferimento CA, 4444. Non modificare le regole delle reti pubbliche per questo test.
@@ -42,7 +42,7 @@ Non inoltra URL musicali remoti.
 Dal PC, con server attivi:
 
 ```powershell
-$env:MUSICBIT_HTTPS_URL = 'https://192.168.1.69:4443'
+$env:MUSICBIT_HTTPS_URL = 'https://192.168.1.100:4443'
 pnpm smoke:https
 ```
 
@@ -88,3 +88,31 @@ aggiornato con le conferme M2 dell’utente; nuova sessione M3 ancora da compila
 [checklist](ios-checklist.md), [registro](ios-test-report.md).
 Per Debian/dominio pubblico restano valide le istruzioni Caddy/Compose del README;
 build e runtime Docker non sono stati verificati in M2.
+
+## Laboratorio playback M4
+
+Il lab M4 usa un'origine distinta: `https://<IP-LAN>:4453/__playback/`.
+Dopo `pnpm build`, PowerShell `$env:PLAYBACK_LAB_HTTPS='true'`, poi
+`pnpm experiment:playback`. Il comando riusa `artifacts/https/server.pem` e la
+relativa chiave: generare prima i certificati con lo script M2 se mancanti.
+Non occorre avviare il proxy M2 per usare il lab, una volta presenti i certificati.
+
+La CA e la procedura di fiducia sono le stesse; verificare anche TCP 4453 sulla
+rete privata. Se cambia l'IP o scade il leaf, rigenerarlo con `pnpm test:https`
+e riavviare i server che lo usano. Nessuna modifica automatica a firewall o trust.
+`pnpm smoke:playback:https` verifica CA/SAN e flusso remoto dal PC;
+`PLAYBACK_HTTPS_URL=https://<IP-LAN>:4453` seleziona l'IP da controllare.
+Manifest separato installabile dalla Home, nessun service worker/offline.
+Procedura e limiti nel [test M4](playback-ios-checklist.md).
+
+# Laboratorio YouTube M5
+
+Origine distinta `https://<IP-LAN>:4463/__youtube/`. Dopo `pnpm build`, impostare
+`$env:YOUTUBE_PLAYBACK_LAB_HTTPS='true'` in PowerShell e avviare
+`pnpm experiment:youtube`. Riusa CA e leaf esistenti; non modifica trust/firewall.
+Su questo PC `https://192.168.1.100:4463/__youtube/`. Smoke PC con verifica CA/SAN:
+`$env:YOUTUBE_PLAYBACK_HTTPS_URL='https://192.168.1.100:4463'`,
+`pnpm smoke:youtube:https`. La raggiungibilità/fiducia sul telefono resta da
+verificare. Aggiungere alla Home il lab separato, senza SW/offline.
+Stream diretto disattivato per default, iframe ufficiale solo su richiesta.
+[Permessi e procedura fisica](youtube-playback-ios-checklist.md).

@@ -1,5 +1,9 @@
 # Catalogo sperimentale: servizio e conformità
 
+> Documento storico del catalogo M3, prima dell'integrazione audio. Il comportamento
+> attuale di catalogo, proxy e dati locali è descritto in [Providers and privacy](providers.md).
+> Le affermazioni seguenti sull'assenza di playback e cronologia descrivono quel milestone.
+
 M3 usa `youtubei.js@18.1.0`, libreria MIT, per metadati anonimi YouTube Music.
 È un adapter di un’API privata non ufficiale, senza SLA, stabilità o supporto
 garantiti. La licenza della libreria non concede diritti sui contenuti né

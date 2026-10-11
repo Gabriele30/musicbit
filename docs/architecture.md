@@ -1,71 +1,74 @@
-# Architettura M1 + M2 + M3
+# Architecture
 
-```text
-Safari / PWA → stessa origine /api/tracks → Fastify → MusicProvider
-          └→ HTMLAudioElement → sorgente MP3 HTTPS autorizzata
-          └→ Media Session → controlli offerti dal sistema operativo
-          └→ /api/search, /api/catalog, /api/providers
-                 → CatalogService → TTL/LRU + single-flight → CatalogProvider
-                     → YouTubeCatalogProvider → youtubei.js → search/browse/next
+MusicBit is a TypeScript monorepo: a React PWA, a Fastify API and shared contracts.
+
+```mermaid
+flowchart LR
+  UI[React PWA] -->|metadata requests| API[Fastify API]
+  UI -->|commands and snapshots| Player[Persistent PlayerEngine]
+  Player --> Audio[One HTMLAudioElement]
+  Audio -->|same-origin audio and Range requests| API
+  API --> Catalog[CatalogService: bounded metadata cache]
+  API --> Streams[AudioStreamService: resolver and proxy]
+  Catalog --> Provider[Unofficial YouTube Music adapter]
+  Streams --> Provider
+  UI --> Local[Browser local storage]
+  SW[Service worker: app shell only] --> UI
 ```
 
-Vite fa da proxy in dev/preview, Nginx nei container; Caddy aggiunge TLS.
-Il media viene riprodotto direttamente, senza Web Audio o crossOrigin anonymous:
-nessun CORS richiesto per il semplice elemento audio.
+## Application lifetime and playback
 
-`main.tsx` crea e appende un solo audio prima di montare React. `PlayerEngine`
-conserva elemento, listener, coda e diagnostica; `useSyncExternalStore` legge
-snapshot immutabili. Navigare non smonta audio. Teardown riservato a test e HMR.
-Play/next/previous chiamano subito `play()` senza await; un contatore invalida le
-promise precedenti dopo nuovi comandi/pausa/errori. Il passaggio automatico usa
-`ended`, senza timer JS: l’esecuzione a pagina sospesa va provata su iPhone.
+`apps/web/src/main.tsx` creates one audio element and the player engine before mounting React. The engine owns listeners, queue, playback state and Media Session. React subscribes with `useSyncExternalStore`; routing does not own the audio element.
 
-Stati: idle, loading, playing, paused, ended, error. `waiting` indica buffering;
-`stalled` si registra perché può risolversi. Un errore non salta automaticamente
-le tracce; si può riprovare o cambiare sorgente. Nessun autoplay al caricamento.
+Play commands call `audio.play()` synchronously in the user gesture. The browser requests a same-origin audio URL; backend resolution happens behind that URL without an awaited frontend request. Command generations prevent stale play promises from overwriting newer state.
 
-M2 estende l’engine esistente: preparazione opt-in dell’attuale src nello stesso
-audio, stato separato della preparazione e consumo senza nuovo load; annullamento
-e timeout rilasciano la sorgente nativa. Deadline 15 s, ripulita per ogni nuovo
-comando, sospesa/deferita a pagina hidden; non arresta audio nativo avanzato
-quando gli eventi JS tardano. Nessun secondo audio per precaricare la successiva.
-Pausa mantiene il buffer per conservare il comportamento M1.
+Manual queue entries and repeat take precedence over autoplay. Recommendations are fetched and staged before the current track ends; the end event consumes only already available tracks. Starting a playlist at an intermediate track preserves the whole collection and selects its index.
 
-`catalog.ts` isola timeout API 10 s e cancellazione con AbortController, registra
-header/corpo/validazione. `Server-Timing` misura solo il provider Fastify.
-Gli URL del provider demo sono diretti: nessuna seconda risoluzione stream.
-Resource Timing opzionale rispetta TAO; diagnostica espone intervalli buffered,
-waiting, errori, lifecycle con traccia/posizione e osservazione umana del suono.
-Log limitati, niente keepalive/polling in background. `/?screen=diagnostics`
-apre direttamente la vista mobile senza ricreare audio.
+Session persistence saves queue metadata, index, position, repeat and autoplay settings. A reload restores a paused session; the first explicit Play resumes it. Local storage does not contain audio or signed upstream stream descriptors.
 
-Shared definisce Track, risposte, validazione runtime e MusicProvider con id,
-listTracks/getTrack. Le sorgenti richiedono HTTPS oppure un percorso relativo
-alla stessa origine; artista, fonte, permesso e attribuzione sono obbligatori.
-Il provider demo restituisce copie dei dati. La factory Fastify accetta provider
-iniettati; testata anche sostituzione e fallimento.
+Native end events handle normal streams. The narrowly scoped fallback for doubled proxy durations uses known metadata, a ratio check and a one-second grace period. The MP4 compatibility patch handles a verified AAC edit-list pattern without changing sample data or byte offsets. See the [playback audit](product-audit.md) and audio regression tests.
 
-Vite PWA genera manifest e SW Workbox per il solo app shell/grafiche; niente cache
-runtime di API/media né handler Range. API/health e laboratorio /\_\_hls esclusi dal fallback HTML.
-Gli aggiornamenti attendono la chiusura dei client; SW disattivato in dev.
+## API and provider boundary
 
-`scripts/https-test.mjs` aggiunge TLS solo all’ambiente di test con CA locale
-non installata automaticamente; /\_\_hls inoltra il laboratorio separato a 4180.
-Il laboratorio usa un encoder live di toni originali, non MusicProvider né URL
-MP3 remoti. Non modifica build Docker o dipendenze runtime delle app.
+The main API registers:
 
-M3 aggiunge `MusicProvider.catalog?: CatalogProvider`. `CatalogItem` rappresenta
-metadati senza `audioUrl`, sempre `playback.available=false`; non è un `Track` e
-non viene mai passato all’engine. Il provider YouTube non restituisce tracce
-riproducibili. Sessione anonima locale e lazy, niente player JS/config di streaming;
-fetch limitato ai soli endpoint search/browse/next, redirect rifiutati.
+| Route                                | Purpose                                         |
+| ------------------------------------ | ----------------------------------------------- |
+| `GET /health`                        | Process health                                  |
+| `GET /api/tracks`                    | SoundHelix diagnostics/demo catalog             |
+| `GET /api/providers`                 | Provider availability                           |
+| `GET /api/feed`                      | Discovery shelves                               |
+| `GET /api/search`                    | Search one category with a bounded result limit |
+| `GET /api/catalog/youtube/:kind/:id` | Track, artist or album details                  |
+| `GET /api/recommendations/:id`       | Related tracks for staged autoplay              |
+| `GET/HEAD /api/audio/:id`            | Resolve and proxy audio, including HTTP Range   |
 
-La ricerca monta una schermata React separata; il debounce e le richieste hanno
-AbortController e pulizia all’unmount. Il client evita `AbortSignal.any` per
-compatibilità con versioni Safari che non lo supportano. L’audio e la sua Media Session continuano
-a descrivere la demo anche mentre si guardano altri metadati. API, caching,
-cancellazione per subscriber e limiti sono descritti in [catalog.md](catalog.md).
+Shared runtime validators reject malformed identifiers, URLs and response metadata. Catalog requests use bounded TTL/LRU storage, single-flight work, timeouts and cancellation per subscriber. The metadata gateway permits only its expected search/browse/next endpoints.
 
-Rimandati login, persistenza, libreria privata, raccomandazioni, HLS nel
-player e audio YouTube. Prima di evolvere il trasporto servono prove fisiche: WebKit su Windows
-non replica processi, sospensione, Bluetooth o CarPlay di iOS.
+The separate playback adapter resolves streams, prefers AAC-LC/m4a and keeps signed descriptors in expiring memory caches. The proxy handles Range, HEAD, stale descriptors, upstream errors and client disconnection. Upstream signed URLs stay behind the API.
+
+The adapter currently evaluates upstream player/integrity code in the API process. It is not a process security boundary. Further isolation and authenticated hosting are open work; see [SECURITY.md](../SECURITY.md).
+
+## Interface state
+
+Home, search and library stay mounted while switching primary sections. Scroll positions, search results and library filters survive navigation. Player and queue are secondary views with close/back behavior; the persistent mini-player opens the full player.
+
+Search combines three bounded category requests, tolerates partial failures and exposes category filters. Superseded requests are aborted and stale responses cannot replace newer results. Recent queries are recorded only on submit or result selection/play and can be deleted.
+
+The library uses a versioned, validated local model for favorites, playlists, recent listening, saved albums and followed artists. Playlist menus separate listening from editing. Reordering supports drag and directional buttons; undo reinserts a removed track without overwriting later edits.
+
+These data are per browser. There is no account database or cross-device merge. Storage errors are surfaced without disabling playback. Export/import and shareable detail URLs are planned.
+
+## PWA and serving
+
+Workbox precaches the application shell and bundled static assets. It does not cache API or media responses, handle audio Range requests or control the lifetime of playback. Updates are prompted to avoid unexpected replacement during a session.
+
+Vite proxies API requests in development and preview. Docker uses Nginx for static files and API forwarding; an optional Caddy overlay supplies TLS. Default Compose binds the web port to loopback.
+
+## Tests and experiments
+
+Unit tests cover playback state, validation, persistence, provider seams, cache behavior and audio proxy handling. Playwright uses generated PCM/WAV fixtures served over HTTP to exercise real browser media pipelines in Chromium and WebKit. Offline tests run against the production PWA build.
+
+Optional scripts probe the live provider separately. Those probes do not establish physical iPhone behavior or a performance SLA.
+
+`experiments/` contains separate playback laboratories and audit reproducibility scripts. They are not routes in the main PWA. Earlier architectural milestones are preserved in [architecture history](architecture-history.md) and [development notes](development-notes.md).

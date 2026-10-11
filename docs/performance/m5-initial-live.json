@@ -1,0 +1,274 @@
+{
+  "startedAt": "2026-10-10T17:32:06.978Z",
+  "completedAt": "2026-10-10T17:32:18.734Z",
+  "node": "v24.14.0",
+  "os": "win32",
+  "chromium": "156.0.8078.4",
+  "library": "youtubei.js@18.1.0",
+  "runs": 5,
+  "directEnabled": false,
+  "officialRequested": true,
+  "summary": {
+    "catalog": [
+      {
+        "phase": "cold",
+        "totalMs": {
+          "n": 5,
+          "p50Ms": 563.8477000000003,
+          "p95Ms": 1038.8922000000002
+        }
+      },
+      {
+        "phase": "warm",
+        "totalMs": {
+          "n": 5,
+          "p50Ms": 1.6669999999994616,
+          "p95Ms": 2.1624000000001615
+        }
+      }
+    ],
+    "resolved": 0,
+    "blocked": 5,
+    "upstreamResolutionMs": {
+      "n": 0,
+      "p50Ms": null,
+      "p95Ms": null
+    },
+    "nativeClickToPlayingMs": {
+      "n": 0,
+      "p50Ms": null,
+      "p95Ms": null
+    },
+    "nativePreparationMs": {
+      "n": 0,
+      "p50Ms": null,
+      "p95Ms": null
+    },
+    "nativeNextClickToPlayingMs": {
+      "n": 0,
+      "p50Ms": null,
+      "p95Ms": null
+    }
+  },
+  "catalog": [
+    {
+      "run": 1,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 810.5517,
+      "serverMs": 798.357,
+      "cache": "miss",
+      "count": 10,
+      "error": null
+    },
+    {
+      "run": 1,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 2.1624000000001615,
+      "serverMs": 0.04329999999981737,
+      "cache": "hit",
+      "count": 10,
+      "error": null
+    },
+    {
+      "run": 2,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 563.8477000000003,
+      "serverMs": 559.6229999999996,
+      "cache": "miss",
+      "count": 10,
+      "error": null
+    },
+    {
+      "run": 2,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.818200000001525,
+      "serverMs": 0.03900000000066939,
+      "cache": "hit",
+      "count": 10,
+      "error": null
+    },
+    {
+      "run": 3,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 426.4381000000012,
+      "serverMs": 423.34929999999986,
+      "cache": "miss",
+      "count": 10,
+      "error": null
+    },
+    {
+      "run": 3,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.360000000000582,
+      "serverMs": 0.05260000000089349,
+      "cache": "hit",
+      "count": 10,
+      "error": null
+    },
+    {
+      "run": 4,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 401.7468000000008,
+      "serverMs": 399.2399999999998,
+      "cache": "miss",
+      "count": 10,
+      "error": null
+    },
+    {
+      "run": 4,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.6669999999994616,
+      "serverMs": 0.05290000000059081,
+      "cache": "hit",
+      "count": 10,
+      "error": null
+    },
+    {
+      "run": 5,
+      "phase": "cold",
+      "status": 200,
+      "totalMs": 1038.8922000000002,
+      "serverMs": 1035.7312000000002,
+      "cache": "miss",
+      "count": 10,
+      "error": null
+    },
+    {
+      "run": 5,
+      "phase": "warm",
+      "status": 200,
+      "totalMs": 1.141699999998309,
+      "serverMs": 0.04430000000138534,
+      "cache": "hit",
+      "count": 10,
+      "error": null
+    }
+  ],
+  "resolutions": [
+    {
+      "run": 1,
+      "phase": "cold",
+      "videoId": "qapK8Gx6ZTo",
+      "totalMs": 3.9713000000001557,
+      "serverMs": 0.35629999999991924,
+      "cache": "miss",
+      "outcome": "DISABLED",
+      "upstreamMs": null,
+      "resolution": "unavailable",
+      "httpStatus": null,
+      "formats": [],
+      "validUntil": null
+    },
+    {
+      "run": 2,
+      "phase": "cold",
+      "videoId": "qapK8Gx6ZTo",
+      "totalMs": 1.5951999999997497,
+      "serverMs": 0.0790000000015425,
+      "cache": "miss",
+      "outcome": "DISABLED",
+      "upstreamMs": null,
+      "resolution": "unavailable",
+      "httpStatus": null,
+      "formats": [],
+      "validUntil": null
+    },
+    {
+      "run": 3,
+      "phase": "cold",
+      "videoId": "qapK8Gx6ZTo",
+      "totalMs": 0.8919999999998254,
+      "serverMs": 0.049699999999575084,
+      "cache": "miss",
+      "outcome": "DISABLED",
+      "upstreamMs": null,
+      "resolution": "unavailable",
+      "httpStatus": null,
+      "formats": [],
+      "validUntil": null
+    },
+    {
+      "run": 4,
+      "phase": "cold",
+      "videoId": "qapK8Gx6ZTo",
+      "totalMs": 1.229799999999159,
+      "serverMs": 0.1157999999995809,
+      "cache": "miss",
+      "outcome": "DISABLED",
+      "upstreamMs": null,
+      "resolution": "unavailable",
+      "httpStatus": null,
+      "formats": [],
+      "validUntil": null
+    },
+    {
+      "run": 5,
+      "phase": "cold",
+      "videoId": "qapK8Gx6ZTo",
+      "totalMs": 1.1049999999995634,
+      "serverMs": 0.10409999999865249,
+      "cache": "miss",
+      "outcome": "DISABLED",
+      "upstreamMs": null,
+      "resolution": "unavailable",
+      "httpStatus": null,
+      "formats": [],
+      "validUntil": null
+    }
+  ],
+  "playback": [],
+  "official": [
+    {
+      "videoId": "qapK8Gx6ZTo",
+      "outcome": "IFRAME_ERROR",
+      "httpFailures": [],
+      "contentLicenseReference": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1400037",
+      "diagnostic": [
+        {
+          "event": "sdk-start",
+          "at": 118.69999999925494,
+          "visibility": "visible"
+        },
+        {
+          "event": "ready",
+          "at": 7938.199999999255,
+          "visibility": "visible"
+        },
+        {
+          "event": "cue-metadata-only",
+          "at": 7938.4000000003725,
+          "visibility": "visible"
+        },
+        {
+          "event": "play-click",
+          "at": 8067.9000000003725,
+          "videoId": "qapK8Gx6ZTo",
+          "visibility": "visible"
+        },
+        {
+          "event": "error",
+          "at": 8103.300000000745,
+          "videoId": "qapK8Gx6ZTo",
+          "code": 2,
+          "visibility": "visible"
+        },
+        {
+          "event": "state",
+          "at": 8103.5999999996275,
+          "videoId": "qapK8Gx6ZTo",
+          "code": -1,
+          "visibility": "visible"
+        }
+      ]
+    }
+  ],
+  "definition": "Cold: new API/provider/in-memory cache per sample. Warm: immediate repeat, successful results only. OS/DNS/TLS/remote caches uncontrolled. p50/p95 nearest rank; small sample. Blocked results are not stream failures and null metrics are not zero. Media/CDP and playing events are desktop observations, not audible iPhone output. Iframe control is not native playback. No signed media URLs, cookies, tokens or raw error bodies retained."
+}

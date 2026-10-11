@@ -1,0 +1,4160 @@
+{
+  "testedAt": "2026-10-10T16:55:54.165Z",
+  "environment": {
+    "node": "v24.14.0",
+    "chromium": "156.0.8078.4",
+    "os": "win32",
+    "proxy": "default browser/system settings",
+    "context": "fresh each sample; HTTP cache disabled; service workers blocked; OS/DNS/TLS cache uncontrolled; muted output"
+  },
+  "runs": 5,
+  "summary": {
+    "main-direct": {
+      "success": 5,
+      "failed": 0,
+      "clickToPlayingMs": {
+        "n": 5,
+        "p50": 256.80000000074506,
+        "p95": 371.1000000014901
+      },
+      "preparationMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "initialBufferEstimateMs": {
+        "n": 5,
+        "p50": 240.10000000149012,
+        "p95": 357.5
+      },
+      "sourceRoundTripMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "sourceServerMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "requestToHeadersMs": {
+        "n": 5,
+        "p50": 84.805,
+        "p95": 91.012
+      },
+      "nextClickToPlayingMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      }
+    },
+    "main-prepared": {
+      "success": 5,
+      "failed": 0,
+      "clickToPlayingMs": {
+        "n": 5,
+        "p50": 14.699999999254942,
+        "p95": 15.699999999254942
+      },
+      "preparationMs": {
+        "n": 5,
+        "p50": 215.7000000011176,
+        "p95": 265.5
+      },
+      "initialBufferEstimateMs": {
+        "n": 5,
+        "p50": 201.19999999925494,
+        "p95": 249.80000000074506
+      },
+      "sourceRoundTripMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "sourceServerMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "requestToHeadersMs": {
+        "n": 5,
+        "p50": 90.414,
+        "p95": 93.64499999999998
+      },
+      "nextClickToPlayingMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      }
+    },
+    "lab-cold-direct": {
+      "success": 5,
+      "failed": 0,
+      "clickToPlayingMs": {
+        "n": 5,
+        "p50": 259.59999999962747,
+        "p95": 303.69999999925494
+      },
+      "preparationMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "initialBufferEstimateMs": {
+        "n": 5,
+        "p50": 243.09999999962747,
+        "p95": 287.30000000074506
+      },
+      "sourceRoundTripMs": {
+        "n": 5,
+        "p50": 14.800000000745058,
+        "p95": 15.800000000745058
+      },
+      "sourceServerMs": {
+        "n": 5,
+        "p50": 0.09950000000026193,
+        "p95": 0.44669999999996435
+      },
+      "requestToHeadersMs": {
+        "n": 5,
+        "p50": 88.55100000000002,
+        "p95": 110.652
+      },
+      "nextClickToPlayingMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      }
+    },
+    "lab-warm-direct": {
+      "success": 5,
+      "failed": 0,
+      "clickToPlayingMs": {
+        "n": 5,
+        "p50": 246.90000000037253,
+        "p95": 327.5
+      },
+      "preparationMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "initialBufferEstimateMs": {
+        "n": 5,
+        "p50": 230.7000000011176,
+        "p95": 312.19999999925494
+      },
+      "sourceRoundTripMs": {
+        "n": 5,
+        "p50": 15.400000000372529,
+        "p95": 16.40000000037253
+      },
+      "sourceServerMs": {
+        "n": 5,
+        "p50": 0.03080000000045402,
+        "p95": 0.03960000000006403
+      },
+      "requestToHeadersMs": {
+        "n": 5,
+        "p50": 89.88,
+        "p95": 112.886
+      },
+      "nextClickToPlayingMs": {
+        "n": 5,
+        "p50": 412.90000000037253,
+        "p95": 515.2999999988824
+      }
+    },
+    "lab-warm-prepared": {
+      "success": 5,
+      "failed": 0,
+      "clickToPlayingMs": {
+        "n": 5,
+        "p50": 14.800000000745058,
+        "p95": 15.699999999254942
+      },
+      "preparationMs": {
+        "n": 5,
+        "p50": 203.5,
+        "p95": 214.5
+      },
+      "initialBufferEstimateMs": {
+        "n": 5,
+        "p50": 186.40000000037253,
+        "p95": 198.09999999962747
+      },
+      "sourceRoundTripMs": {
+        "n": 5,
+        "p50": 14.400000000372529,
+        "p95": 15.799999998882413
+      },
+      "sourceServerMs": {
+        "n": 5,
+        "p50": 0.03449999999975262,
+        "p95": 0.042699999999967986
+      },
+      "requestToHeadersMs": {
+        "n": 5,
+        "p50": 83.354,
+        "p95": 86.62499999999999
+      },
+      "nextClickToPlayingMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      }
+    }
+  },
+  "samples": [
+    {
+      "mode": "main-direct",
+      "run": 1,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651338242.8,
+      "clickAt": 153.7999999988824,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 166.40000000037253
+        },
+        {
+          "event": "loadstart",
+          "at": 166.69999999925494
+        },
+        {
+          "event": "loadeddata",
+          "at": 524.1999999992549
+        },
+        {
+          "event": "canplay",
+          "at": 524.6999999992549
+        },
+        {
+          "event": "playing",
+          "at": 524.9000000003725
+        }
+      ],
+      "clickToPlayingMs": 371.1000000014901,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 357.5,
+      "apiMs": 2.699999999254942,
+      "lab": null,
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8708.237608,
+          "wallTimeMs": 1791651338409.093,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8708.237874,
+            "proxyStart": 0.089,
+            "proxyEnd": 2.287,
+            "dnsStart": 2.358,
+            "dnsEnd": 55.857,
+            "connectStart": 55.942,
+            "connectEnd": 143.818,
+            "sslStart": 98.807,
+            "sslEnd": 143.805,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 144.007,
+            "sendEnd": 144.087,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 227.454,
+            "receiveHeadersEnd": 227.6
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 239.14800000056857,
+          "startPageAt": 166.29296875
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": 12.492968751117587,
+        "requestToHeadersMs": 83.36700000000002,
+        "firstChunkToDecodedApproxMs": 118.75903124868637
+      }
+    },
+    {
+      "mode": "main-prepared",
+      "run": 1,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651338824.3,
+      "clickAt": 386.09999999962747,
+      "events": [
+        {
+          "event": "loadstart",
+          "at": 167.69999999925494
+        },
+        {
+          "event": "loadeddata",
+          "at": 341.40000000037253
+        },
+        {
+          "event": "canplay",
+          "at": 341.90000000037253
+        },
+        {
+          "event": "playing",
+          "at": 400.5
+        }
+      ],
+      "clickToPlayingMs": 14.400000000372529,
+      "preparationMs": 188.5,
+      "initialBufferEstimateMs": 173.7000000011176,
+      "apiMs": 2.800000000745058,
+      "lab": null,
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8708.820322,
+          "wallTimeMs": 1791651338991.793,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8708.820544,
+            "proxyStart": 0.083,
+            "proxyEnd": 0.804,
+            "dnsStart": 0.835,
+            "dnsEnd": 1.224,
+            "connectStart": 1.261,
+            "connectEnd": 80.762,
+            "sslStart": 39.931,
+            "sslEnd": 80.756,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 80.87,
+            "sendEnd": 80.947,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 156.12,
+            "receiveHeadersEnd": 156.231
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 158.36599999965983,
+          "startPageAt": 167.492919921875
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": null,
+        "requestToHeadersMs": 75.173,
+        "firstChunkToDecodedApproxMs": 15.541080078837695
+      }
+    },
+    {
+      "mode": "lab-cold-direct",
+      "run": 1,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651339389.8,
+      "clickAt": 203.40000000037253,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 219.19999999925494
+        },
+        {
+          "event": "loadstart",
+          "at": 219.2999999988824
+        },
+        {
+          "event": "loadeddata",
+          "at": 458.59999999962747
+        },
+        {
+          "event": "canplay",
+          "at": 458.90000000037253
+        },
+        {
+          "event": "playing",
+          "at": 458.90000000037253
+        }
+      ],
+      "clickToPlayingMs": 255.5,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 239.30000000074506,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-1"
+        },
+        "position": 0.000387,
+        "readyState": 3,
+        "networkState": 2,
+        "ranges": [[0, 0.888163]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651339389.8,
+        "exportedAt": "2026-10-10T16:55:39.848Z",
+        "clickToPlayingMs": 255.40000000037253,
+        "initialBufferEstimateMs": 239.40000000037253,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 203.5,
+            "waitingMs": 239.7000000011176,
+            "kind": "direct",
+            "requestIssuedAt": 203.7999999988824,
+            "loadstartAt": 219.2999999988824,
+            "firstDataAt": 458.69999999925494,
+            "playingAt": 458.90000000037253
+          }
+        ],
+        "preparations": [],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 39,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 218.40000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "waiting",
+            "at": 219.19999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 219.2999999988824,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 452.7999999988824,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 458.69999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 458.90000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 458.90000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 14.800000000745058,
+            "status": "available",
+            "cache": "miss",
+            "serverMs": 0.44669999999996435
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 14.400000000372529,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8709.437411,
+          "wallTimeMs": 1791651339608.8892,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8709.437654,
+            "proxyStart": 0.085,
+            "proxyEnd": 0.839,
+            "dnsStart": 0.871,
+            "dnsEnd": 1.292,
+            "connectStart": 1.331,
+            "connectEnd": 116.331,
+            "sslStart": 57.902,
+            "sslEnd": 116.326,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 116.441,
+            "sendEnd": 116.496,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 227.148,
+            "receiveHeadersEnd": 227.234
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 229.38599999906728,
+          "startPageAt": 219.089111328125
+        }
+      ],
+      "denied": {
+        "elapsedMs": 1.900000000372529,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": 15.689111327752471,
+        "requestToHeadersMs": 110.652,
+        "firstChunkToDecodedApproxMs": 10.12488867243519
+      }
+    },
+    {
+      "mode": "lab-warm-direct",
+      "run": 1,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651339921.7,
+      "clickAt": 204.69999999925494,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 220.89999999850988
+        },
+        {
+          "event": "loadstart",
+          "at": 221
+        },
+        {
+          "event": "loadeddata",
+          "at": 431.8999999985099
+        },
+        {
+          "event": "canplay",
+          "at": 432.19999999925494
+        },
+        {
+          "event": "playing",
+          "at": 432.19999999925494
+        },
+        {
+          "event": "waiting",
+          "at": 637.3999999985099
+        },
+        {
+          "event": "loadstart",
+          "at": 638
+        },
+        {
+          "event": "loadeddata",
+          "at": 895.2999999988824
+        },
+        {
+          "event": "canplay",
+          "at": 895.3999999985099
+        },
+        {
+          "event": "playing",
+          "at": 895.3999999985099
+        }
+      ],
+      "clickToPlayingMs": 227.5,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 210.89999999850988,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-2"
+        },
+        "position": 0.000254,
+        "readyState": 4,
+        "networkState": 2,
+        "ranges": [[0, 25.244]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651339921.7,
+        "exportedAt": "2026-10-10T16:55:40.817Z",
+        "clickToPlayingMs": 273.09999999962747,
+        "initialBufferEstimateMs": 257.2999999988824,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 204.7999999988824,
+            "waitingMs": 211.30000000074506,
+            "kind": "direct",
+            "requestIssuedAt": 205,
+            "loadstartAt": 221,
+            "firstDataAt": 431.8999999985099,
+            "playingAt": 432.19999999925494
+          },
+          {
+            "trackId": "soundhelix-2",
+            "clickAt": 622.2999999988824,
+            "waitingMs": 258,
+            "kind": "next",
+            "requestIssuedAt": 622.6999999992549,
+            "loadstartAt": 638,
+            "firstDataAt": 895.2999999988824,
+            "playingAt": 895.3999999985099
+          }
+        ],
+        "preparations": [],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 31.799999998882413,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 220,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "waiting",
+            "at": 220.89999999850988,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 221,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 426.09999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 431.8999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 432.19999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 432.19999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "next-descriptor-ready",
+            "at": 486.8999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "emptied",
+            "at": 636.8999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "waiting",
+            "at": 637.3999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadstart",
+            "at": 638,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 889.8999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadeddata",
+            "at": 895.2999999988824,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "canplay",
+            "at": 895.3999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "playing",
+            "at": 895.3999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 15.5,
+            "status": "available",
+            "cache": "hit",
+            "serverMs": 0.037699999999858846
+          },
+          {
+            "trackId": "soundhelix-2",
+            "roundTripMs": 15.699999999254942,
+            "status": "available",
+            "cache": "miss",
+            "serverMs": 0.10739999999987049
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 14.600000001490116,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8709.971045,
+          "wallTimeMs": 1791651340142.519,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8709.971268,
+            "proxyStart": 0.091,
+            "proxyEnd": 0.802,
+            "dnsStart": 0.833,
+            "dnsEnd": 1.24,
+            "connectStart": 1.277,
+            "connectEnd": 83.961,
+            "sslStart": 41.7,
+            "sslEnd": 83.956,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 84.049,
+            "sendEnd": 84.102,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 162.437,
+            "receiveHeadersEnd": 162.568
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 165.31100000065635,
+          "startPageAt": 220.819091796875
+        },
+        {
+          "start": 8710.387568,
+          "wallTimeMs": 1791651340559.0378,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8710.387762,
+            "proxyStart": 0.065,
+            "proxyEnd": 0.271,
+            "dnsStart": -1,
+            "dnsEnd": -1,
+            "connectStart": -1,
+            "connectEnd": -1,
+            "sslStart": -1,
+            "sslEnd": -1,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 0.614,
+            "sendEnd": 0.701,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 249.873,
+            "receiveHeadersEnd": 249.95
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 251.9300000003568,
+          "startPageAt": 637.337890625
+        }
+      ],
+      "next": {
+        "sourceUnchanged": true,
+        "continuedPlaying": true,
+        "extraMediaRequestsDuringResolution": 0
+      },
+      "denied": {
+        "elapsedMs": 1.699999999254942,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": 16.119091797620058,
+        "requestToHeadersMs": 78.33500000000001,
+        "firstChunkToDecodedApproxMs": 45.769908200978534
+      }
+    },
+    {
+      "mode": "lab-warm-prepared",
+      "run": 1,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651340881.9,
+      "clickAt": 461.19999999925494,
+      "events": [
+        {
+          "event": "loadstart",
+          "at": 210.59999999962747
+        },
+        {
+          "event": "loadeddata",
+          "at": 408.69999999925494
+        },
+        {
+          "event": "canplay",
+          "at": 408.90000000037253
+        },
+        {
+          "event": "playing",
+          "at": 476
+        }
+      ],
+      "clickToPlayingMs": 14.800000000745058,
+      "preparationMs": 214.5,
+      "initialBufferEstimateMs": 198.09999999962747,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-1"
+        },
+        "position": 0.014558,
+        "readyState": 4,
+        "networkState": 2,
+        "ranges": [[0, 4.767]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651340881.9,
+        "exportedAt": "2026-10-10T16:55:41.357Z",
+        "clickToPlayingMs": 14.699999999254942,
+        "initialBufferEstimateMs": null,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 461.40000000037253,
+            "waitingMs": 0,
+            "kind": "prepared",
+            "playingAt": 476.09999999962747
+          }
+        ],
+        "preparations": [
+          {
+            "trackId": "soundhelix-1",
+            "startedAt": 194.5,
+            "outcome": "used",
+            "readyAt": 408.90000000037253
+          }
+        ],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 33.40000000037253,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 209.59999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 210.69999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 403.19999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 408.7999999988824,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 408.90000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 476.09999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 14.099999999627471,
+            "status": "available",
+            "cache": "hit",
+            "serverMs": 0.042699999999967986
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 13.899999998509884,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8710.920854,
+          "wallTimeMs": 1791651341092.344,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8710.921074,
+            "proxyStart": 0.08,
+            "proxyEnd": 0.784,
+            "dnsStart": 0.816,
+            "dnsEnd": 1.224,
+            "connectStart": 1.266,
+            "connectEnd": 92.435,
+            "sslStart": 45.666,
+            "sslEnd": 92.429,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 92.517,
+            "sendEnd": 92.569,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 179.194,
+            "receiveHeadersEnd": 179.292
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 181.54099999992468,
+          "startPageAt": 210.444091796875
+        }
+      ],
+      "denied": {
+        "elapsedMs": 1.700000001117587,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": null,
+        "requestToHeadersMs": 86.62499999999999,
+        "firstChunkToDecodedApproxMs": 16.714908202455263
+      }
+    },
+    {
+      "mode": "main-prepared",
+      "run": 2,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651341423.4,
+      "clickAt": 386.30000000074506,
+      "events": [
+        {
+          "event": "loadstart",
+          "at": 151.90000000037253
+        },
+        {
+          "event": "loadeddata",
+          "at": 340.90000000037253
+        },
+        {
+          "event": "canplay",
+          "at": 341.30000000074506
+        },
+        {
+          "event": "playing",
+          "at": 402
+        }
+      ],
+      "clickToPlayingMs": 15.699999999254942,
+      "preparationMs": 204,
+      "initialBufferEstimateMs": 189,
+      "apiMs": 2.599999999627471,
+      "lab": null,
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8711.403588,
+          "wallTimeMs": 1791651341575.062,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8711.403903,
+            "proxyStart": 0.074,
+            "proxyEnd": 0.686,
+            "dnsStart": 0.718,
+            "dnsEnd": 1.362,
+            "connectStart": 1.396,
+            "connectEnd": 84.346,
+            "sslStart": 41.579,
+            "sslEnd": 84.34,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 84.468,
+            "sendEnd": 84.543,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 162.573,
+            "receiveHeadersEnd": 162.648
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 164.41600000143808,
+          "startPageAt": 151.662109375
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": null,
+        "requestToHeadersMs": 78.03,
+        "firstChunkToDecodedApproxMs": 24.82189062393445
+      }
+    },
+    {
+      "mode": "lab-cold-direct",
+      "run": 2,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651341894.9,
+      "clickAt": 197.40000000037253,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 214.69999999925494
+        },
+        {
+          "event": "loadstart",
+          "at": 214.7999999988824
+        },
+        {
+          "event": "loadeddata",
+          "at": 453.19999999925494
+        },
+        {
+          "event": "canplay",
+          "at": 453.40000000037253
+        },
+        {
+          "event": "playing",
+          "at": 453.40000000037253
+        }
+      ],
+      "clickToPlayingMs": 256,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 238.40000000037253,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-1"
+        },
+        "position": 0.00024,
+        "readyState": 3,
+        "networkState": 2,
+        "ranges": [[0, 4.085]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651341894.9,
+        "exportedAt": "2026-10-10T16:55:42.348Z",
+        "clickToPlayingMs": 255.90000000037253,
+        "initialBufferEstimateMs": 238.40000000037253,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 197.5,
+            "waitingMs": 238.7000000011176,
+            "kind": "direct",
+            "requestIssuedAt": 197.59999999962747,
+            "loadstartAt": 214.7999999988824,
+            "firstDataAt": 453.19999999925494,
+            "playingAt": 453.40000000037253
+          }
+        ],
+        "preparations": [],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 32.09999999962747,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 213.69999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "waiting",
+            "at": 214.69999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 214.7999999988824,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 447.69999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 453.19999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 453.40000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 453.40000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 14,
+            "status": "available",
+            "cache": "miss",
+            "serverMs": 0.09619999999995343
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 15.5,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8711.937892,
+          "wallTimeMs": 1791651342109.367,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8711.938111,
+            "proxyStart": 0.086,
+            "proxyEnd": 0.695,
+            "dnsStart": 0.728,
+            "dnsEnd": 1.129,
+            "connectStart": 1.168,
+            "connectEnd": 93.614,
+            "sslStart": 46.462,
+            "sslEnd": 93.609,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 93.703,
+            "sendEnd": 93.759,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 182.149,
+            "receiveHeadersEnd": 182.25
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 184.30500000067696,
+          "startPageAt": 214.467041015625
+        }
+      ],
+      "denied": {
+        "elapsedMs": 1.900000000372529,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": 17.06704101525247,
+        "requestToHeadersMs": 88.39,
+        "firstChunkToDecodedApproxMs": 54.42795898295299
+      }
+    },
+    {
+      "mode": "lab-warm-direct",
+      "run": 2,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651342413,
+      "clickAt": 213.7000000011176,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 228.7000000011176
+        },
+        {
+          "event": "loadstart",
+          "at": 228.80000000074506
+        },
+        {
+          "event": "loadeddata",
+          "at": 541
+        },
+        {
+          "event": "canplay",
+          "at": 541.2000000011176
+        },
+        {
+          "event": "playing",
+          "at": 541.2000000011176
+        },
+        {
+          "event": "waiting",
+          "at": 745.3000000007451
+        },
+        {
+          "event": "loadstart",
+          "at": 746.3000000007451
+        },
+        {
+          "event": "loadeddata",
+          "at": 1244.800000000745
+        },
+        {
+          "event": "canplay",
+          "at": 1244.9000000003725
+        },
+        {
+          "event": "playing",
+          "at": 1244.9000000003725
+        }
+      ],
+      "clickToPlayingMs": 327.5,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 312.19999999925494,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-2"
+        },
+        "position": 0.001231,
+        "readyState": 3,
+        "networkState": 2,
+        "ranges": [[0, 5.458]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651342413,
+        "exportedAt": "2026-10-10T16:55:43.658Z",
+        "clickToPlayingMs": 515.2999999988824,
+        "initialBufferEstimateMs": 498.5,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 213.7000000011176,
+            "waitingMs": 312.5,
+            "kind": "direct",
+            "requestIssuedAt": 213.90000000037253,
+            "loadstartAt": 228.80000000074506,
+            "firstDataAt": 541,
+            "playingAt": 541.2000000011176
+          },
+          {
+            "trackId": "soundhelix-2",
+            "clickAt": 729.7000000011176,
+            "waitingMs": 499.69999999925494,
+            "kind": "next",
+            "requestIssuedAt": 730,
+            "loadstartAt": 746.3000000007451,
+            "firstDataAt": 1244.800000000745,
+            "playingAt": 1245
+          }
+        ],
+        "preparations": [],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 33.30000000074506,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 227.90000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "waiting",
+            "at": 228.7000000011176,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 228.80000000074506,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 535.0999999996275,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 541,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 541.2000000011176,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 541.2000000011176,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "next-descriptor-ready",
+            "at": 595.3000000007451,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "emptied",
+            "at": 744.8000000007451,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "waiting",
+            "at": 745.3000000007451,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadstart",
+            "at": 746.3000000007451,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 1238.800000000745,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadeddata",
+            "at": 1244.800000000745,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "canplay",
+            "at": 1244.9000000003725,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "playing",
+            "at": 1245,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 14.799999998882413,
+            "status": "available",
+            "cache": "hit",
+            "serverMs": 0.03960000000006403
+          },
+          {
+            "trackId": "soundhelix-2",
+            "roundTripMs": 15.300000000745058,
+            "status": "available",
+            "cache": "miss",
+            "serverMs": 0.09480000000075961
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 14.899999998509884,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8712.47006,
+          "wallTimeMs": 1791651342641.5369,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8712.470411,
+            "proxyStart": 0.088,
+            "proxyEnd": 0.768,
+            "dnsStart": 0.803,
+            "dnsEnd": 1.489,
+            "connectStart": 1.525,
+            "connectEnd": 119.174,
+            "sslStart": 59.404,
+            "sslEnd": 119.169,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 119.295,
+            "sendEnd": 119.369,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 232.255,
+            "receiveHeadersEnd": 232.338
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 235.55099999975937,
+          "startPageAt": 228.536865234375
+        },
+        {
+          "start": 8712.986733,
+          "wallTimeMs": 1791651343158.203,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8712.986906,
+            "proxyStart": 0.065,
+            "proxyEnd": 0.268,
+            "dnsStart": -1,
+            "dnsEnd": -1,
+            "connectStart": -1,
+            "connectEnd": -1,
+            "sslStart": -1,
+            "sslEnd": -1,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 0.331,
+            "sendEnd": 0.402,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 491.441,
+            "receiveHeadersEnd": 491.558
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 492.97500000102445,
+          "startPageAt": 745.202880859375
+        }
+      ],
+      "next": {
+        "sourceUnchanged": true,
+        "continuedPlaying": true,
+        "extraMediaRequestsDuringResolution": 0
+      },
+      "denied": {
+        "elapsedMs": 1.5,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": 14.836865233257413,
+        "requestToHeadersMs": 112.886,
+        "firstChunkToDecodedApproxMs": 76.91213476586563
+      }
+    },
+    {
+      "mode": "lab-warm-prepared",
+      "run": 2,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651343734.7,
+      "clickAt": 459,
+      "events": [
+        {
+          "event": "loadstart",
+          "at": 224.19999999925494
+        },
+        {
+          "event": "loadeddata",
+          "at": 407.3999999985099
+        },
+        {
+          "event": "canplay",
+          "at": 407.5
+        },
+        {
+          "event": "playing",
+          "at": 473.09999999962747
+        }
+      ],
+      "clickToPlayingMs": 14.099999999627471,
+      "preparationMs": 198.80000000074506,
+      "initialBufferEstimateMs": 183.19999999925494,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-1"
+        },
+        "position": 0.013825,
+        "readyState": 3,
+        "networkState": 2,
+        "ranges": [[0, 4.767]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651343734.7,
+        "exportedAt": "2026-10-10T16:55:44.207Z",
+        "clickToPlayingMs": 14,
+        "initialBufferEstimateMs": null,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 459.09999999962747,
+            "waitingMs": 0,
+            "kind": "prepared",
+            "playingAt": 473.09999999962747
+          }
+        ],
+        "preparations": [
+          {
+            "trackId": "soundhelix-1",
+            "startedAt": 208.7999999988824,
+            "outcome": "used",
+            "readyAt": 407.5
+          }
+        ],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 34.19999999925494,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 223.2999999988824,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 224.19999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 401.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 407.3999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 407.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 473.09999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 14.400000000372529,
+            "status": "available",
+            "cache": "hit",
+            "serverMs": 0.03090000000065629
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 14.299999998882413,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8713.787331,
+          "wallTimeMs": 1791651343958.8262,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8713.787583,
+            "proxyStart": 0.073,
+            "proxyEnd": 0.89,
+            "dnsStart": 0.921,
+            "dnsEnd": 4.589,
+            "connectStart": 4.63,
+            "connectEnd": 88.274,
+            "sslStart": 45.686,
+            "sslEnd": 88.268,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 88.399,
+            "sendEnd": 88.478,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 167.968,
+            "receiveHeadersEnd": 168.066
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 170.6850000009581,
+          "startPageAt": 224.126220703125
+        }
+      ],
+      "denied": {
+        "elapsedMs": 1.599999999627471,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": null,
+        "requestToHeadersMs": 79.49,
+        "firstChunkToDecodedApproxMs": 12.588779294426786
+      }
+    },
+    {
+      "mode": "main-direct",
+      "run": 2,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651344269.9,
+      "clickAt": 140.40000000037253,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 155.59999999962747
+        },
+        {
+          "event": "loadstart",
+          "at": 156
+        },
+        {
+          "event": "loadeddata",
+          "at": 409.80000000074506
+        },
+        {
+          "event": "canplay",
+          "at": 410.19999999925494
+        },
+        {
+          "event": "playing",
+          "at": 410.30000000074506
+        }
+      ],
+      "clickToPlayingMs": 269.90000000037253,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 253.80000000074506,
+      "apiMs": 2.400000000372529,
+      "lab": null,
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8714.253834,
+          "wallTimeMs": 1791651344425.3071,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8714.25405,
+            "proxyStart": 0.079,
+            "proxyEnd": 0.656,
+            "dnsStart": 0.685,
+            "dnsEnd": 1.08,
+            "connectStart": 1.116,
+            "connectEnd": 95.953,
+            "sslStart": 47.401,
+            "sslEnd": 95.947,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 96.038,
+            "sendEnd": 96.09,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 187.102,
+            "receiveHeadersEnd": 187.202
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 189.33800000013434,
+          "startPageAt": 155.4072265625
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": 15.007226562127471,
+        "requestToHeadersMs": 91.012,
+        "firstChunkToDecodedApproxMs": 65.05477343811071
+      }
+    },
+    {
+      "mode": "lab-cold-direct",
+      "run": 3,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651344748.3,
+      "clickAt": 211.7999999988824,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 227.39999999850988
+        },
+        {
+          "event": "loadstart",
+          "at": 227.5
+        },
+        {
+          "event": "loadeddata",
+          "at": 480
+        },
+        {
+          "event": "canplay",
+          "at": 480.2999999988824
+        },
+        {
+          "event": "playing",
+          "at": 480.2999999988824
+        }
+      ],
+      "clickToPlayingMs": 268.5,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 252.5,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-1"
+        },
+        "position": 0.00027,
+        "readyState": 3,
+        "networkState": 2,
+        "ranges": [[0, 4.085]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651344748.3,
+        "exportedAt": "2026-10-10T16:55:45.228Z",
+        "clickToPlayingMs": 268.2999999988824,
+        "initialBufferEstimateMs": 252.59999999962747,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 212,
+            "waitingMs": 252.90000000037253,
+            "kind": "direct",
+            "requestIssuedAt": 212.09999999962747,
+            "loadstartAt": 227.5,
+            "firstDataAt": 480.09999999962747,
+            "playingAt": 480.2999999988824
+          }
+        ],
+        "preparations": [],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 32.79999999888241,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 226.59999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "waiting",
+            "at": 227.39999999850988,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 227.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 473.8999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 480.09999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 480.2999999988824,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 480.2999999988824,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 14.900000000372529,
+            "status": "available",
+            "cache": "miss",
+            "serverMs": 0.09950000000026193
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 13.900000000372529,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8714.803962,
+          "wallTimeMs": 1791651344975.442,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8714.804299,
+            "proxyStart": 0.086,
+            "proxyEnd": 0.726,
+            "dnsStart": 0.757,
+            "dnsEnd": 1.188,
+            "connectStart": 1.227,
+            "connectEnd": 95.545,
+            "sslStart": 46.583,
+            "sslEnd": 95.538,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 95.633,
+            "sendEnd": 95.69,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 184.241,
+            "receiveHeadersEnd": 184.315
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 187.00499999977183,
+          "startPageAt": 227.141845703125
+        }
+      ],
+      "denied": {
+        "elapsedMs": 1.5,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": 15.341845704242587,
+        "requestToHeadersMs": 88.55100000000002,
+        "firstChunkToDecodedApproxMs": 65.85315429710317
+      }
+    },
+    {
+      "mode": "lab-warm-direct",
+      "run": 3,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651345295,
+      "clickAt": 214.09999999962747,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 230.2000000011176
+        },
+        {
+          "event": "loadstart",
+          "at": 230.30000000074506
+        },
+        {
+          "event": "loadeddata",
+          "at": 460.40000000037253
+        },
+        {
+          "event": "canplay",
+          "at": 460.7000000011176
+        },
+        {
+          "event": "playing",
+          "at": 460.7000000011176
+        },
+        {
+          "event": "waiting",
+          "at": 663.7000000011176
+        },
+        {
+          "event": "loadstart",
+          "at": 664.4000000003725
+        },
+        {
+          "event": "loadeddata",
+          "at": 966.4000000003725
+        },
+        {
+          "event": "canplay",
+          "at": 966.5
+        },
+        {
+          "event": "playing",
+          "at": 966.5999999996275
+        }
+      ],
+      "clickToPlayingMs": 246.60000000149012,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 230.09999999962747,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-2"
+        },
+        "position": 0.000234,
+        "readyState": 4,
+        "networkState": 2,
+        "ranges": [[0, 29.338]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651345295,
+        "exportedAt": "2026-10-10T16:55:46.261Z",
+        "clickToPlayingMs": 318.7999999988824,
+        "initialBufferEstimateMs": 302,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 214.2000000011176,
+            "waitingMs": 230.40000000037253,
+            "kind": "direct",
+            "requestIssuedAt": 214.30000000074506,
+            "loadstartAt": 230.30000000074506,
+            "firstDataAt": 460.40000000037253,
+            "playingAt": 460.7000000011176
+          },
+          {
+            "trackId": "soundhelix-2",
+            "clickAt": 647.8000000007451,
+            "waitingMs": 302.8999999985099,
+            "kind": "next",
+            "requestIssuedAt": 648,
+            "loadstartAt": 664.4000000003725,
+            "firstDataAt": 966.4000000003725,
+            "playingAt": 966.5999999996275
+          }
+        ],
+        "preparations": [],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 32.09999999962747,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 229.30000000074506,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "waiting",
+            "at": 230.2000000011176,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 230.30000000074506,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 454.90000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 460.40000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 460.7000000011176,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 460.7000000011176,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "next-descriptor-ready",
+            "at": 512.8000000007451,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "emptied",
+            "at": 663.3000000007451,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "waiting",
+            "at": 663.7000000011176,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadstart",
+            "at": 664.4000000003725,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 959.8000000007451,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadeddata",
+            "at": 966.4000000003725,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "canplay",
+            "at": 966.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "playing",
+            "at": 966.5999999996275,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 16.40000000037253,
+            "status": "available",
+            "cache": "hit",
+            "serverMs": 0.028599999999642023
+          },
+          {
+            "trackId": "soundhelix-2",
+            "roundTripMs": 15.700000001117587,
+            "status": "available",
+            "cache": "miss",
+            "serverMs": 0.06940000000031432
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 14.599999999627471,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8715.353601,
+          "wallTimeMs": 1791651345525.082,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8715.353807,
+            "proxyStart": 0.081,
+            "proxyEnd": 0.718,
+            "dnsStart": 0.751,
+            "dnsEnd": 1.161,
+            "connectStart": 1.199,
+            "connectEnd": 86.416,
+            "sslStart": 43.139,
+            "sslEnd": 86.411,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 86.498,
+            "sendEnd": 86.551,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 167.525,
+            "receiveHeadersEnd": 167.623
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 170.18499999903725,
+          "startPageAt": 230.08203125
+        },
+        {
+          "start": 8715.787135,
+          "wallTimeMs": 1791651345958.612,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8715.787376,
+            "proxyStart": 0.079,
+            "proxyEnd": 0.332,
+            "dnsStart": -1,
+            "dnsEnd": -1,
+            "connectStart": -1,
+            "connectEnd": -1,
+            "sslStart": -1,
+            "sslEnd": -1,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 0.715,
+            "sendEnd": 0.812,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 260.451,
+            "receiveHeadersEnd": 260.559
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 272.08299999983865,
+          "startPageAt": 663.612060546875
+        }
+      ],
+      "next": {
+        "sourceUnchanged": true,
+        "continuedPlaying": true,
+        "extraMediaRequestsDuringResolution": 0
+      },
+      "denied": {
+        "elapsedMs": 1.699999999254942,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": 15.982031250372529,
+        "requestToHeadersMs": 80.974,
+        "firstChunkToDecodedApproxMs": 60.132968751335284
+      }
+    },
+    {
+      "mode": "lab-warm-prepared",
+      "run": 3,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651346330,
+      "clickAt": 462.2000000011176,
+      "events": [
+        {
+          "event": "loadstart",
+          "at": 228.90000000037253
+        },
+        {
+          "event": "loadeddata",
+          "at": 415.30000000074506
+        },
+        {
+          "event": "canplay",
+          "at": 415.59999999962747
+        },
+        {
+          "event": "playing",
+          "at": 477.90000000037253
+        }
+      ],
+      "clickToPlayingMs": 15.699999999254942,
+      "preparationMs": 203.5,
+      "initialBufferEstimateMs": 186.40000000037253,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-1"
+        },
+        "position": 0.015657,
+        "readyState": 4,
+        "networkState": 2,
+        "ranges": [[0, 4.767]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651346330,
+        "exportedAt": "2026-10-10T16:55:46.808Z",
+        "clickToPlayingMs": 15.699999999254942,
+        "initialBufferEstimateMs": null,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 462.30000000074506,
+            "waitingMs": 0,
+            "kind": "prepared",
+            "playingAt": 478
+          }
+        ],
+        "preparations": [
+          {
+            "trackId": "soundhelix-1",
+            "startedAt": 212.09999999962747,
+            "outcome": "used",
+            "readyAt": 415.59999999962747
+          }
+        ],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 32.30000000074506,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 228.09999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 228.90000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 409.2000000011176,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 415.30000000074506,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 415.59999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 477.90000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 14.400000000372529,
+            "status": "available",
+            "cache": "hit",
+            "serverMs": 0.03449999999975262
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 13.900000000372529,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8716.387363,
+          "wallTimeMs": 1791651346558.854,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8716.387629,
+            "proxyStart": 0.094,
+            "proxyEnd": 0.816,
+            "dnsStart": 0.851,
+            "dnsEnd": 1.274,
+            "connectStart": 1.312,
+            "connectEnd": 84.153,
+            "sslStart": 41.805,
+            "sslEnd": 84.148,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 84.265,
+            "sendEnd": 84.317,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 163.058,
+            "receiveHeadersEnd": 163.164
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 165.3150000001915,
+          "startPageAt": 228.85400390625
+        }
+      ],
+      "denied": {
+        "elapsedMs": 1.800000000745058,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": null,
+        "requestToHeadersMs": 78.741,
+        "firstChunkToDecodedApproxMs": 21.130996094303555
+      }
+    },
+    {
+      "mode": "main-direct",
+      "run": 3,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651346872.6,
+      "clickAt": 153.90000000037253,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 169.7000000011176
+        },
+        {
+          "event": "loadstart",
+          "at": 170.09999999962747
+        },
+        {
+          "event": "loadeddata",
+          "at": 410.2000000011176
+        },
+        {
+          "event": "canplay",
+          "at": 410.59999999962747
+        },
+        {
+          "event": "playing",
+          "at": 410.7000000011176
+        }
+      ],
+      "clickToPlayingMs": 256.80000000074506,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 240.10000000149012,
+      "apiMs": 2.5,
+      "lab": null,
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8716.870595,
+          "wallTimeMs": 1791651347042.072,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8716.870843,
+            "proxyStart": 0.101,
+            "proxyEnd": 0.769,
+            "dnsStart": 0.804,
+            "dnsEnd": 1.259,
+            "connectStart": 1.298,
+            "connectEnd": 92.53,
+            "sslStart": 45.902,
+            "sslEnd": 92.524,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 92.655,
+            "sendEnd": 92.739,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 179.595,
+            "receiveHeadersEnd": 179.708
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 182.35099999947124,
+          "startPageAt": 169.471923828125
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": 15.571923827752471,
+        "requestToHeadersMs": 86.856,
+        "firstChunkToDecodedApproxMs": 58.377076173521345
+      }
+    },
+    {
+      "mode": "main-prepared",
+      "run": 3,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651347335.2,
+      "clickAt": 458.09999999962747,
+      "events": [
+        {
+          "event": "loadstart",
+          "at": 173.7999999988824
+        },
+        {
+          "event": "loadeddata",
+          "at": 423.59999999962747
+        },
+        {
+          "event": "canplay",
+          "at": 424.09999999962747
+        },
+        {
+          "event": "playing",
+          "at": 472.69999999925494
+        }
+      ],
+      "clickToPlayingMs": 14.599999999627471,
+      "preparationMs": 265.5,
+      "initialBufferEstimateMs": 249.80000000074506,
+      "apiMs": 2.599999999627471,
+      "lab": null,
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8717.337206,
+          "wallTimeMs": 1791651347508.679,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8717.33743,
+            "proxyStart": 0.082,
+            "proxyEnd": 0.717,
+            "dnsStart": 0.751,
+            "dnsEnd": 1.161,
+            "connectStart": 1.201,
+            "connectEnd": 95.497,
+            "sslStart": 47.544,
+            "sslEnd": 95.492,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 95.58,
+            "sendEnd": 95.641,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 186.055,
+            "receiveHeadersEnd": 186.131
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 190.42500000068685,
+          "startPageAt": 173.47900390625
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": null,
+        "requestToHeadersMs": 90.414,
+        "firstChunkToDecodedApproxMs": 59.69599609269062
+      }
+    },
+    {
+      "mode": "lab-warm-direct",
+      "run": 4,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651347878.3,
+      "clickAt": 214.59999999962747,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 230.19999999925494
+        },
+        {
+          "event": "loadstart",
+          "at": 230.39999999850988
+        },
+        {
+          "event": "loadeddata",
+          "at": 461.09999999962747
+        },
+        {
+          "event": "canplay",
+          "at": 461.2999999988824
+        },
+        {
+          "event": "playing",
+          "at": 461.5
+        },
+        {
+          "event": "waiting",
+          "at": 665.1999999992549
+        },
+        {
+          "event": "loadstart",
+          "at": 666
+        },
+        {
+          "event": "loadeddata",
+          "at": 1109.199999999255
+        },
+        {
+          "event": "canplay",
+          "at": 1109.3999999985099
+        },
+        {
+          "event": "playing",
+          "at": 1109.3999999985099
+        }
+      ],
+      "clickToPlayingMs": 246.90000000037253,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 230.7000000011176,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-2"
+        },
+        "position": 0.000224,
+        "readyState": 4,
+        "networkState": 2,
+        "ranges": [[0, 22.515]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651347878.3,
+        "exportedAt": "2026-10-10T16:55:48.987Z",
+        "clickToPlayingMs": 461.2999999988824,
+        "initialBufferEstimateMs": 443.19999999925494,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 214.7999999988824,
+            "waitingMs": 231.30000000074506,
+            "kind": "direct",
+            "requestIssuedAt": 214.89999999850988,
+            "loadstartAt": 230.39999999850988,
+            "firstDataAt": 461.09999999962747,
+            "playingAt": 461.5
+          },
+          {
+            "trackId": "soundhelix-2",
+            "clickAt": 648.0999999996275,
+            "waitingMs": 444.19999999925494,
+            "kind": "next",
+            "requestIssuedAt": 648.3999999985099,
+            "loadstartAt": 666,
+            "firstDataAt": 1109.199999999255,
+            "playingAt": 1109.3999999985099
+          }
+        ],
+        "preparations": [],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 33.09999999962747,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 229.09999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "waiting",
+            "at": 230.19999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 230.39999999850988,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 455.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 461.09999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 461.2999999988824,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 461.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "next-descriptor-ready",
+            "at": 513.6999999992549,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "emptied",
+            "at": 664.7999999988824,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "waiting",
+            "at": 665.1999999992549,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadstart",
+            "at": 666,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 1104.3999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadeddata",
+            "at": 1109.199999999255,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "canplay",
+            "at": 1109.3999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "playing",
+            "at": 1109.3999999985099,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 14.199999999254942,
+            "status": "available",
+            "cache": "hit",
+            "serverMs": 0.027399999999033753
+          },
+          {
+            "trackId": "soundhelix-2",
+            "roundTripMs": 15.800000000745058,
+            "status": "available",
+            "cache": "miss",
+            "serverMs": 0.06600000000071304
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 14.699999999254942,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8717.936586,
+          "wallTimeMs": 1791651348108.0698,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8717.936973,
+            "proxyStart": 0.128,
+            "proxyEnd": 0.95,
+            "dnsStart": 0.991,
+            "dnsEnd": 1.728,
+            "connectStart": 1.776,
+            "connectEnd": 108.53,
+            "sslStart": 54.287,
+            "sslEnd": 108.525,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 108.638,
+            "sendEnd": 108.691,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 210.837,
+            "receiveHeadersEnd": 210.947
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 214.34299999964423,
+          "startPageAt": 229.769775390625
+        },
+        {
+          "start": 8718.371921,
+          "wallTimeMs": 1791651348543.3892,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8718.372106,
+            "proxyStart": 0.065,
+            "proxyEnd": 0.307,
+            "dnsStart": -1,
+            "dnsEnd": -1,
+            "connectStart": -1,
+            "connectEnd": -1,
+            "sslStart": -1,
+            "sslEnd": -1,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 0.373,
+            "sendEnd": 0.469,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 436.345,
+            "receiveHeadersEnd": 436.43
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 438.62199999966833,
+          "startPageAt": 665.089111328125
+        }
+      ],
+      "next": {
+        "sourceUnchanged": true,
+        "continuedPlaying": true,
+        "extraMediaRequestsDuringResolution": 0
+      },
+      "denied": {
+        "elapsedMs": 1.599999999627471,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": 15.169775390997529,
+        "requestToHeadersMs": 102.14599999999999,
+        "firstChunkToDecodedApproxMs": 16.987224609358236
+      }
+    },
+    {
+      "mode": "lab-warm-prepared",
+      "run": 4,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651349046.6,
+      "clickAt": 463.2000000011176,
+      "events": [
+        {
+          "event": "loadstart",
+          "at": 228.59999999962747
+        },
+        {
+          "event": "loadeddata",
+          "at": 413.5
+        },
+        {
+          "event": "canplay",
+          "at": 413.7000000011176
+        },
+        {
+          "event": "playing",
+          "at": 478.09999999962747
+        }
+      ],
+      "clickToPlayingMs": 14.899999998509884,
+      "preparationMs": 201.10000000149012,
+      "initialBufferEstimateMs": 184.90000000037253,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-1"
+        },
+        "position": 0.014754,
+        "readyState": 4,
+        "networkState": 2,
+        "ranges": [[0, 4.085]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651349046.6,
+        "exportedAt": "2026-10-10T16:55:49.524Z",
+        "clickToPlayingMs": 14.799999998882413,
+        "initialBufferEstimateMs": null,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 463.30000000074506,
+            "waitingMs": 0,
+            "kind": "prepared",
+            "playingAt": 478.09999999962747
+          }
+        ],
+        "preparations": [
+          {
+            "trackId": "soundhelix-1",
+            "startedAt": 212.7000000011176,
+            "outcome": "used",
+            "readyAt": 413.7000000011176
+          }
+        ],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 33.20000000111759,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 227.80000000074506,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 228.59999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 407.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 413.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 413.7000000011176,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 478.09999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 14.799999998882413,
+            "status": "available",
+            "cache": "hit",
+            "serverMs": 0.03209999999853608
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 14.199999999254942,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8719.103452,
+          "wallTimeMs": 1791651349274.942,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8719.103705,
+            "proxyStart": 0.088,
+            "proxyEnd": 0.907,
+            "dnsStart": 0.944,
+            "dnsEnd": 1.689,
+            "connectStart": 1.733,
+            "connectEnd": 88.965,
+            "sslStart": 44.464,
+            "sslEnd": 88.959,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 89.047,
+            "sendEnd": 89.099,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 172.453,
+            "receiveHeadersEnd": 172.558
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 175.04600000029313,
+          "startPageAt": 228.341796875
+        }
+      ],
+      "denied": {
+        "elapsedMs": 1.699999999254942,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": null,
+        "requestToHeadersMs": 83.354,
+        "firstChunkToDecodedApproxMs": 10.112203124706866
+      }
+    },
+    {
+      "mode": "main-direct",
+      "run": 4,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651349586.4,
+      "clickAt": 141.80000000074506,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 155
+        },
+        {
+          "event": "loadstart",
+          "at": 155.5
+        },
+        {
+          "event": "loadeddata",
+          "at": 341.90000000037253
+        },
+        {
+          "event": "canplay",
+          "at": 342.40000000037253
+        },
+        {
+          "event": "playing",
+          "at": 342.59999999962747
+        }
+      ],
+      "clickToPlayingMs": 200.7999999988824,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 186.40000000037253,
+      "apiMs": 2.699999999254942,
+      "lab": null,
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8719.569765,
+          "wallTimeMs": 1791651349741.24,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8719.570005,
+            "proxyStart": 0.081,
+            "proxyEnd": 1.194,
+            "dnsStart": 1.227,
+            "dnsEnd": 1.618,
+            "connectStart": 1.656,
+            "connectEnd": 90.919,
+            "sslStart": 45.366,
+            "sslEnd": 90.914,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 90.997,
+            "sendEnd": 91.048,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 175.825,
+            "receiveHeadersEnd": 175.937
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 178.03900000035355,
+          "startPageAt": 154.840087890625
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": 13.040087889879942,
+        "requestToHeadersMs": 84.77699999999999,
+        "firstChunkToDecodedApproxMs": 9.020912109393976
+      }
+    },
+    {
+      "mode": "main-prepared",
+      "run": 4,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651349984.8,
+      "clickAt": 407.90000000037253,
+      "events": [
+        {
+          "event": "loadstart",
+          "at": 157.69999999925494
+        },
+        {
+          "event": "loadeddata",
+          "at": 364.5
+        },
+        {
+          "event": "canplay",
+          "at": 364.90000000037253
+        },
+        {
+          "event": "playing",
+          "at": 422.69999999925494
+        }
+      ],
+      "clickToPlayingMs": 14.799999998882413,
+      "preparationMs": 223,
+      "initialBufferEstimateMs": 206.80000000074506,
+      "apiMs": 2.699999999254942,
+      "lab": null,
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8719.970716,
+          "wallTimeMs": 1791651350142.195,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8719.970946,
+            "proxyStart": 0.085,
+            "proxyEnd": 0.758,
+            "dnsStart": 0.788,
+            "dnsEnd": 1.364,
+            "connectStart": 1.412,
+            "connectEnd": 99.655,
+            "sslStart": 49.12,
+            "sslEnd": 99.648,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 99.798,
+            "sendEnd": 99.906,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 193.551,
+            "receiveHeadersEnd": 193.683
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 196.0510000008071,
+          "startPageAt": 157.39501953125
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": null,
+        "requestToHeadersMs": 93.64499999999998,
+        "firstChunkToDecodedApproxMs": 11.053980467942893
+      }
+    },
+    {
+      "mode": "lab-cold-direct",
+      "run": 4,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651350472.4,
+      "clickAt": 203.09999999962747,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 219.19999999925494
+        },
+        {
+          "event": "loadstart",
+          "at": 219.19999999925494
+        },
+        {
+          "event": "loadeddata",
+          "at": 506.5
+        },
+        {
+          "event": "canplay",
+          "at": 506.7999999988824
+        },
+        {
+          "event": "playing",
+          "at": 506.7999999988824
+        }
+      ],
+      "clickToPlayingMs": 303.69999999925494,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 287.30000000074506,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-1"
+        },
+        "position": 0.000466,
+        "readyState": 3,
+        "networkState": 2,
+        "ranges": [[0, 4.085]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651350472.4,
+        "exportedAt": "2026-10-10T16:55:50.979Z",
+        "clickToPlayingMs": 303.7000000011176,
+        "initialBufferEstimateMs": 287.30000000074506,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 203.19999999925494,
+            "waitingMs": 287.7000000011176,
+            "kind": "direct",
+            "requestIssuedAt": 203.5,
+            "loadstartAt": 219.19999999925494,
+            "firstDataAt": 506.5,
+            "playingAt": 506.90000000037253
+          }
+        ],
+        "preparations": [],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 31.5,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 218.09999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "waiting",
+            "at": 219.19999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 219.19999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 500.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 506.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 506.7999999988824,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 506.90000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 15.800000000745058,
+            "status": "available",
+            "cache": "miss",
+            "serverMs": 0.07390000000123109
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 15.600000001490116,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8720.519722,
+          "wallTimeMs": 1791651350691.204,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8720.520005,
+            "proxyStart": 0.087,
+            "proxyEnd": 0.868,
+            "dnsStart": 0.905,
+            "dnsEnd": 1.343,
+            "connectStart": 1.382,
+            "connectEnd": 112.221,
+            "sslStart": 55.529,
+            "sslEnd": 112.214,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 112.364,
+            "sendEnd": 112.445,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 217.806,
+            "receiveHeadersEnd": 217.917
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 220.0540000012552,
+          "startPageAt": 218.80419921875
+        }
+      ],
+      "denied": {
+        "elapsedMs": 2.100000001490116,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": 15.704199219122529,
+        "requestToHeadersMs": 105.36100000000002,
+        "firstChunkToDecodedApproxMs": 67.64180077999481
+      }
+    },
+    {
+      "mode": "lab-warm-prepared",
+      "run": 5,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651351047.5,
+      "clickAt": 462.40000000037253,
+      "events": [
+        {
+          "event": "loadstart",
+          "at": 226.80000000074506
+        },
+        {
+          "event": "loadeddata",
+          "at": 414.90000000037253
+        },
+        {
+          "event": "canplay",
+          "at": 415.09999999962747
+        },
+        {
+          "event": "playing",
+          "at": 476.40000000037253
+        }
+      ],
+      "clickToPlayingMs": 14,
+      "preparationMs": 203.59999999962747,
+      "initialBufferEstimateMs": 188.09999999962747,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-1"
+        },
+        "position": 0.013748,
+        "readyState": 4,
+        "networkState": 2,
+        "ranges": [[0, 4.767]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651351047.5,
+        "exportedAt": "2026-10-10T16:55:51.524Z",
+        "clickToPlayingMs": 13.900000000372529,
+        "initialBufferEstimateMs": null,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 462.5,
+            "waitingMs": 0,
+            "kind": "prepared",
+            "playingAt": 476.40000000037253
+          }
+        ],
+        "preparations": [
+          {
+            "trackId": "soundhelix-1",
+            "startedAt": 211.59999999962747,
+            "outcome": "used",
+            "readyAt": 415.09999999962747
+          }
+        ],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 31.40000000037253,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 226,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 226.80000000074506,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 408.90000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 414.90000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 415.09999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 476.40000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 15.799999998882413,
+            "status": "available",
+            "cache": "hit",
+            "serverMs": 0.04069999999956053
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 14.300000000745058,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8721.102648,
+          "wallTimeMs": 1791651351274.1448,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8721.103024,
+            "proxyStart": 0.081,
+            "proxyEnd": 0.72,
+            "dnsStart": 0.754,
+            "dnsEnd": 1.166,
+            "connectStart": 1.207,
+            "connectEnd": 89.861,
+            "sslStart": 44.442,
+            "sslEnd": 89.857,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 89.958,
+            "sendEnd": 90.009,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 174.709,
+            "receiveHeadersEnd": 174.811
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 177.0010000000184,
+          "startPageAt": 226.644775390625
+        }
+      ],
+      "denied": {
+        "elapsedMs": 1.5,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": null,
+        "requestToHeadersMs": 84.7,
+        "firstChunkToDecodedApproxMs": 11.254224609729135
+      }
+    },
+    {
+      "mode": "main-direct",
+      "run": 5,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651351586.3,
+      "clickAt": 140.09999999962747,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 154.90000000037253
+        },
+        {
+          "event": "loadstart",
+          "at": 155.40000000037253
+        },
+        {
+          "event": "loadeddata",
+          "at": 385.2999999988824
+        },
+        {
+          "event": "canplay",
+          "at": 385.59999999962747
+        },
+        {
+          "event": "playing",
+          "at": 385.7999999988824
+        }
+      ],
+      "clickToPlayingMs": 245.69999999925494,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 229.89999999850988,
+      "apiMs": 3.099999999627471,
+      "lab": null,
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8721.569657,
+          "wallTimeMs": 1791651351741.133,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8721.56988,
+            "proxyStart": 0.077,
+            "proxyEnd": 0.659,
+            "dnsStart": 0.685,
+            "dnsEnd": 1.08,
+            "connectStart": 1.117,
+            "connectEnd": 90.696,
+            "sslStart": 44.617,
+            "sslEnd": 90.69,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 90.805,
+            "sendEnd": 90.882,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 175.687,
+            "receiveHeadersEnd": 175.782
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 177.91500000021188,
+          "startPageAt": 154.8330078125
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": 14.733007812872529,
+        "requestToHeadersMs": 84.805,
+        "firstChunkToDecodedApproxMs": 52.55199218617054
+      }
+    },
+    {
+      "mode": "main-prepared",
+      "run": 5,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651352017.9,
+      "clickAt": 408,
+      "events": [
+        {
+          "event": "loadstart",
+          "at": 156.90000000037253
+        },
+        {
+          "event": "loadeddata",
+          "at": 358.09999999962747
+        },
+        {
+          "event": "canplay",
+          "at": 358.40000000037253
+        },
+        {
+          "event": "playing",
+          "at": 422.69999999925494
+        }
+      ],
+      "clickToPlayingMs": 14.699999999254942,
+      "preparationMs": 215.7000000011176,
+      "initialBufferEstimateMs": 201.19999999925494,
+      "apiMs": 2.900000000372529,
+      "lab": null,
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8722.003067,
+          "wallTimeMs": 1791651352174.55,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8722.003294,
+            "proxyStart": 0.065,
+            "proxyEnd": 0.663,
+            "dnsStart": 0.694,
+            "dnsEnd": 1.077,
+            "connectStart": 1.115,
+            "connectEnd": 96.586,
+            "sslStart": 47.92,
+            "sslEnd": 96.58,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 96.674,
+            "sendEnd": 96.735,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 187.395,
+            "receiveHeadersEnd": 187.502
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 190.14600000082282,
+          "startPageAt": 156.650146484375
+        }
+      ],
+      "phases": {
+        "clickToMediaRequestMs": null,
+        "requestToHeadersMs": 90.66000000000001,
+        "firstChunkToDecodedApproxMs": 11.303853514429647
+      }
+    },
+    {
+      "mode": "lab-cold-direct",
+      "run": 5,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651352512.2,
+      "clickAt": 196.80000000074506,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 213.10000000149012
+        },
+        {
+          "event": "loadstart",
+          "at": 213.10000000149012
+        },
+        {
+          "event": "loadeddata",
+          "at": 456.2000000011176
+        },
+        {
+          "event": "canplay",
+          "at": 456.40000000037253
+        },
+        {
+          "event": "playing",
+          "at": 456.40000000037253
+        }
+      ],
+      "clickToPlayingMs": 259.59999999962747,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 243.09999999962747,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-1"
+        },
+        "position": 0.000231,
+        "readyState": 3,
+        "networkState": 2,
+        "ranges": [[0, 4.085]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651352512.2,
+        "exportedAt": "2026-10-10T16:55:52.968Z",
+        "clickToPlayingMs": 259.5,
+        "initialBufferEstimateMs": 243.19999999925494,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 196.90000000037253,
+            "waitingMs": 243.2999999988824,
+            "kind": "direct",
+            "requestIssuedAt": 197,
+            "loadstartAt": 213.10000000149012,
+            "firstDataAt": 456.30000000074506,
+            "playingAt": 456.40000000037253
+          }
+        ],
+        "preparations": [],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 32.30000000074506,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 212.30000000074506,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "waiting",
+            "at": 213.10000000149012,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 213.10000000149012,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 450.40000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 456.30000000074506,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 456.40000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 456.40000000037253,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 13.900000000372529,
+            "status": "available",
+            "cache": "miss",
+            "serverMs": 0.1157999999995809
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 13.799999998882413,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8722.553528,
+          "wallTimeMs": 1791651352725.01,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8722.553764,
+            "proxyStart": 0.087,
+            "proxyEnd": 0.798,
+            "dnsStart": 0.833,
+            "dnsEnd": 1.487,
+            "connectStart": 1.522,
+            "connectEnd": 91.459,
+            "sslStart": 46.048,
+            "sslEnd": 91.453,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 91.559,
+            "sendEnd": 91.612,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 177.098,
+            "receiveHeadersEnd": 177.194
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 179.7999999998865,
+          "startPageAt": 212.81005859375
+        }
+      ],
+      "denied": {
+        "elapsedMs": 1.599999999627471,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": 16.010058593004942,
+        "requestToHeadersMs": 85.48600000000002,
+        "firstChunkToDecodedApproxMs": 63.58994140748109
+      }
+    },
+    {
+      "mode": "lab-warm-direct",
+      "run": 5,
+      "success": true,
+      "error": null,
+      "timeOrigin": 1791651353030,
+      "clickAt": 213.30000000074506,
+      "events": [
+        {
+          "event": "waiting",
+          "at": 228.5
+        },
+        {
+          "event": "loadstart",
+          "at": 228.5
+        },
+        {
+          "event": "loadeddata",
+          "at": 477.5
+        },
+        {
+          "event": "canplay",
+          "at": 477.59999999962747
+        },
+        {
+          "event": "playing",
+          "at": 477.69999999925494
+        },
+        {
+          "event": "waiting",
+          "at": 694.5999999996275
+        },
+        {
+          "event": "loadstart",
+          "at": 695.6999999992549
+        },
+        {
+          "event": "loadeddata",
+          "at": 1092.0999999996275
+        },
+        {
+          "event": "canplay",
+          "at": 1092.199999999255
+        },
+        {
+          "event": "playing",
+          "at": 1092.300000000745
+        }
+      ],
+      "clickToPlayingMs": 264.3999999985099,
+      "preparationMs": null,
+      "initialBufferEstimateMs": 249,
+      "apiMs": null,
+      "lab": {
+        "status": "playing",
+        "error": null,
+        "active": {
+          "catalogProvider": "soundhelix-demo",
+          "catalogId": "soundhelix-2"
+        },
+        "position": 0.00022,
+        "readyState": 3,
+        "networkState": 2,
+        "ranges": [[0, 12.963]],
+        "mediaSession": true,
+        "mediaActions": ["play", "pause", "nexttrack"],
+        "visibility": "visible",
+        "standalone": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "timeOrigin": 1791651353030,
+        "exportedAt": "2026-10-10T16:55:54.122Z",
+        "clickToPlayingMs": 412.90000000037253,
+        "initialBufferEstimateMs": 396.40000000037253,
+        "attempts": [
+          {
+            "trackId": "soundhelix-1",
+            "clickAt": 213.40000000037253,
+            "waitingMs": 249.19999999925494,
+            "kind": "direct",
+            "requestIssuedAt": 213.59999999962747,
+            "loadstartAt": 228.5,
+            "firstDataAt": 477.5,
+            "playingAt": 477.69999999925494
+          },
+          {
+            "trackId": "soundhelix-2",
+            "clickAt": 679.4000000003725,
+            "waitingMs": 397.7000000011176,
+            "kind": "next",
+            "requestIssuedAt": 679.6999999992549,
+            "loadstartAt": 695.6999999992549,
+            "firstDataAt": 1092.0999999996275,
+            "playingAt": 1092.300000000745
+          }
+        ],
+        "preparations": [],
+        "events": [
+          {
+            "event": "pageshow",
+            "at": 32.09999999962747,
+            "visibility": "visible"
+          },
+          {
+            "event": "emptied",
+            "at": 227.69999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "waiting",
+            "at": 228.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadstart",
+            "at": 228.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 471.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "loadeddata",
+            "at": 477.5,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "canplay",
+            "at": 477.59999999962747,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "playing",
+            "at": 477.69999999925494,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "next-descriptor-ready",
+            "at": 544,
+            "visibility": "visible",
+            "trackId": "soundhelix-1"
+          },
+          {
+            "event": "emptied",
+            "at": 694.0999999996275,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "waiting",
+            "at": 694.5999999996275,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadstart",
+            "at": 695.6999999992549,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadedmetadata",
+            "at": 1086.9000000003725,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "loadeddata",
+            "at": 1092.0999999996275,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "canplay",
+            "at": 1092.199999999255,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          },
+          {
+            "event": "playing",
+            "at": 1092.300000000745,
+            "visibility": "visible",
+            "trackId": "soundhelix-2"
+          }
+        ],
+        "resolutions": [
+          {
+            "trackId": "soundhelix-1",
+            "roundTripMs": 15.400000000372529,
+            "status": "available",
+            "cache": "hit",
+            "serverMs": 0.03080000000045402
+          },
+          {
+            "trackId": "soundhelix-2",
+            "roundTripMs": 14.700000001117587,
+            "status": "available",
+            "cache": "miss",
+            "serverMs": 0.08589999999821885
+          }
+        ],
+        "searches": [
+          {
+            "elapsedMs": 15.099999999627471,
+            "success": true
+          }
+        ]
+      },
+      "mediaError": null,
+      "network": [
+        {
+          "start": 8723.086748,
+          "wallTimeMs": 1791651353258.221,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8723.086973,
+            "proxyStart": 0.076,
+            "proxyEnd": 0.743,
+            "dnsStart": 0.774,
+            "dnsEnd": 1.173,
+            "connectStart": 1.21,
+            "connectEnd": 95.863,
+            "sslStart": 47.794,
+            "sslEnd": 95.855,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 96.012,
+            "sendEnd": 96.084,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 185.964,
+            "receiveHeadersEnd": 186.069
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 189.0690000000177,
+          "startPageAt": 228.220947265625
+        },
+        {
+          "start": 8723.552915,
+          "wallTimeMs": 1791651353724.3909,
+          "status": 206,
+          "protocol": "h2",
+          "timing": {
+            "requestTime": 8723.553106,
+            "proxyStart": 0.058,
+            "proxyEnd": 0.289,
+            "dnsStart": -1,
+            "dnsEnd": -1,
+            "connectStart": -1,
+            "connectEnd": -1,
+            "sslStart": -1,
+            "sslEnd": -1,
+            "workerStart": -1,
+            "workerReady": -1,
+            "workerFetchStart": -1,
+            "workerRespondWithSettled": -1,
+            "sendStart": 0.351,
+            "sendEnd": 0.428,
+            "pushStart": 0,
+            "pushEnd": 0,
+            "receiveHeadersStart": 389.147,
+            "receiveHeadersEnd": 389.23
+          },
+          "fromDiskCache": false,
+          "firstChunkMs": 391.8389999998908,
+          "startPageAt": 694.390869140625
+        }
+      ],
+      "next": {
+        "sourceUnchanged": true,
+        "continuedPlaying": true,
+        "extraMediaRequestsDuringResolution": 0
+      },
+      "denied": {
+        "elapsedMs": 1.699999999254942,
+        "status": 200,
+        "resolution": {
+          "status": "unavailable",
+          "code": "NO_AUTHORIZED_SOURCE"
+        }
+      },
+      "phases": {
+        "clickToMediaRequestMs": 14.920947264879942,
+        "requestToHeadersMs": 89.88,
+        "firstChunkToDecodedApproxMs": 60.210052734357305
+      }
+    }
+  ]
+}

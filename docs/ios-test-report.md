@@ -37,7 +37,28 @@ l’implementazione M3. Le conferme M2 non validano automaticamente questa build
 | Target 0,5–1,5 s al suono iPhone  | Non eseguito | —        |
 | HLS nativo / blocco schermo       | Non eseguito | —        |
 
-## Scheda da duplicare per sessione
+## Validazione fisica M4
+
+**NON ESEGUITA dall'agente.** Nessun iPhone fisico disponibile durante M4;
+le conferme M2 non validano il laboratorio né la build corrente.
+
+| Area M4                              | Esito        | Evidenza |
+| ------------------------------------ | ------------ | -------- |
+| Safari ricerca → sorgente → Play     | Non eseguito | —        |
+| Preparazione e soglia al suono       | Non eseguito | —        |
+| Lab dalla Home                       | Non eseguito | —        |
+| Schermo bloccato / cambio automatico | Non eseguito | —        |
+| Media Session / interruzioni         | Non eseguito | —        |
+| CarPlay cablato / wireless           | Non eseguito | —        |
+| Regressione principale M3/M4         | Non eseguito | —        |
+
+Ambiente predisposto e verificato **dal PC**:
+`https://192.168.1.100:4453/__playback/`, CA/SAN, manifest separato senza SW,
+layout mobile e audio remoto autorizzato. Vedi
+[evidenza desktop](performance/m4-https-smoke.json) e
+[procedura M4](playback-ios-checklist.md). Non è prova di fiducia/raggiungibilità iPhone.
+
+### Scheda da duplicare
 
 - Data/ora e fuso:
 - Commit/branch e URL HTTPS:
@@ -59,8 +80,19 @@ l’implementazione M3. Le conferme M2 non validano automaticamente questa build
 
 ## Ambiente predisposto M2 (non è una prova fisica)
 
-HTTPS LAN verificato dal PC su `https://192.168.1.69:4443`, con CA/SAN,
+HTTPS LAN verificato dal PC su `https://192.168.1.100:4443`, con CA/SAN,
 API/manifest/SW. CA non installata automaticamente. Tailscale Serve richiede
 abilitazione esterna e non è attivo. I 12 E2E includono WebKit emulato Windows;
 il pulsante “Suono udito” è premuto sinteticamente solo per testare la telemetria.
 Benchmark e HLS sono prove desktop/server, non evidenze delle righe sopra.
+
+# Registro M5 — 10 ottobre 2026
+
+Nessun test fisico M5 eseguito dall'agente. Non estendere le conferme dell'utente
+su M2 a YouTube. HTTPS lab M5 verificato dal PC con CA/SAN sull'IP LAN
+192.168.1.100:4463, UI mobile/manifest/un audio, nessun SW o iframe automatico.
+Il controllo ufficiale ha raggiunto playing in Chromium foreground; il provider
+stream nativo è rimasto disabilitato senza permessi diretti documentati.
+Safari/PWA su iPhone, schermo bloccato, next e CarPlay M5: **non testati**.
+[Checklist da compilare](youtube-playback-ios-checklist.md),
+[evidenza HTTPS PC](performance/m5-https-smoke.json).

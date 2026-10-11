@@ -1,0 +1,44 @@
+{
+  "checkedAt": "2026-10-11T15:12:02.466Z",
+  "videoId": "khnokW3Mw24",
+  "browsers": [
+    {
+      "name": "chromium",
+      "clickToPlayingMs": 2297,
+      "position": 0.208726,
+      "duration": 337.56,
+      "error": null,
+      "ended": false,
+      "seek": true,
+      "requests": [
+        {
+          "method": "GET",
+          "range": "bytes=0-",
+          "status": 206
+        }
+      ]
+    },
+    {
+      "name": "webkit",
+      "clickToPlayingMs": 453,
+      "position": 0.2136251,
+      "duration": 337.56,
+      "error": null,
+      "ended": false,
+      "seek": true,
+      "requests": [
+        {
+          "method": "GET",
+          "range": "bytes=5455872-5466180",
+          "status": 206
+        },
+        {
+          "method": "GET",
+          "range": "bytes=24576-5455871",
+          "status": 206
+        }
+      ]
+    }
+  ],
+  "note": "Desktop native media through the real API proxy. No physical audio, iOS, lock-screen or long-session validation."
+}

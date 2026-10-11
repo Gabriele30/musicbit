@@ -1,0 +1,81 @@
+{
+  "checkedAt": "2026-10-11T16:13:58.223Z",
+  "base": "http://127.0.0.1:4705",
+  "note": "Desktop browsers with mobile viewport; no physical iPhone or lock-screen claim. Single live sample, not a performance benchmark.",
+  "results": [
+    {
+      "browser": "chromium",
+      "feedSections": [
+        {
+          "title": "Scelte veloci",
+          "count": 20
+        },
+        {
+          "title": "New releases",
+          "count": 10
+        },
+        {
+          "title": "Artisti da scoprire",
+          "count": 12
+        }
+      ],
+      "artist": "Daft Punk",
+      "songs": 25,
+      "albums": 20,
+      "relatedArtists": 10,
+      "suggestions": 5,
+      "audio": {
+        "source": "/api/audio/khnokW3Mw24",
+        "duration": 337.56,
+        "position": 0.937634,
+        "preserved": true
+      },
+      "pageErrors": [],
+      "firstMusicCard": {
+        "x": 20,
+        "y": 246.1875,
+        "width": 148,
+        "height": 221.6875
+      },
+      "demoRequests": 0,
+      "playerControlsVisible": true
+    },
+    {
+      "browser": "webkit",
+      "feedSections": [
+        {
+          "title": "Scelte veloci",
+          "count": 20
+        },
+        {
+          "title": "New releases",
+          "count": 10
+        },
+        {
+          "title": "Artisti da scoprire",
+          "count": 12
+        }
+      ],
+      "artist": "Daft Punk",
+      "songs": 25,
+      "albums": 20,
+      "relatedArtists": 10,
+      "suggestions": 5,
+      "audio": {
+        "source": "/api/audio/khnokW3Mw24",
+        "duration": 337.56,
+        "position": 1.060396,
+        "preserved": true
+      },
+      "pageErrors": [],
+      "firstMusicCard": {
+        "x": 20,
+        "y": 246.1875,
+        "width": 148,
+        "height": 221.6875
+      },
+      "demoRequests": 0,
+      "playerControlsVisible": true
+    }
+  ]
+}
