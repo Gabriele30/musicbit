@@ -22,6 +22,7 @@ export function AiPlaylist({
   onSaved: (id: string) => void;
 }) {
   const [available, setAvailable] = useState<boolean>(),
+    [localModel, setLocalModel] = useState(false),
     [prompt, setPrompt] = useState(''),
     [count, setCount] = useState(12),
     [useTaste, setUseTaste] = useState(false),
@@ -33,14 +34,18 @@ export function AiPlaylist({
   useEffect(() => {
     if (!accountId) return;
     const controller = new AbortController();
-    void accountRequest<{ available: boolean }>(
+    void accountRequest<{ available: boolean; provider?: string }>(
       '/api/me/ai-playlists/status',
       undefined,
       'GET',
       controller.signal,
     )
       .then((s) => {
-        if (!controller.signal.aborted) setAvailable(s.available);
+        if (!controller.signal.aborted) {
+          setAvailable(s.available);
+          setLocalModel(s.provider === 'Ollama');
+          if (s.provider === 'Ollama') setCount(5);
+        }
       })
       .catch(() => {
         if (!controller.signal.aborted)
@@ -147,6 +152,12 @@ export function AiPlaylist({
               Usa anche il mio Taste Profile
             </label>
           </div>
+          {localModel && (
+            <p className="muted">
+              Il modello locale può richiedere fino a tre minuti. Inizia con 5
+              brani; playlist più lunghe possono superare il tempo disponibile.
+            </p>
+          )}
           <p className="muted">
             La descrizione viene elaborata dal modello AI configurato sul
             server. Se attivi Taste Profile, inviamo anche fino a 10 artisti
