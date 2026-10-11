@@ -779,6 +779,18 @@ test('personal playlists support creation, ordering, rename, persistence and del
     .click();
   await page.getByLabel('Nuovo nome playlist').fill('Viaggio serale');
   await page.getByRole('button', { name: 'Rinomina', exact: true }).click();
+  const playPosition = await page
+    .getByRole('button', { name: 'Riproduci playlist', exact: true })
+    .boundingBox();
+  const shufflePosition = await page
+    .getByRole('button', {
+      name: 'Riproduci playlist in ordine casuale',
+      exact: true,
+    })
+    .boundingBox();
+  expect(playPosition).not.toBeNull();
+  expect(shufflePosition).not.toBeNull();
+  expect(Math.abs(playPosition!.y - shufflePosition!.y)).toBeLessThan(4);
   await page
     .getByRole('button', { name: 'Riproduci playlist', exact: true })
     .click();

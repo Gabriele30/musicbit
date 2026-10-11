@@ -1,5 +1,6 @@
 node_modules
 dist
+.vite
 pnpm-lock.yaml
 coverage
 test-results

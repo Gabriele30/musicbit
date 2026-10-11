@@ -2358,6 +2358,9 @@ main:focus {
   height: 130px;
 }
 .playlist-toolbar.library-tools {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 }
