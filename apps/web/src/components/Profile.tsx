@@ -18,10 +18,12 @@ export function Profile({
   account,
   library,
   sync,
+  onSignedIn,
 }: {
   account: AccountModel;
   library: LibraryModel;
   sync: LibrarySyncModel;
+  onSignedIn: () => void;
 }) {
   const [register, setRegister] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -55,6 +57,7 @@ export function Profile({
         register,
       );
       form.reset();
+      onSignedIn();
     });
   };
   return (

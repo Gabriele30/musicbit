@@ -507,7 +507,12 @@ function MusicApp({
             </p>
           )}
           {screen === 'profile' && (
-            <Profile account={account} library={library} sync={sync} />
+            <Profile
+              account={account}
+              library={library}
+              sync={sync}
+              onSignedIn={() => setScreen('home')}
+            />
           )}
           {listeningError && (
             <p className="banner" role="status">

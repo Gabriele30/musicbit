@@ -62,6 +62,8 @@ async function register(page: Page) {
   await page.getByLabel('Nome utente', { exact: true }).fill(username);
   await page.getByLabel('Password', { exact: true }).fill('test-password-123');
   await page.getByRole('button', { name: 'Crea account', exact: true }).click();
+  await expect(page.getByLabel(`Profilo di ${username}`)).toBeVisible();
+  await page.getByLabel(`Profilo di ${username}`).click();
   await expect(
     page.getByRole('heading', { name: username, exact: true }),
   ).toBeVisible();
