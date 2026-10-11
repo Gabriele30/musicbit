@@ -140,10 +140,11 @@ export class PlayerEngine {
     if (!/^\/api\/audio\/[A-Za-z0-9_-]{11}$/.test(track.audioUrl)) return;
     const controller = new AbortController();
     this.durationRequest = controller;
+    const timeout = setTimeout(() => controller.abort(), 15000);
     void fetch(`${track.audioUrl}/info`, {
       credentials: 'same-origin',
       cache: 'no-store',
-      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
+      signal: controller.signal,
     })
       .then(async (response) => {
         if (!response.ok) return;
@@ -161,7 +162,8 @@ export class PlayerEngine {
       })
       .catch(() => {
         /* Catalog duration remains the offline fallback. */
-      });
+      })
+      .finally(() => clearTimeout(timeout));
   }
 
   constructor(
