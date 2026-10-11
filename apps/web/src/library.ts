@@ -11,6 +11,7 @@ import {
   type CatalogItem,
   type Track,
 } from '@musicbit/shared';
+import { createClientId } from './client-id';
 
 export const FAVORITES_KEY = 'musicbit.favorites.v1';
 export const LIBRARY_KEY = 'musicbit.library.v1';
@@ -126,7 +127,7 @@ export function useLibrary(scope = 'guest') {
     setLibrary((current) => ({ ...current, history: [] }));
   const createPlaylist = (name: string, tracks: Track[] = []) => {
     if (!name.trim() || library.playlists.length >= 100) return undefined;
-    const id = crypto.randomUUID();
+    const id = createClientId();
     const unique = [
       ...new Map(tracks.map((track) => [track.id, track])).values(),
     ];

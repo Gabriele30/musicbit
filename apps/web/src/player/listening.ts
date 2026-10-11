@@ -9,6 +9,7 @@ import {
   type Track,
 } from '@musicbit/shared';
 import { accountRequest } from '../account';
+import { createClientId } from '../client-id';
 import type { PlayerEngine, PlayerState } from './engine';
 
 export const LISTENING_CHANGED = 'musicbit:listening';
@@ -131,7 +132,7 @@ export class ListeningMeter {
     do {
       const part = Math.min(60, seconds);
       this.emit({
-        id: crypto.randomUUID(),
+        id: createClientId(),
         track: this.track,
         at: Date.now(),
         seconds: part,
