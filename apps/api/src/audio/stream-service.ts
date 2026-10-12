@@ -41,7 +41,7 @@ export class AudioStreamService {
     } = {},
   ) {
     this.cache = new MetadataCache(
-      5 * 60 * 1000,
+      15 * 60 * 1000,
       options.timeoutMs ?? 45000,
       options.capacity ?? 100,
       options.maxConcurrent ?? 8,

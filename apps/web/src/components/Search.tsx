@@ -195,6 +195,36 @@ export function Search({
   const [provider, setProvider] = useState<ProviderStatus>();
   const [selected, setSelected] = useState<CatalogItem>();
   const [details, setDetails] = useState<DetailResponse>();
+  const previewTrack = result?.items.find(
+    (item) => item.kind === 'track' && item.playback.available,
+  );
+  const previewSource =
+    previewTrack?.kind === 'track'
+      ? catalogItemToTrack(previewTrack).audioUrl
+      : undefined;
+  useEffect(() => {
+    if (
+      !active ||
+      !previewSource ||
+      !/^\/api\/audio\/[A-Za-z0-9_-]{11}$/.test(previewSource)
+    )
+      return;
+    const controller = new AbortController();
+    const deadline = setTimeout(() => controller.abort(), 50000);
+    // Resolve only the first result while it is visible; never download its audio.
+    const timer = setTimeout(() => {
+      void fetch(`${previewSource}/info`, {
+        signal: controller.signal,
+        credentials: 'same-origin',
+        cache: 'no-store',
+      }).catch(() => {});
+    }, 400);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(deadline);
+      controller.abort();
+    };
+  }, [active, previewSource]);
   const [detailError, setDetailError] = useState('');
   const [detailRetry, setDetailRetry] = useState(0);
   const [trail, setTrail] = useState<{ item: CatalogItem; scroll: number }[]>(

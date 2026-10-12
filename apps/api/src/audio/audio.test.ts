@@ -21,6 +21,53 @@ const resolved: ResolvedAudioStream = {
 };
 
 describe('Audio routes and streaming', () => {
+  it('serves canonical cached bytes and Range/HEAD without resolving or contacting an unavailable upstream again', async () => {
+    const service = new AudioStreamService();
+    const resolve = vi
+      .spyOn(service, 'resolve')
+      .mockResolvedValue({ ...resolved, patches: [{ offset: 1, length: 1 }] });
+    const upstream = vi.fn().mockResolvedValue(
+      new Response(new Uint8Array([7, 8, 9]), {
+        status: 206,
+        headers: {
+          'Content-Length': '3',
+          'Content-Range': 'bytes 0-2/3',
+          'Content-Type': 'audio/mp4',
+        },
+      }),
+    );
+    vi.stubGlobal('fetch', upstream);
+    const app = buildApp({}, undefined, undefined, service);
+    const first = await app.inject({
+      url: '/api/audio/abcdefghijk',
+      headers: { range: 'bytes=0-16777215' },
+    });
+    expect([...first.rawPayload]).toEqual([7, 0, 9]);
+    upstream.mockRejectedValue(new Error('Upstream is offline'));
+    const next = await app.inject({
+      url: '/api/audio/abcdefghijk',
+      headers: { range: 'bytes=1-2' },
+    });
+    expect(next.statusCode).toBe(206);
+    expect(next.headers['x-musicbit-audio-cache']).toBe('hit');
+    expect(next.headers['content-range']).toBe('bytes 1-2/3');
+    expect([...next.rawPayload]).toEqual([0, 9]);
+    const head = await app.inject({
+      method: 'HEAD',
+      url: '/api/audio/abcdefghijk',
+    });
+    expect(head.statusCode).toBe(200);
+    expect(head.headers['content-length']).toBe('3');
+    expect(head.body).toBe('');
+    const invalid = await app.inject({
+      url: '/api/audio/abcdefghijk',
+      headers: { range: 'bytes=3-' },
+    });
+    expect(invalid.statusCode).toBe(416);
+    expect(resolve).toHaveBeenCalledOnce();
+    expect(upstream).toHaveBeenCalledOnce();
+    await app.close();
+  });
   it('reports bounded metadata timeouts as retryable audio errors', async () => {
     const service = new AudioStreamService();
     vi.spyOn(service, 'resolve').mockRejectedValue(

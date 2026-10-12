@@ -89,7 +89,7 @@ export class ProviderProcess {
           ),
         );
       if (!this.pending.size)
-        this.idle = setTimeout(() => this.close(), 5 * 60000);
+        this.idle = setTimeout(() => this.close(), 30 * 60000);
     });
     child.on('error', () => {
       if (this.child === child) this.fail();

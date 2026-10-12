@@ -34,7 +34,7 @@ process.on('message', (message: unknown) => {
     )
     .finally(() => {
       // Recycling occurs only once no more requests are pending in the supervisor;
-      // this process also has a five minute idle lifetime and a bounded V8 heap.
+      // this process also has a thirty minute idle lifetime and a bounded V8 heap.
       completed++;
       active--;
       controllers.delete(id);

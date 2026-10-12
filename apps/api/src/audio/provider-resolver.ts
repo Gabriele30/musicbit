@@ -44,7 +44,7 @@ export class ProviderAudioResolver {
     } = {},
   ) {
     this.cache = new MetadataCache(
-      5 * 60 * 1000,
+      15 * 60 * 1000,
       options.timeoutMs ?? 45000,
       options.capacity ?? 100,
       options.maxConcurrent ?? 8,
@@ -130,17 +130,11 @@ export class ProviderAudioResolver {
     videoId: string,
     signal?: AbortSignal,
   ): Promise<ResolvedAudioStream> {
+    // Independent initialization and metadata requests overlap on a cold start.
+    const tokenPromise = this.poTokenService
+      .mintPoToken(videoId)
+      .catch(() => undefined);
     const client = await this.getClient();
-    signal?.throwIfAborted();
-
-    // 1. Generate content-bound Proof of Origin Token (PoToken) to prevent GoogleVideo 403 blocks
-    let poToken: string | undefined;
-    try {
-      poToken = await this.poTokenService.mintPoToken(videoId);
-    } catch {
-      // Continue even if poToken generation fails; deciphering may still work for cold start
-    }
-
     signal?.throwIfAborted();
     let info;
     try {
@@ -211,6 +205,8 @@ export class ProviderAudioResolver {
       );
     }
 
+    const poToken = await tokenPromise;
+    signal?.throwIfAborted();
     // Ensure the PoToken is appended to the stream URL as query parameter `pot`
     if (poToken) {
       try {

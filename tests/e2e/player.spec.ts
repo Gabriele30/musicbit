@@ -199,6 +199,58 @@ test('automatically advances after the real ended event', async ({ page }) => {
   ).toBeVisible();
 });
 
+test('a fully prefetched unheard song starts on native ended even when its upstream becomes unavailable', async ({
+  page,
+}, info) => {
+  const id =
+    info.project.name === 'webkit-mobile' ? 'prefetch002' : 'prefetch001';
+  await page.request.post(`/__test_prefetch/reset/${id}`);
+  await page.route('**/api/tracks', async (route) => {
+    const response = await route.fetch();
+    const data = await response.json();
+    data.tracks[1].audioUrl = `/api/audio/${id}`;
+    await route.fulfill({ response, json: data });
+  });
+  await fixture(page);
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.instance = 'prefetch-owner';
+  });
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await openDiagnostics(page);
+  await expect(
+    page.getByText('upcoming:ready', { exact: false }),
+  ).toBeAttached();
+  await page.request.post(`/__test_prefetch/block/${id}`);
+  try {
+    await openPlayer(page);
+    await page.getByRole('slider').fill('29.7');
+    await expect(
+      page.getByRole('heading', { name: 'SoundHelix Song 2', exact: true }),
+    ).toBeVisible();
+    await expect
+      .poll(() =>
+        page
+          .locator('audio')
+          .evaluate((audio: HTMLAudioElement) => audio.currentSrc),
+      )
+      .toContain(`/api/audio/${id}`);
+    await expect
+      .poll(() =>
+        page
+          .locator('audio')
+          .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+      )
+      .toBeGreaterThan(0.5);
+    await expect(page.locator('audio')).toHaveCount(1);
+    await expect(page.locator('audio')).toHaveAttribute(
+      'data-instance',
+      'prefetch-owner',
+    );
+  } finally {
+    await page.request.post(`/__test_prefetch/reset/${id}`);
+  }
+});
+
 test('shows a failed source and recovers by selecting another track', async ({
   page,
 }) => {

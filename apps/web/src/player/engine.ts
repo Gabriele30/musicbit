@@ -1,5 +1,6 @@
 import { PLAYBACK_QUEUE_LIMIT, type Track } from '@musicbit/shared';
 import { shuffled } from './random';
+import { UpcomingAudio } from './upcoming-audio';
 
 export type PlaybackStatus =
   | 'idle'
@@ -134,6 +135,27 @@ export class PlayerEngine {
   private pendingSeek: number | undefined;
   private durationRequest: AbortController | undefined;
   private resolvedDurations = new Map<string, number>();
+  private upcomingAudio = new UpcomingAudio((event) =>
+    this.log(`upcoming:${event}`),
+  );
+
+  private prepareUpcoming() {
+    if (this.state.status !== 'playing' || this.audio.paused) return;
+    const next =
+      this.state.repeat === 'one'
+        ? undefined
+        : (this.state.queue[this.state.index + 1] ??
+          (this.state.repeat === 'all'
+            ? this.state.queue[0]
+            : this.state.autoplay
+              ? this.state.autoplayTracks[0]
+              : undefined));
+    this.upcomingAudio.prepare(
+      next?.id === this.state.queue[this.state.index]?.id
+        ? undefined
+        : next?.audioUrl,
+    );
+  }
 
   private resolveDuration(track: Track) {
     this.durationRequest?.abort();
@@ -225,6 +247,7 @@ export class PlayerEngine {
       this.mark('playingAt');
       this.patch({ status: 'playing', error: null });
       this.setPlaybackState('playing');
+      this.prepareUpcoming();
     });
     on('pause', () => {
       if (
@@ -496,6 +519,7 @@ export class PlayerEngine {
     this.audio.preload = 'none';
     this.audio.removeAttribute('src');
     this.audio.load();
+    this.upcomingAudio.clear();
     this.syncBuffer();
   }
   private mark(field: 'loadstartAt' | 'firstDataAt' | 'playingAt') {
@@ -525,6 +549,7 @@ export class PlayerEngine {
       return false;
     this.patch({ queue: [...this.state.queue, ...tracks] });
     if (this.state.queue.length === tracks.length) this.updateMetadata();
+    this.prepareUpcoming();
     return true;
   }
   playCollection(tracks: Track[], startIndex = 0) {
@@ -584,6 +609,7 @@ export class PlayerEngine {
     this.patch({
       repeat: modes[(modes.indexOf(this.state.repeat) + 1) % modes.length]!,
     });
+    this.prepareUpcoming();
   }
   toggleAutoplay() {
     this.patch({
@@ -591,6 +617,7 @@ export class PlayerEngine {
       autoplayTracks: [],
       autoplayStatus: 'idle',
     });
+    this.prepareUpcoming();
   }
   setRecommendations(
     seedId: string,
@@ -614,6 +641,7 @@ export class PlayerEngine {
       autoplayTracks: [...unique.values()],
       autoplayStatus: status,
     });
+    this.prepareUpcoming();
     if (status === 'ready' && this.state.status === 'ended' && unique.size)
       this.advanceAutoplay('ended');
   }
@@ -640,6 +668,7 @@ export class PlayerEngine {
   }
   shuffleUpcoming() {
     this.patch({ queue: shuffled(this.state.queue, this.state.index + 1) });
+    this.prepareUpcoming();
   }
   startRadio(tracks: Track[]) {
     if (!tracks.length) return;
@@ -650,6 +679,7 @@ export class PlayerEngine {
   removeUpcoming(index: number) {
     if (index <= this.state.index || index >= this.state.queue.length) return;
     this.patch({ queue: this.state.queue.filter((_, i) => i !== index) });
+    this.prepareUpcoming();
   }
   moveUpcoming(index: number, direction: -1 | 1) {
     const target = index + direction;
@@ -662,6 +692,7 @@ export class PlayerEngine {
     const queue = [...this.state.queue];
     [queue[index], queue[target]] = [queue[target]!, queue[index]!];
     this.patch({ queue });
+    this.prepareUpcoming();
   }
 
   select(index: number, trigger: Trigger = 'tap') {
@@ -696,7 +727,13 @@ export class PlayerEngine {
       trackId: track.id,
       title: track.title,
       trigger,
-      kind: load ? 'load' : prepared ? 'prepared' : 'resume',
+      kind: load
+        ? this.upcomingAudio.take(track.audioUrl)
+          ? 'prepared'
+          : 'load'
+        : prepared
+          ? 'prepared'
+          : 'resume',
       clickAt,
     };
     this.activeAttempt = attempt.id;
@@ -731,7 +768,8 @@ export class PlayerEngine {
           item.id === attempt.id ? { ...item, requestIssuedAt } : item,
         ),
       });
-      // No fetch/blob/WebAudio indirection: preserve the native iOS audio pipeline.
+      // Keep native HTTP playback; a prefetched song is served from server RAM.
+      this.upcomingAudio.clear();
       this.audio.src = track.audioUrl;
       this.audio.load();
     } else if (this.audio.ended || restart) this.audio.currentTime = 0;
@@ -1006,6 +1044,7 @@ export class PlayerEngine {
     this.audio.removeAttribute('src');
     this.audio.preload = 'none';
     this.audio.load();
+    this.upcomingAudio.clear();
     document.removeEventListener('visibilitychange', this.visibilityChanged);
     for (const event of ['pagehide', 'pageshow', 'online', 'offline'])
       window.removeEventListener(event, this.lifecycleChanged);

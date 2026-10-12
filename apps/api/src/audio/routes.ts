@@ -1,6 +1,7 @@
 import { Readable, Transform } from 'node:stream';
 import { patchAudioChunk, type AudioBytePatch } from './mp4.js';
 import type { FastifyInstance } from 'fastify';
+import { AUDIO_PREFETCH_LIMIT, AudioByteCache } from './byte-cache.js';
 import {
   AudioResolutionError,
   type AudioStreamService,
@@ -11,6 +12,9 @@ export function registerAudioRoutes(
   service: AudioStreamService,
   options: { headerTimeoutMs?: number; idleTimeoutMs?: number } = {},
 ) {
+  const byteCache = new AudioByteCache();
+  let cacheWrites = 0;
+  app.addHook('onClose', async () => byteCache.clear());
   app.get<{ Params: { id: string } }>(
     '/api/audio/:id/info',
     async (request, reply) => {
@@ -44,6 +48,34 @@ export function registerAudioRoutes(
           code: 'INVALID_RANGE',
           error: 'Intervallo audio non valido.',
         });
+
+      const cached = !request.headers['if-range'] && byteCache.get(id);
+      if (cached) {
+        const total = cached.bytes.length;
+        const [from, to] = range?.slice(6).split('-') ?? [];
+        const start =
+          from === '' ? Math.max(0, total - Number(to)) : Number(from ?? 0);
+        const end =
+          from === '' || !to ? total - 1 : Math.min(Number(to), total - 1);
+        reply.header('Cache-Control', 'private, no-store');
+        reply.header('Accept-Ranges', 'bytes');
+        reply.header('X-MusicBit-Audio-Cache', 'hit');
+        if (start > end || start >= total) {
+          reply.header('Content-Range', `bytes */${total}`);
+          return reply.code(416).send();
+        }
+        reply.type(cached.mimeType);
+        reply.header('Content-Length', end - start + 1);
+        if (range) {
+          reply.code(206);
+          reply.header('Content-Range', `bytes ${start}-${end}/${total}`);
+        }
+        return reply.send(
+          request.method === 'HEAD'
+            ? undefined
+            : cached.bytes.subarray(start, end + 1),
+        );
+      }
 
       const controller = new AbortController();
       let timer: ReturnType<typeof setTimeout> | undefined;
@@ -180,19 +212,67 @@ export function registerAudioRoutes(
       stream.once('end', cleanup);
       stream.once('error', cleanup);
       stream.once('close', cleanup);
-      if (!patches?.length) return reply.send(stream);
-      reply.header('X-MusicBit-Audio-Compatibility', 'aac-fragmented-edit');
+      const contentLength = Number(upstream.headers.get('content-length'));
+      const completeRange = upstream.headers
+        .get('content-range')
+        ?.match(/^bytes 0-(\d+)\/(\d+)$/);
+      const canCache =
+        cacheWrites < 2 &&
+        Number.isSafeInteger(contentLength) &&
+        contentLength > 0 &&
+        contentLength <= AUDIO_PREFETCH_LIMIT &&
+        (upstream.status === 200 ||
+          (upstream.status === 206 &&
+            !!completeRange &&
+            Number(completeRange[1]) + 1 === contentLength &&
+            Number(completeRange[2]) === contentLength));
+      if (!patches?.length && !canCache) return reply.send(stream);
+      if (canCache) {
+        cacheWrites++;
+        reply.header('X-MusicBit-Audio-Cache', 'warming');
+      }
+      if (patches?.length)
+        reply.header('X-MusicBit-Audio-Compatibility', 'aac-fragmented-edit');
       let offset = Number(
         upstream.headers.get('content-range')?.match(/^bytes (\d+)-/)?.[1] ?? 0,
       );
       const edits = patches;
+      let collected = 0;
+      let collecting = canCache;
+      const chunks: Buffer[] = [];
       const patched = new Transform({
         transform(chunk: Buffer, _encoding, callback) {
-          const output = patchAudioChunk(chunk, offset, edits);
+          const output = edits?.length
+            ? patchAudioChunk(chunk, offset, edits)
+            : chunk;
           offset += chunk.length;
+          if (collecting) {
+            collected += output.length;
+            if (collected > contentLength) {
+              collecting = false;
+              chunks.length = 0;
+            } else chunks.push(Buffer.from(output));
+          }
           callback(null, output);
         },
+        flush(callback) {
+          if (
+            collecting &&
+            !controller.signal.aborted &&
+            collected === contentLength
+          )
+            byteCache.put(id, Buffer.concat(chunks, collected), mimeType);
+          callback();
+        },
       });
+      let releasedCacheSlot = false;
+      const releaseCacheSlot = () => {
+        if (canCache && !releasedCacheSlot) {
+          cacheWrites--;
+          releasedCacheSlot = true;
+        }
+      };
+      patched.once('close', releaseCacheSlot);
       stream.once('error', (error) => patched.destroy(error));
       patched.once('close', () => {
         stream.destroy();

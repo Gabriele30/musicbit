@@ -33,9 +33,28 @@ const types = {
   '.svg': 'image/svg+xml',
   '.webmanifest': 'application/manifest+json',
 };
+const blockedPrefetch = new Set();
+const cachedPrefetch = new Set();
 const server = createServer(async (request, response) => {
   try {
     const path = new URL(request.url, 'http://127.0.0.1:4174').pathname;
+    const block = path.match(
+      /^\/__test_prefetch\/(block|reset)\/(prefetch00[12])$/,
+    );
+    if (block && request.method === 'POST') {
+      if (block[1] === 'block') blockedPrefetch.add(block[2]);
+      else {
+        blockedPrefetch.delete(block[2]);
+        cachedPrefetch.delete(block[2]);
+      }
+      response.writeHead(204).end();
+      return;
+    }
+    if (/^\/api\/audio\/prefetch00[12]\/info$/.test(path)) {
+      response.writeHead(200, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ durationSeconds: 30 }));
+      return;
+    }
     if (path.startsWith('/api/auth/') || path.startsWith('/api/me/')) {
       const chunks = [];
       for await (const chunk of request) chunks.push(chunk);
@@ -80,8 +99,20 @@ const server = createServer(async (request, response) => {
       response.end(JSON.stringify(data));
       return;
     }
-    if (path.startsWith('/__test_media/')) {
-      if (!/^\/__test_media\/soundhelix-[123]\.wav$/.test(path)) {
+    const prefetched = path.match(/^\/api\/audio\/(prefetch00[12])$/);
+    if (path.startsWith('/__test_media/') || prefetched) {
+      if (
+        prefetched &&
+        blockedPrefetch.has(prefetched[1]) &&
+        !cachedPrefetch.has(prefetched[1])
+      ) {
+        response.writeHead(503).end();
+        return;
+      }
+      if (
+        !prefetched &&
+        !/^\/__test_media\/soundhelix-[123]\.wav$/.test(path)
+      ) {
         response.writeHead(404);
         response.end();
         return;
@@ -98,11 +129,16 @@ const server = createServer(async (request, response) => {
         return;
       }
       const body = wav.subarray(start, end + 1);
+      if (prefetched && start === 0 && end === wav.length - 1)
+        cachedPrefetch.add(prefetched[1]);
       response.writeHead(range ? 206 : 200, {
         'Content-Type': 'audio/wav',
         'Content-Length': body.length,
         'Accept-Ranges': 'bytes',
         'Cache-Control': 'no-store',
+        ...(prefetched && cachedPrefetch.has(prefetched[1])
+          ? { 'X-MusicBit-Audio-Cache': 'hit' }
+          : {}),
         ...(range
           ? { 'Content-Range': `bytes ${start}-${end}/${wav.length}` }
           : {}),

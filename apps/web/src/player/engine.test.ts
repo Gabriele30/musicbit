@@ -75,6 +75,48 @@ afterEach(() => {
 });
 
 describe('persistent player', () => {
+  it('starts an unheard prefetched successor synchronously while hidden using the same native HTTP pipeline', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.endsWith('/info')
+          ? new Response(JSON.stringify({ durationSeconds: 120 }))
+          : new Response(new Uint8Array([1, 2, 3]), {
+              status: 206,
+              headers: {
+                'Content-Type': 'audio/mp4',
+                'X-MusicBit-Audio-Cache': 'warming',
+                'Content-Length': '3',
+                'Content-Range': 'bytes 0-2/3',
+              },
+            }),
+      ),
+    );
+    const { player, audio } = setup();
+    player.playCollection([
+      tracks[0]!,
+      { ...tracks[1]!, audioUrl: '/api/audio/aaaaaaaaaaa' },
+    ]);
+    audio.emit('playing');
+    await vi.waitFor(() =>
+      expect(
+        player.getSnapshot().events.some((e) => e.event === 'upcoming:ready'),
+      ).toBe(true),
+    );
+    expect(audio.src).toBe(tracks[0]!.audioUrl);
+    const visibility = vi
+      .spyOn(document, 'visibilityState', 'get')
+      .mockReturnValue('hidden');
+    try {
+      audio.emit('ended');
+      expect(audio.src).toBe('/api/audio/aaaaaaaaaaa');
+      expect(audio.play).toHaveBeenCalledTimes(2);
+      expect(player.getSnapshot().index).toBe(1);
+      expect(player.getSnapshot().attempts.at(-1)?.kind).toBe('prepared');
+    } finally {
+      visibility.mockRestore();
+    }
+  });
   it('recovers a missing feed duration after synchronous play and skips the doubled silent tail', async () => {
     let resolve!: (value: Response) => void;
     vi.stubGlobal(
