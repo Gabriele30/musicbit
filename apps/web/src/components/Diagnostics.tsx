@@ -1,7 +1,8 @@
-import type {
-  PlaybackAttempt,
-  PlayerEngine,
-  PlayerState,
+import {
+  PLAYBACK_REVISION,
+  type PlaybackAttempt,
+  type PlayerEngine,
+  type PlayerState,
 } from '../player/engine';
 import { Icon } from './Icon';
 import { PreparationControls } from './PreparationControls';
@@ -50,6 +51,7 @@ export function Diagnostics({
         Misure relative al tocco o al comando, con performance.now(). Nessuna
         misura sintetica.
       </p>
+      <p className="muted">Revisione player: {PLAYBACK_REVISION}</p>
       <div className="diagnostic-controls">
         <button
           className="secondary-button"

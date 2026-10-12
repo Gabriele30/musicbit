@@ -1,6 +1,9 @@
 import { PLAYBACK_QUEUE_LIMIT, type Track } from '@musicbit/shared';
 import { shuffled } from './random';
 import { UpcomingAudio } from './upcoming-audio';
+import { PlaybackAudioSession } from './audio-session';
+
+export const PLAYBACK_REVISION = 'native-session-handoff-v2';
 
 export type PlaybackStatus =
   | 'idle'
@@ -73,6 +76,9 @@ export interface PlayerState {
     trackId?: string;
     readyState: number;
     networkState: number;
+    paused: boolean;
+    ended: boolean;
+    audioSession?: { type: string; state: string };
     persisted?: boolean;
   }[];
   catalog?: CatalogTiming;
@@ -129,6 +135,7 @@ export class PlayerEngine {
   private activeAttempt: number | undefined;
   private source: string | undefined;
   private session: MediaSession | undefined;
+  private playbackSession: PlaybackAudioSession;
   private deadline: ReturnType<typeof setTimeout> | undefined;
   private observer: PerformanceObserver | undefined;
   private resumePosition = 0;
@@ -193,6 +200,7 @@ export class PlayerEngine {
     private now = () => performance.now(),
     private timeoutMs = 15000,
   ) {
+    this.playbackSession = new PlaybackAudioSession((event) => this.log(event));
     audio.preload = 'none';
     audio.setAttribute('playsinline', '');
     const on = (event: string, fn: () => void) => {
@@ -262,6 +270,7 @@ export class PlayerEngine {
     on('waiting', () => {
       if (!audio.paused) {
         this.patch({ status: 'loading' });
+        this.setPlaybackState('paused');
         this.updateAttempt((item) =>
           item.waitingAt === undefined
             ? { ...item, waitingAt: this.now() }
@@ -367,6 +376,9 @@ export class PlayerEngine {
           trackId: this.state.queue[this.state.index]?.id,
           readyState: this.audio.readyState ?? 0,
           networkState: this.audio.networkState ?? 0,
+          paused: this.audio.paused,
+          ended: this.audio.ended,
+          audioSession: this.playbackSession.snapshot(),
           persisted,
         },
       ].slice(-100),
@@ -588,6 +600,7 @@ export class PlayerEngine {
     this.resumePosition = 0;
     this.pendingSeek = undefined;
     this.releaseSource();
+    this.playbackSession.release();
     this.patch({
       queue: [],
       index: 0,
@@ -761,8 +774,12 @@ export class PlayerEngine {
       duration: load ? track.durationSeconds || 0 : this.state.duration,
       attempts: [...this.state.attempts, attempt].slice(-20),
     });
+    this.playbackSession.activate();
+    // Do not let the old lock-screen timeline extrapolate into an unstarted song.
+    this.setPlaybackState('paused');
+    this.clearPositionState();
     this.updateMetadata();
-    this.audio.preload = 'none';
+    this.audio.preload = 'auto';
     if (load) {
       this.pendingSeek = resumeAt > 0 ? resumeAt : undefined;
       this.source = track.audioUrl;
@@ -775,7 +792,8 @@ export class PlayerEngine {
       // Keep native HTTP playback; a prefetched song is served from server RAM.
       this.upcomingAudio.clear();
       this.audio.src = track.audioUrl;
-      this.audio.load();
+      // src assignment already starts native resource selection. An explicit
+      // load() tears down the current pipeline again during the background handoff.
     } else if (this.audio.ended || restart) this.audio.currentTime = 0;
     // Keep play in the synchronous user gesture stack; catch failures afterwards.
     try {
@@ -947,6 +965,13 @@ export class PlayerEngine {
       /* Optional platform integration. */
     }
   }
+  private clearPositionState() {
+    try {
+      this.session?.setPositionState?.();
+    } catch {
+      /* Position state is optional, independently of other session fields. */
+    }
+  }
   private setupMediaSession() {
     if (!('mediaSession' in navigator) || !navigator.mediaSession) return;
     this.session = navigator.mediaSession;
@@ -1028,6 +1053,8 @@ export class PlayerEngine {
         standalone:
           window.matchMedia?.('(display-mode: standalone)').matches ?? false,
         timeOrigin: performance.timeOrigin,
+        playbackRevision: PLAYBACK_REVISION,
+        audioSession: this.playbackSession.snapshot(),
         state: this.state,
         note: 'performance.now() timestamps. loadstart is a request event proxy; loadeddata is decoded data, not network TTFB. Device results must be recorded separately.',
       },
@@ -1049,6 +1076,7 @@ export class PlayerEngine {
     this.audio.preload = 'none';
     this.audio.load();
     this.upcomingAudio.clear();
+    this.playbackSession.destroy();
     document.removeEventListener('visibilitychange', this.visibilityChanged);
     for (const event of ['pagehide', 'pageshow', 'online', 'offline'])
       window.removeEventListener(event, this.lifecycleChanged);

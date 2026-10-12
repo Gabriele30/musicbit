@@ -386,7 +386,7 @@ describe('persistent player', () => {
       'track-3',
     ]);
     expect(audio.src).toBe(tracks[1]!.audioUrl);
-    expect(audio.load).toHaveBeenCalledOnce();
+    expect(audio.load).not.toHaveBeenCalled();
   });
   it('restores duplicate queue entries, repeat and position without autoplay or preload', () => {
     localStorage.setItem(
@@ -544,21 +544,23 @@ describe('persistent player', () => {
     player.play();
     audio.currentTime = 25;
     player.select(3);
-    expect(audio.load).toHaveBeenCalledTimes(2);
+    expect(audio.load).not.toHaveBeenCalled();
     expect(player.getSnapshot().attempts.at(-1)?.kind).toBe('load');
     expect(player.getSnapshot().position).toBe(0);
   });
-  it('does not preload and calls play synchronously on the same element across tracks', () => {
+  it('does not preload before intent and calls play synchronously without reloading the lifetime element', () => {
     const { audio, player } = setup();
     expect(audio.preload).toBe('none');
     expect(audio.load).not.toHaveBeenCalled();
     player.play();
     expect(audio.play).toHaveBeenCalledOnce();
+    expect(audio.preload).toBe('auto');
     player.next();
     expect(player.audio).toBe(audio);
     expect(audio.src).toBe(tracks[1]!.audioUrl);
     player.previous();
     expect(audio.src).toBe(tracks[0]!.audioUrl);
+    expect(audio.load).not.toHaveBeenCalled();
   });
   it('records first events in order and keeps the first playing timestamp', () => {
     const { audio, player, tick } = setup();
@@ -585,7 +587,7 @@ describe('persistent player', () => {
     player.pause();
     expect(player.getSnapshot().status).toBe('paused');
     player.play();
-    expect(audio.load).toHaveBeenCalledOnce();
+    expect(audio.load).not.toHaveBeenCalled();
     expect(player.getSnapshot().attempts.at(-1)).toMatchObject({
       kind: 'resume',
     });
@@ -659,8 +661,8 @@ describe('persistent player', () => {
     audio.emit('playing');
     expect(player.getSnapshot().error).toBeNull();
     expect(audio.src).toBe(tracks[0]!.audioUrl);
-    // load(), then cancellation via removeAttribute/load(), then retry load().
-    expect(audio.load).toHaveBeenCalledTimes(3);
+    // Only explicit cancellation tears down the native resource with load().
+    expect(audio.load).toHaveBeenCalledOnce();
   });
   it('ignores a rejected play promise superseded by a rapid next or pause', async () => {
     const { audio, player } = setup();
@@ -730,8 +732,16 @@ describe('persistent player', () => {
       ],
     });
     expect(session.playbackState).toBe('playing');
+    audio.currentTime = 119;
+    audio.emit('timeupdate');
     handlers.get('nexttrack')!({ action: 'nexttrack' });
     expect(player.getSnapshot().index).toBe(1);
+    expect(session.playbackState).toBe('paused');
+    expect(session.setPositionState).toHaveBeenLastCalledWith();
+    audio.emit('playing');
+    expect(session.playbackState).toBe('playing');
+    audio.emit('waiting');
+    expect(session.playbackState).toBe('paused');
     handlers.get('pause')!({ action: 'pause' });
     expect(player.getSnapshot().status).toBe('paused');
   });

@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { registerSW } from 'virtual:pwa-register';
 
 export function PwaNotice() {
   const [update, setUpdate] = useState(false);
   const [offline, setOffline] = useState(false);
   const [registrationError, setRegistrationError] = useState(false);
+  const applyUpdate =
+    useRef<(reloadPage?: boolean) => Promise<void>>(undefined);
   useEffect(() => {
-    registerSW({
+    applyUpdate.current = registerSW({
       onNeedRefresh: () => setUpdate(true),
       onOfflineReady: () => setOffline(true),
       onRegisterError: () => setRegistrationError(true),
@@ -16,8 +18,13 @@ export function PwaNotice() {
     <div className="pwa-note">
       {update ? (
         <span>
-          Aggiornamento disponibile. Chiudi e riapri l’app al termine
-          dell’ascolto.
+          Aggiornamento disponibile. L’ascolto si interromperà per ricaricare.{' '}
+          <button
+            className="secondary-button"
+            onClick={() => void applyUpdate.current?.(true)}
+          >
+            Aggiorna MusicBit
+          </button>
         </span>
       ) : registrationError ? (
         <span>Service worker non disponibile. Verifica HTTPS e ricarica.</span>

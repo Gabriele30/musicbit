@@ -214,6 +214,14 @@ test('a fully prefetched unheard song starts on native ended even when its upstr
   await fixture(page);
   await page.locator('audio').evaluate((audio) => {
     audio.dataset.instance = 'prefetch-owner';
+    audio.dataset.explicitLoads = '0';
+    const load = audio.load.bind(audio);
+    audio.load = () => {
+      audio.dataset.explicitLoads = String(
+        Number(audio.dataset.explicitLoads) + 1,
+      );
+      load();
+    };
   });
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await openDiagnostics(page);
@@ -245,6 +253,10 @@ test('a fully prefetched unheard song starts on native ended even when its upstr
     await expect(page.locator('audio')).toHaveAttribute(
       'data-instance',
       'prefetch-owner',
+    );
+    await expect(page.locator('audio')).toHaveAttribute(
+      'data-explicit-loads',
+      '0',
     );
   } finally {
     await page.request.post(`/__test_prefetch/reset/${id}`);

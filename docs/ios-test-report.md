@@ -13,6 +13,32 @@ del prefetch e il passaggio nativo a un brano preparato dopo aver disabilitato
 il provider a monte. WebKit desktop non riproduce la sospensione reale di iOS:
 **la conferma su iPhone bloccato resta da raccogliere dopo il deploy**.
 
+### Seconda segnalazione — sessione silenziosa al cambio brano
+
+L'utente conferma il difetto sia in Safari sia dalla Home, con iOS **26.6.2**
+(versione riferita). Dopo il primo brano la schermata di blocco avanza il tempo,
+ma non si sente audio; tornando in MusicBit il secondo brano è a zero e parte.
+Il prefetch precedente **non ha risolto la prova fisica**.
+
+La revisione `native-session-handoff-v2` dichiara `audioSession.type = playback`
+quando supportato, solo dopo un comando di ascolto. Il passaggio fra sorgenti
+mantiene il nodo nativo, imposta `preload=auto` e chiama `play()` subito dopo
+`src`, senza un ulteriore `load()`. Il contatore Media Session viene cancellato
+al cambio e dichiarato in pausa finché non arriva `playing`; anche `waiting`
+ferma l'estrapolazione. La diagnostica esporta categoria/stato audio, paused,
+ended e identificativo della revisione, senza dedurre l'udibilità dal contatore.
+
+È disponibile un comando esplicito **Aggiorna MusicBit** quando il service worker
+segnala una versione in attesa. Il comando ricarica soltanto al tocco dell'utente.
+I test nativi WebKit/Chromium verificano il cambio senza `load()` aggiuntivo;
+non dimostrano la corretta uscita audio con iPhone fisicamente bloccato.
+**Esito fisico di questa revisione: da verificare**.
+
+Riferimenti di progetto: [Audio Session](https://w3c.github.io/audio-session/),
+[precedente WebKit con play risolto e nessun suono in background](https://bugs.webkit.org/show_bug.cgi?id=173332#c23).
+Il precedente orienta l'indagine e non prova una regressione nella versione iOS
+riferita dall'utente.
+
 ## Conferme dell’utente per M2
 
 All’avvio di M3 l’utente ha riferito prove reali sul proprio iPhone con esito
