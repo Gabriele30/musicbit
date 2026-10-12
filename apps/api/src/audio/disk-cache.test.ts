@@ -96,6 +96,30 @@ it('never publishes truncated downloads or retries a failed song in a tight loop
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
 
+it('requests an explicit complete Range for fast provider transfer and rejects partial slices', async () => {
+  const { cache, fetcher } = setup();
+  fetcher.mockImplementation(
+    async () =>
+      new Response(new Uint8Array([7, 8, 9]), {
+        status: 206,
+        headers: { 'content-length': '3', 'content-range': 'bytes 0-2/3' },
+      }),
+  );
+  cache.plan('gabriele', 'phone-device', [id]);
+  await vi.waitFor(() => expect(cache.status('gabriele').tracks).toBe(1));
+  expect(fetcher.mock.calls[0]![1].headers.Range).toBe('bytes=0-67108863');
+  fetcher.mockImplementation(
+    async () =>
+      new Response(new Uint8Array([7, 8, 9]), {
+        status: 206,
+        headers: { 'content-length': '3', 'content-range': 'bytes 0-2/6' },
+      }),
+  );
+  cache.plan('gabriele', 'phone-device', [other]);
+  await vi.waitFor(() => expect(cache.status('gabriele').preparing).toBe(0));
+  expect(cache.get('gabriele', other)).toBeUndefined();
+});
+
 it('limits preparation to two jobs and cancels obsolete work while respecting another device window', async () => {
   const { cache, service } = setup();
   const signals = new Map<string, AbortSignal>();

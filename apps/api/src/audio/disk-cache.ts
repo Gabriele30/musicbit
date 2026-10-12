@@ -223,6 +223,7 @@ export class AudioDiskCache {
             'User-Agent': 'Mozilla/5.0',
             Referer: 'https://music.youtube.com/',
             Origin: 'https://music.youtube.com',
+            Range: `bytes=0-${MAX_FILE - 1}`,
           },
         });
       let response = await request();
@@ -233,9 +234,16 @@ export class AudioDiskCache {
         response = await request();
       }
       const size = Number(response.headers.get('content-length'));
+      const completeRange = response.headers
+        .get('content-range')
+        ?.match(/^bytes 0-(\d+)\/(\d+)$/);
       const filesystem = statfsSync(this.root);
       if (
-        response.status !== 200 ||
+        ![200, 206].includes(response.status) ||
+        (response.status === 206 &&
+          (!completeRange ||
+            Number(completeRange[1]) + 1 !== size ||
+            Number(completeRange[2]) !== size)) ||
         !response.body ||
         !Number.isSafeInteger(size) ||
         size <= 0 ||
