@@ -84,6 +84,17 @@ e corretto anche il comportamento nativo di Escape che cancellava la ricerca in
 Chromium invece di chiudere soltanto i suggerimenti. Nessuna nuova misura fisica
 del primo suono o del passaggio a schermo bloccato è disponibile per questa build.
 
+Verifica server delle 22:27 (Europe/Rome), codice `a9862b3`: 11 brani e
+33.751.389 byte conservati dopo il riavvio dell'API, quota 5.000.000.000 byte.
+Tre richieste Range interne da disco completate in 17–33 ms dopo il riavvio.
+La richiesta HTTPS Tailscale dal server stesso, con TLS verificato, restituisce
+206, 1.024 byte e `X-MusicBit-Audio-Storage: disk` in 100 ms complessivi.
+Il brano di controllo mantiene durata 188 secondi. Sono misure HTTP sul server,
+non latenza al suono su iPhone. Il controllo ha anche individuato trasferimenti
+integrali senza Range a circa 32 KB/s: usando un Range completo, otto ulteriori
+brani sono stati preparati in circa 30 secondi. Validazione automatica finale:
+`pnpm check` (261 test) e `pnpm test:e2e` (82 test Chromium/WebKit) superati.
+
 ## Conferme dell’utente per M2
 
 All’avvio di M3 l’utente ha riferito prove reali sul proprio iPhone con esito

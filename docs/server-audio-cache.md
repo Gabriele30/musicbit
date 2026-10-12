@@ -8,6 +8,8 @@ Two downloads run at most across all accounts. Each has a two-minute deadline an
 
 Only complete files become playable cache entries. AAC compatibility corrections are applied before saving, preserving the fix for doubled durations and silent tails. Signed upstream URLs and authentication tokens are never written to cache metadata. Cached files survive container restarts and support full, suffix and partial HTTP Range requests and HEAD without another upstream resolution. Missing, truncated and unfinished entries are discarded when an account's cache is opened.
 
+Background downloads request an explicit byte Range. A partial response is accepted only when its declared range covers the entire file, its length matches, and the body finishes at that exact length. This avoids publishing truncated slices and avoids the slow full-response transfer observed during server verification.
+
 `GET /api/me/audio-cache` reports `enabled`, `bytes`, `quotaBytes`, `tracks` and `preparing` for the signed-in account. Queue hints use `POST` on the same endpoint with the normal account and cross-site request protections. Account directories are isolated. Clearing browser data does not clear server audio, and server caching does not provide offline playback on the phone.
 
 The first request for an uncached song can still require provider resolution. Foreground streaming never waits for an entire cache download to finish; failure of a background job does not interrupt native playback. iPhone lock-screen continuity still needs physical-device confirmation after each playback release.
