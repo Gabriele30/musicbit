@@ -411,6 +411,10 @@ export class PlayerEngine {
     if (this.deadline !== undefined) return;
     const token = this.command;
     const position = this.audio.currentTime;
+    // The proxy may need up to 45s to resolve plus 15s for upstream headers.
+    const timeoutMs = this.source?.startsWith('/api/audio/')
+      ? Math.max(this.timeoutMs, 60000)
+      : this.timeoutMs;
     this.deadline = setTimeout(() => {
       this.deadline = undefined;
       if (token !== this.command) return;
@@ -437,9 +441,9 @@ export class PlayerEngine {
         this.cancelPreparation('timeout');
       else
         this.fail(
-          'Timeout audio: nessun avvio o recupero del buffering entro 15 secondi. Tocca Riprova.',
+          'Timeout audio: il caricamento non sta avanzando. Tocca Riprova.',
         );
-    }, this.timeoutMs);
+    }, timeoutMs);
   }
   private endWaiting() {
     const at = this.now();

@@ -75,6 +75,27 @@ afterEach(() => {
 });
 
 describe('persistent player', () => {
+  it('allows a cold proxied stream to start beyond the old 15-second client deadline', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ durationSeconds: 188 })),
+        ),
+    );
+    const { player, audio } = setup();
+    player.playCollection([
+      { ...tracks[0]!, audioUrl: '/api/audio/olqW16cSEVs' },
+    ]);
+    await vi.advanceTimersByTimeAsync(20000);
+    expect(player.getSnapshot().status).toBe('loading');
+    expect(player.getSnapshot().error).toBeNull();
+    audio.emit('playing');
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(player.getSnapshot().status).toBe('playing');
+  });
   it('starts an unheard prefetched successor synchronously while hidden using the same native HTTP pipeline', async () => {
     vi.stubGlobal(
       'fetch',

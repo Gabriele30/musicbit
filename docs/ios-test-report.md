@@ -10,7 +10,7 @@ La correzione prepara in memoria il prossimo brano durante la riproduzione,
 mantiene un solo elemento audio e anticipa la risoluzione del primo risultato
 di ricerca. I test coprono il cambio con pagina nascosta, i limiti/cancellazioni
 del prefetch e il passaggio nativo a un brano preparato dopo aver disabilitato
-il suo endpoint. WebKit desktop non riproduce la sospensione reale di iOS:
+il provider a monte. WebKit desktop non riproduce la sospensione reale di iOS:
 **la conferma su iPhone bloccato resta da raccogliere dopo il deploy**.
 
 ## Conferme dell’utente per M2
