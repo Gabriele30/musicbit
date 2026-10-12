@@ -7,6 +7,7 @@ import { Icon } from './Icon';
 import { ActionMenu } from './ActionMenu';
 import { CoverArt } from './CoverArt';
 import { shuffled } from '../player/random';
+import { useAudioWarmup } from '../player/use-audio-warmup';
 
 export type LibraryTab =
   | 'favorites'
@@ -15,6 +16,7 @@ export type LibraryTab =
   | 'artists'
   | 'history';
 export function CollectionLibrary({
+  active,
   library,
   onPlay,
   onPlayAll,
@@ -27,6 +29,7 @@ export function CollectionLibrary({
   tab,
   onTabChange: setTab,
 }: {
+  active: boolean;
   library: LibraryModel;
   onPlay: (track: Track) => void;
   onPlayAll: (tracks: Track[], index?: number) => void;
@@ -50,6 +53,15 @@ export function CollectionLibrary({
   }>();
   const selected = library.playlists.find((list) => list.id === playlistId);
   const activeTab = selected ? 'playlists' : tab;
+  useAudioWarmup(
+    selected?.tracks[0]?.audioUrl ??
+      (activeTab === 'favorites'
+        ? library.favorites[0]?.audioUrl
+        : activeTab === 'history'
+          ? library.history[0]?.track.audioUrl
+          : undefined),
+    active,
+  );
   return (
     <div className="collection-library">
       <div

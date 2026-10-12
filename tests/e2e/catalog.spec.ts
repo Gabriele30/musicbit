@@ -33,6 +33,52 @@ const album = {
 };
 const timing = { cache: 'miss', elapsedMs: 123 };
 const items = { track, artist, album };
+
+test('home and album details resolve the first visible song before play without loading native audio', async ({
+  page,
+}) => {
+  await mocks(page);
+  const first = { ...track, audioUrl: '/api/audio/abcdefghijk' };
+  const next = {
+    ...track,
+    id: 'lmnopqrstuv',
+    audioUrl: '/api/audio/lmnopqrstuv',
+  };
+  const warmed: string[] = [];
+  await page.route('**/api/audio/*/info', (route) => {
+    warmed.push(new URL(route.request().url()).pathname);
+    return route.fulfill({ json: { durationSeconds: 123 } });
+  });
+  await page.route('**/api/feed', (route) =>
+    route.fulfill({
+      json: {
+        sections: [{ id: 'warmup', title: 'Scoperte', items: [first, album] }],
+        timing,
+      },
+    }),
+  );
+  await page.route('**/api/catalog/youtube/album/*', (route) =>
+    route.fulfill({
+      json: {
+        item: { ...album, tracks: [next] },
+        timing,
+      },
+    }),
+  );
+  await page.goto('/');
+  await expect.poll(() => warmed).toContain('/api/audio/abcdefghijk/info');
+  await page
+    .getByRole('button', { name: 'Apri Catalog album', exact: true })
+    .click();
+  await expect.poll(() => warmed).toContain('/api/audio/lmnopqrstuv/info');
+  expect(
+    await page.locator('audio').evaluate((audio: HTMLAudioElement) => ({
+      paused: audio.paused,
+      source: audio.currentSrc,
+    })),
+  ).toEqual({ paused: true, source: '' });
+  await expect(page.locator('audio')).toHaveCount(1);
+});
 async function mocks(page: Page) {
   await page.route('**/api/feed', (route) =>
     route.fulfill({

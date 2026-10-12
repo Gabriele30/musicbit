@@ -14,6 +14,7 @@ import { homeFeed } from '../search-api';
 import type { LibraryModel } from '../library';
 import { Icon } from './Icon';
 import { CoverArt } from './CoverArt';
+import { useAudioWarmup } from '../player/use-audio-warmup';
 
 export function CatalogShelf({
   title,
@@ -173,6 +174,16 @@ export function Home({
       ])
     : [];
   const [mixNotice, setMixNotice] = useState('');
+  const firstFeedTrack = (
+    feed?.sections.flatMap((section) => section.items) ?? []
+  ).find((item) => item.kind === 'track' && item.playback.available);
+  useAudioWarmup(
+    (filter === 'all' ? library.history[0]?.track.audioUrl : undefined) ??
+      (firstFeedTrack
+        ? catalogItemToTrack(firstFeedTrack).audioUrl
+        : undefined),
+    active && (filter === 'all' || filter === 'track'),
+  );
   useEffect(() => {
     if (!active) return;
     const controller = new AbortController();

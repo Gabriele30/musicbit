@@ -33,6 +33,7 @@ import { useCloudSession } from './player/cloud-session';
 import { useListening } from './player/listening';
 import { Wrapped } from './components/Wrapped';
 import { AiPlaylist } from './components/AiPlaylist';
+import { useAudioWarmup } from './player/use-audio-warmup';
 
 type Screen =
   | 'home'
@@ -195,6 +196,10 @@ function MusicApp({
   const [online, setOnline] = useState(navigator.onLine);
   const current = state.queue[state.index];
   const active = state.status === 'playing' || state.status === 'loading';
+  useAudioWarmup(
+    current?.audioUrl,
+    !active && (screen === 'player' || screen === 'queue'),
+  );
   const repeatLabel = {
     off: 'disattivata',
     all: 'tutta la coda',
@@ -1006,6 +1011,7 @@ function MusicApp({
           )}
           <div hidden={screen !== 'library'}>
             <CollectionLibrary
+              active={screen === 'library'}
               tab={libraryTab}
               onTabChange={setLibraryTab}
               library={library}

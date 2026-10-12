@@ -56,6 +56,18 @@ attiva esplicitamente l'aggiornamento, senza cancellare cookie o storage.
 Gli E2E riproducono un vecchio worker ancora attivo, il recupero e la conservazione
 di cookie e coda; non sostituiscono la prova fisica del passaggio audio su iPhone.
 
+### Conferma successiva dell'utente e primo avvio
+
+Dopo il recupero dell'aggiornamento l'utente riferisce **«Ora funziona»** per il
+cambio a schermo bloccato. Conferma riferita, senza JSON della nuova prova,
+durata o conferma separata Safari/Home. Rimane un'attesa percepita soprattutto
+al primo brano. La preparazione dei metadati, già presente nella ricerca,
+viene estesa a Home, album/artista, libreria/playlist e brano salvato nel player.
+Una sola candidatura per schermata attiva, attesa breve di 250 ms, cancellazione
+al cambio schermata/candidato e limite di 50 secondi. Nessun caricamento nativo
+o download completo del brano viene avviato da questa preparazione.
+Non è stata misurata una nuova latenza al suono sul dispositivo fisico.
+
 ## Conferme dell’utente per M2
 
 All’avvio di M3 l’utente ha riferito prove reali sul proprio iPhone con esito
