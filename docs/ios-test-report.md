@@ -39,6 +39,23 @@ Riferimenti di progetto: [Audio Session](https://w3c.github.io/audio-session/),
 Il precedente orienta l'indagine e non prova una regressione nella versione iOS
 riferita dall'utente.
 
+### Diagnostica ricevuta alle 21:42 del 12 ottobre (Europe/Rome)
+
+Il JSON fornito dall'utente non contiene `playbackRevision`, categoria audio,
+`paused` o `ended` negli eventi: proviene da una build precedente alla revisione
+`native-session-handoff-v2`. Il server era già aggiornato. Lo snapshot è inoltre
+`idle`, a zero, con `attempts: []` e tre demo SoundHelix; non contiene il passaggio
+brano segnalato. Il collegamento diretto alla diagnostica ha aperto una finestra
+diversa dalla sessione di ascolto. Non è un esito fisico della nuova revisione.
+
+È stata rimossa l'inizializzazione automatica dei demo nella diagnostica ordinaria
+(rimangono disponibili con `demo=1`). Un export senza tentativi è disabilitato e
+spiega come aprire la diagnostica dalla sessione corrente. La pagina di recupero
+`/api/app-update` passa fuori dalle regole di navigazione dei vecchi worker e
+attiva esplicitamente l'aggiornamento, senza cancellare cookie o storage.
+Gli E2E riproducono un vecchio worker ancora attivo, il recupero e la conservazione
+di cookie e coda; non sostituiscono la prova fisica del passaggio audio su iPhone.
+
 ## Conferme dell’utente per M2
 
 All’avvio di M3 l’utente ha riferito prove reali sul proprio iPhone con esito

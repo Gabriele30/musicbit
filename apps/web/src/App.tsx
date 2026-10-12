@@ -152,7 +152,7 @@ function MusicApp({
   const scrollPositions = useRef<Partial<Record<Screen, number>>>({});
   const main = useRef<HTMLElement>(null);
   const demoMode = new URLSearchParams(location.search).get('demo') === '1';
-  const needsDemoCatalog = demoMode || screen === 'diagnostics';
+  const needsDemoCatalog = demoMode;
   const setScreen = (value: Screen) => {
     if (value === screen) return;
     scrollPositions.current[screen] = window.scrollY;
@@ -241,7 +241,7 @@ function MusicApp({
     return () => controller.abort();
   }, [player, reload, needsDemoCatalog]);
   useEffect(() => {
-    if (screen === 'diagnostics' || (screen === 'player' && demoMode))
+    if (demoMode && (screen === 'diagnostics' || screen === 'player'))
       player.setCatalog(tracks);
   }, [player, screen, tracks, demoMode]);
   useEffect(() => {

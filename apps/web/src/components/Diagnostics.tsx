@@ -43,7 +43,11 @@ export function Diagnostics({
           <p className="eyebrow">SOTTO IL COFANO</p>
           <h2 id="diagnostics-title">Diagnostica</h2>
         </div>
-        <button className="secondary-button" onClick={download}>
+        <button
+          className="secondary-button"
+          onClick={download}
+          disabled={!state.attempts.length}
+        >
           <Icon name="download" size={18} /> Esporta JSON
         </button>
       </div>
@@ -52,6 +56,13 @@ export function Diagnostics({
         misura sintetica.
       </p>
       <p className="muted">Revisione player: {PLAYBACK_REVISION}</p>
+      {!state.attempts.length && (
+        <p role="status" className="banner">
+          Nessun tentativo di ascolto registrato in questa finestra. Dopo il
+          problema, apri Impostazioni → Diagnostica nella stessa finestra di
+          MusicBit, senza ricaricare, per esportare gli eventi dell’ascolto.
+        </p>
+      )}
       <div className="diagnostic-controls">
         <button
           className="secondary-button"

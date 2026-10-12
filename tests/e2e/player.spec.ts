@@ -87,7 +87,7 @@ test('explicit preparation keeps one audio element, does not autoplay and export
 test('diagnostics deep link can play and rapid track changes preserve the latest command', async ({
   page,
 }) => {
-  await page.goto('/?screen=diagnostics');
+  await page.goto('/?screen=diagnostics&demo=1');
   const controls = page.locator('.diagnostic-controls');
   await expect(
     controls.getByRole('button', { name: 'Play', exact: true }),
@@ -109,6 +109,68 @@ test('diagnostics deep link can play and rapid track changes preserve the latest
   ).toContain('soundhelix-3.wav');
   await expect(page.getByRole('button', { name: 'Suono udito' })).toBeEnabled();
   await expect(page.locator('audio')).toHaveCount(1);
+});
+
+test('normal diagnostics never seeds demos or exports an empty new window', async ({
+  page,
+}) => {
+  let demoRequests = 0;
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/tracks') demoRequests++;
+  });
+  await page.goto('/?screen=diagnostics');
+  await expect(
+    page.getByRole('heading', { name: 'Diagnostica', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Esporta JSON' }),
+  ).toBeDisabled();
+  await expect(
+    page.getByText('Nessun tentativo di ascolto registrato', { exact: false }),
+  ).toBeVisible();
+  expect(demoRequests).toBe(0);
+  await expect(
+    page.getByRole('button', {
+      name: 'Riproduci SoundHelix Song 1',
+      exact: true,
+    }),
+  ).toHaveCount(0);
+});
+
+test('recovery bypasses a stale app shell and activates the new worker while retaining login and queue storage', async ({
+  page,
+}, info) => {
+  const id = info.project.name === 'webkit-mobile' ? 'webkit' : 'chromium';
+  await page.goto('/api/app-update');
+  await page.evaluate(async (id) => {
+    localStorage.setItem('musicbit-update-test-queue', 'saved queue');
+    document.cookie = 'musicbit-update-test=retained; Path=/; SameSite=Lax';
+    await navigator.serviceWorker.register(`/__test_update_sw/${id}.js`, {
+      scope: '/',
+    });
+    await navigator.serviceWorker.ready;
+  }, id);
+  await page.goto('/');
+  await expect(
+    page.getByRole('heading', { name: 'Stale MusicBit' }),
+  ).toBeVisible();
+  await page.request.post(`/__test_update_sw/${id}/ready`);
+  await page.goto('/api/app-update');
+  await expect(
+    page.getByRole('heading', { name: 'Aggiorna MusicBit' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Aggiorna e apri MusicBit' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Fresh MusicBit' }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() =>
+      localStorage.getItem('musicbit-update-test-queue'),
+    ),
+  ).toBe('saved queue');
+  expect(await page.evaluate(() => document.cookie)).toContain(
+    'musicbit-update-test=retained',
+  );
 });
 
 test('native audio survives screens and supports controls, seeking and queue changes', async ({

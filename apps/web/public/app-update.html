@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101312" />
+    <title>Aggiorna MusicBit</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #101312;
+        color: #f5f6f5;
+        font:
+          17px/1.5 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 540px;
+        margin: 12vh auto;
+      }
+      h1 {
+        font-size: 32px;
+      }
+      button,
+      a {
+        display: inline-block;
+        padding: 14px 20px;
+        border-radius: 12px;
+        font: inherit;
+      }
+      button {
+        border: 0;
+        background: #b4f46c;
+        color: #101312;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+      }
+      a {
+        color: #b4f46c;
+      }
+      #status {
+        min-height: 3em;
+      }
+    </style>
+    <script src="/api/app-update.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <h1>Aggiorna MusicBit</h1>
+      <p>
+        Applica la versione più recente conservando accesso, preferiti e coda.
+      </p>
+      <p>
+        Prima interrompi l’ascolto. Se usi anche l’icona Home, chiudila per
+        applicare l’aggiornamento alla prossima apertura.
+      </p>
+      <button id="update" type="button">Aggiorna e apri MusicBit</button>
+      <p id="status" role="status" aria-live="polite"></p>
+      <a href="/">Torna a MusicBit</a>
+    </main>
+  </body>
+</html>

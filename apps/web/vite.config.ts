@@ -56,6 +56,7 @@ export default defineConfig(({ mode }) => {
         workbox: {
           // App shell only. No runtime media/API cache or Range request interception.
           globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'],
+          globIgnores: ['**/app-update.html', '**/app-update.js'],
           navigateFallbackDenylist: [
             /^\/api(?:\/|$)/,
             /^\/health(?:\/|$)/,

@@ -35,9 +35,48 @@ const types = {
 };
 const blockedPrefetch = new Set();
 const cachedPrefetch = new Set();
+const updatedWorkers = new Set();
 const server = createServer(async (request, response) => {
   try {
     const path = new URL(request.url, 'http://127.0.0.1:4174').pathname;
+    if (path === '/api/app-update' || path === '/api/app-update.js') {
+      const file = path.endsWith('.js') ? 'app-update.js' : 'app-update.html';
+      response.writeHead(200, {
+        'Content-Type': types[extname(file)],
+        'Cache-Control': 'no-store',
+      });
+      response.end(await readFile(resolve(root, file)));
+      return;
+    }
+    const worker = path.match(
+      /^\/__test_update_sw\/(chromium|webkit)(\.js|\/ready)$/,
+    );
+    if (worker) {
+      if (worker[2] === '/ready' && request.method === 'POST') {
+        updatedWorkers.add(worker[1]);
+        response.writeHead(204).end();
+        return;
+      }
+      const label = updatedWorkers.has(worker[1])
+        ? 'Fresh MusicBit'
+        : 'Stale MusicBit';
+      response.writeHead(200, {
+        'Content-Type': 'text/javascript',
+        'Cache-Control': 'no-store',
+        'Service-Worker-Allowed': '/',
+      });
+      response.end(`
+        self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
+        self.addEventListener('message', event => {
+          if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+        });
+        self.addEventListener('fetch', event => {
+          if (event.request.mode === 'navigate' && !new URL(event.request.url).pathname.startsWith('/api/'))
+            event.respondWith(Promise.resolve(new Response('<h1>${label}</h1>', {headers: {'Content-Type': 'text/html'}})));
+        });
+      `);
+      return;
+    }
     const block = path.match(
       /^\/__test_prefetch\/(block|reset)\/(prefetch00[12])$/,
     );
