@@ -145,8 +145,15 @@ export class PlayerEngine {
   private upcomingAudio = new UpcomingAudio((event) =>
     this.log(`upcoming:${event}`),
   );
+  private serverCache = false;
+  setServerCache(enabled: boolean) {
+    this.serverCache = enabled;
+    if (enabled) this.upcomingAudio.clear();
+    else this.prepareUpcoming();
+  }
 
   private prepareUpcoming() {
+    if (this.serverCache) return;
     if (this.state.status !== 'playing' || this.audio.paused) return;
     const next =
       this.state.repeat === 'one'

@@ -1,5 +1,6 @@
 import type { PlaybackMime } from './playback.js';
 export * from './playback.js';
+export * from './audio-cache.js';
 
 export type AudioMimeType = PlaybackMime;
 

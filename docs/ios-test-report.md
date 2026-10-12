@@ -68,6 +68,22 @@ al cambio schermata/candidato e limite di 50 secondi. Nessun caricamento nativo
 o download completo del brano viene avviato da questa preparazione.
 Non è stata misurata una nuova latenza al suono sul dispositivo fisico.
 
+### Cache persistente e ricerca — richiesta successiva del 12 ottobre
+
+La preparazione dei metadati ora può avviare anche il download completo sul
+server per l'account autenticato. Il nuovo piano prepara corrente, dieci
+successivi e due precedenti; il telefono invia soltanto gli identificativi.
+La cache su disco conserva le correzioni AAC ed è limitata a 5 GB per account,
+con pulizia LRU e massimo due download concorrenti. Vedi
+[politica della cache](server-audio-cache.md). Gli E2E verificano che un account
+invii il piano senza scaricare il prossimo audio attraverso il browser.
+
+La ricerca distingue righe brani e schede artista/album, ordina le corrispondenze
+e gestisce i suggerimenti con tastiera e tocco. La verifica a 320 px ha individuato
+e corretto anche il comportamento nativo di Escape che cancellava la ricerca in
+Chromium invece di chiudere soltanto i suggerimenti. Nessuna nuova misura fisica
+del primo suono o del passaggio a schermo bloccato è disponibile per questa build.
+
 ## Conferme dell’utente per M2
 
 All’avvio di M3 l’utente ha riferito prove reali sul proprio iPhone con esito

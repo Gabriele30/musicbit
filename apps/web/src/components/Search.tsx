@@ -23,6 +23,7 @@ import { ActionMenu, type MenuAction } from './ActionMenu';
 import { CoverArt } from './CoverArt';
 import { CatalogShelf } from './Home';
 import { useAudioWarmup } from '../player/use-audio-warmup';
+import { rankSearchResults } from '../search-ranking';
 import {
   searchSuggestions,
   type SearchSuggestion,
@@ -62,6 +63,24 @@ function ResultList({
   onPlayTrack?: (track: Track) => void;
   onEnqueueTrack?: (track: Track) => void;
 }) {
+  if (items.length && items.every((item) => item.kind !== 'track'))
+    return (
+      <ul className="search-entity-grid">
+        {items.map((item) => (
+          <li key={`${item.kind}:${item.id}`}>
+            <button
+              className={`search-entity-card entity-${item.kind}`}
+              aria-label={`Dettagli ${item.title}`}
+              onClick={() => select(item)}
+            >
+              <Artwork item={item} />
+              <strong>{item.title}</strong>
+              <small>{item.kind === 'artist' ? 'Artista' : item.artist}</small>
+            </button>
+          </li>
+        ))}
+      </ul>
+    );
   return (
     <ul className="catalog-results">
       {items.map((item) => (
@@ -162,6 +181,8 @@ export function Search({
   const [kind, setKind] = useState<SearchKind>('all');
   const [result, setResult] =
     useState<Awaited<ReturnType<typeof searchAcrossCatalog>>>();
+  const ranked = rankSearchResults(result?.items ?? [], query);
+  const featured = ranked[0];
   const [recent, setRecent] = useState(() => readRecentSearches(accountScope));
   const updateRecent = (values: string[]) => {
     setRecent(values);
@@ -175,6 +196,8 @@ export function Search({
     localItems,
     result?.items ?? [],
   );
+  const showSuggestions =
+    focused && suggestions.length > 0 && (!result || suggestionIndex >= 0);
   const chooseSuggestion = (suggestion: SearchSuggestion) => {
     setFocused(false);
     setSuggestionIndex(-1);
@@ -366,7 +389,10 @@ export function Search({
       ]
     : [];
   return (
-    <section className="catalog-panel" aria-label="Catalogo musicale">
+    <section
+      className="catalog-panel search-page"
+      aria-label="Catalogo musicale"
+    >
       {item ? (
         <div className={`catalog-detail entity-${item.kind}`}>
           <button
@@ -584,6 +610,9 @@ export function Search({
             onSubmit={(event) => {
               event.preventDefault();
               remember();
+              setFocused(false);
+              if (document.activeElement instanceof HTMLInputElement)
+                document.activeElement.blur();
             }}
           >
             <label htmlFor="music-search">Cerca nel catalogo</label>
@@ -594,9 +623,9 @@ export function Search({
                 role="combobox"
                 aria-autocomplete="list"
                 aria-controls="search-suggestions"
-                aria-expanded={focused && suggestions.length > 0}
+                aria-expanded={showSuggestions}
                 aria-activedescendant={
-                  focused &&
+                  showSuggestions &&
                   suggestionIndex >= 0 &&
                   suggestionIndex < suggestions.length
                     ? `search-suggestion-${suggestionIndex}`
@@ -617,6 +646,7 @@ export function Search({
                 onBlur={() => setFocused(false)}
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') {
+                    event.preventDefault();
                     setFocused(false);
                     setSuggestionIndex(-1);
                   }
@@ -653,7 +683,7 @@ export function Search({
                 </button>
               )}
             </div>
-            {focused && suggestions.length > 0 && (
+            {showSuggestions && (
               <ul
                 id="search-suggestions"
                 className="search-suggestions"
@@ -667,7 +697,7 @@ export function Search({
                       type="button"
                       role="option"
                       aria-selected={i === suggestionIndex}
-                      onMouseDown={(e) => e.preventDefault()}
+                      onPointerDown={(e) => e.preventDefault()}
                       onClick={() => chooseSuggestion(suggestion)}
                     >
                       <Icon
@@ -748,7 +778,13 @@ export function Search({
             className="catalog-feedback"
           >
             {status === 'idle' && (
-              <p className="muted">Scrivi almeno due caratteri per cercare.</p>
+              <div className="search-empty">
+                <Icon name="search" size={36} />
+                <h2>La prossima scoperta comincia qui</h2>
+                <p className="muted">
+                  Cerca un brano, un artista o un album. Bastano due caratteri.
+                </p>
+              </div>
             )}
             {status === 'loading' && <p role="status">Ricerca in corso…</p>}
             {status === 'ready' && (
@@ -759,6 +795,16 @@ export function Search({
               </p>
             )}
           </div>
+          {status === 'loading' && !result && (
+            <div className="search-skeleton" aria-hidden="true">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i}>
+                  <span />
+                  <span />
+                </div>
+              ))}
+            </div>
+          )}
           {status === 'error' && (
             <div className="banner error" role="alert">
               {error}{' '}
@@ -776,10 +822,52 @@ export function Search({
               </button>
             </div>
           )}
+          {kind === 'all' && featured && (
+            <section
+              className="search-featured"
+              aria-label="Risultato principale"
+            >
+              <h2>In evidenza</h2>
+              <div className={`search-featured-card entity-${featured.kind}`}>
+                <button
+                  className="search-featured-details"
+                  aria-label={`Apri risultato principale: ${featured.title}`}
+                  onClick={() => selectItem(featured)}
+                >
+                  <Artwork item={featured} />
+                  <span>
+                    <small>
+                      {featured.kind === 'artist'
+                        ? 'Artista'
+                        : featured.kind === 'album'
+                          ? 'Album'
+                          : 'Brano'}
+                    </small>
+                    <strong>{featured.title}</strong>
+                    <small>
+                      {featured.kind !== 'artist' && featured.artist}
+                    </small>
+                  </span>
+                </button>
+                {featured.kind === 'track' && featured.playback.available && (
+                  <button
+                    className="icon-button search-featured-play"
+                    aria-label={`Ascolta risultato principale: ${featured.title}`}
+                    onClick={() => {
+                      remember();
+                      onPlayTrack?.(catalogItemToTrack(featured));
+                    }}
+                  >
+                    <Icon name="play" size={24} />
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
           {result &&
             (kind === 'all' ? (
               (['track', 'artist', 'album'] as const).map((type) => {
-                const items = result.items.filter((item) => item.kind === type);
+                const items = ranked.filter((item) => item.kind === type);
                 return (
                   items.length > 0 && (
                     <section
@@ -811,7 +899,7 @@ export function Search({
               })
             ) : (
               <ResultList
-                items={result.items}
+                items={ranked}
                 select={selectItem}
                 onPlayTrack={(track) => {
                   remember();

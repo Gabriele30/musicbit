@@ -9,6 +9,7 @@ services:
       API_HOST: 0.0.0.0
       API_PORT: 3001
       MUSICBIT_DB_PATH: /data/musicbit.sqlite
+      MUSICBIT_AUDIO_CACHE_PATH: /data/audio-cache
       AUTH_REGISTRATION: ${AUTH_REGISTRATION:-true}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       MUSICBIT_REQUIRE_ACCOUNT: ${MUSICBIT_REQUIRE_ACCOUNT:-false}

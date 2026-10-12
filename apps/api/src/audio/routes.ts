@@ -1,6 +1,7 @@
 import { Readable, Transform } from 'node:stream';
 import { patchAudioChunk, type AudioBytePatch } from './mp4.js';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { AudioDiskCache } from './disk-cache.js';
 import { AUDIO_PREFETCH_LIMIT, AudioByteCache } from './byte-cache.js';
 import {
   AudioResolutionError,
@@ -10,9 +11,25 @@ import {
 export function registerAudioRoutes(
   app: FastifyInstance,
   service: AudioStreamService,
-  options: { headerTimeoutMs?: number; idleTimeoutMs?: number } = {},
+  options: {
+    headerTimeoutMs?: number;
+    idleTimeoutMs?: number;
+    diskCache?: AudioDiskCache;
+    userId?: (request: FastifyRequest) => string | undefined;
+  } = {},
 ) {
   const byteCache = new AudioByteCache();
+  const diskEntry = (user: string | undefined, id: string) => {
+    try {
+      return user ? options.diskCache?.get(user, id) : undefined;
+    } catch {
+      app.log.warn(
+        { code: 'AUDIO_CACHE_READ_ERROR' },
+        'Audio cache unavailable',
+      );
+      return undefined;
+    }
+  };
   let cacheWrites = 0;
   app.addHook('onClose', async () => byteCache.clear());
   app.get<{ Params: { id: string } }>(
@@ -20,7 +37,18 @@ export function registerAudioRoutes(
     async (request, reply) => {
       reply.header('Cache-Control', 'private, no-store');
       try {
+        const user = options.userId?.(request);
+        const cached = diskEntry(user, request.params.id);
+        if (cached) return { durationSeconds: cached.durationSeconds ?? null };
         const resolved = await service.resolve(request.params.id);
+        // Warm the first visible choice before the user presses play, too.
+        if (user) {
+          try {
+            options.diskCache?.plan(user, 'discovery', [request.params.id]);
+          } catch {
+            /* Optional warmup must not affect metadata or playback. */
+          }
+        }
         return { durationSeconds: resolved.durationSeconds ?? null };
       } catch (error) {
         if (error instanceof AudioResolutionError)
@@ -49,9 +77,14 @@ export function registerAudioRoutes(
           error: 'Intervallo audio non valido.',
         });
 
-      const cached = !request.headers['if-range'] && byteCache.get(id);
+      const user = options.userId?.(request);
+      const disk = !request.headers['if-range']
+        ? diskEntry(user, id)
+        : undefined;
+      const cached =
+        !request.headers['if-range'] && (disk || byteCache.get(id));
       if (cached) {
-        const total = cached.bytes.length;
+        const total = 'size' in cached ? cached.size : cached.bytes.length;
         const [from, to] = range?.slice(6).split('-') ?? [];
         const start =
           from === '' ? Math.max(0, total - Number(to)) : Number(from ?? 0);
@@ -60,6 +93,7 @@ export function registerAudioRoutes(
         reply.header('Cache-Control', 'private, no-store');
         reply.header('Accept-Ranges', 'bytes');
         reply.header('X-MusicBit-Audio-Cache', 'hit');
+        if (disk) reply.header('X-MusicBit-Audio-Storage', 'disk');
         if (start > end || start >= total) {
           reply.header('Content-Range', `bytes */${total}`);
           return reply.code(416).send();
@@ -73,7 +107,9 @@ export function registerAudioRoutes(
         return reply.send(
           request.method === 'HEAD'
             ? undefined
-            : cached.bytes.subarray(start, end + 1),
+            : 'stream' in cached
+              ? cached.stream(start, end)
+              : cached.bytes.subarray(start, end + 1),
         );
       }
 

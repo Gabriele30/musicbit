@@ -3,6 +3,7 @@ import type {
   HealthResponse,
   MusicProvider,
   TracksResponse,
+  AudioCachePlan,
 } from '@musicbit/shared';
 import { isCatalogId, personalRecommendations } from '@musicbit/shared';
 import { DemoMusicProvider } from './providers/demo.js';
@@ -11,6 +12,7 @@ import { registerCatalogRoutes } from './catalog/routes.js';
 import { CatalogError } from './catalog/errors.js';
 import { AudioStreamService } from './audio/stream-service.js';
 import { registerAudioRoutes } from './audio/routes.js';
+import type { AudioDiskCache } from './audio/disk-cache.js';
 import { AccountStore, AccountError } from './accounts/store.js';
 import { registerAccountRoutes } from './accounts/routes.js';
 import { registerTrafficControls } from './accounts/traffic.js';
@@ -27,6 +29,7 @@ export function buildApp(
   audioService: AudioStreamService = new AudioStreamService(),
   accounts: AccountStore = new AccountStore(),
   aiPlaylists: AiPlaylistService = new AiPlaylistService(),
+  diskCache?: AudioDiskCache,
 ) {
   const logger = options.logger;
   const safeLogger = logger
@@ -48,8 +51,53 @@ export function buildApp(
   });
   registerTrafficControls(app, accounts);
   registerCatalogRoutes(app, catalog, provider.id);
-  registerAudioRoutes(app, audioService);
   const { requireUser } = registerAccountRoutes(app, accounts);
+  registerAudioRoutes(app, audioService, {
+    diskCache,
+    userId: (request) => {
+      try {
+        return requireUser(request).id;
+      } catch {
+        return undefined;
+      }
+    },
+  });
+  app.get('/api/me/audio-cache', async (request) => {
+    const user = requireUser(request);
+    return diskCache
+      ? { enabled: true, ...diskCache.status(user.id) }
+      : { enabled: false };
+  });
+  app.post<{ Body: AudioCachePlan }>(
+    '/api/me/audio-cache',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['device', 'ids'],
+          properties: {
+            device: { type: 'string', pattern: '^[A-Za-z0-9_-]{8,100}$' },
+            ids: {
+              type: 'array',
+              maxItems: 13,
+              items: { type: 'string', pattern: '^[A-Za-z0-9_-]{11}$' },
+            },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const user = requireUser(request);
+      return diskCache
+        ? {
+            enabled: true,
+            ...diskCache.plan(user.id, request.body.device, request.body.ids),
+          }
+        : { enabled: false };
+    },
+  );
+  app.addHook('onClose', async () => diskCache?.close());
   registerExperienceRoutes(app, accounts, requireUser);
   registerAiPlaylistRoutes(app, accounts, catalog, requireUser, aiPlaylists);
   app.get('/api/me/recommendations', async (request, reply) => {

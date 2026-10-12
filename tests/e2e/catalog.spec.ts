@@ -34,6 +34,120 @@ const album = {
 const timing = { cache: 'miss', elapsedMs: 123 };
 const items = { track, artist, album };
 
+test('search highlights the matching artist, presents entity grids and supports touch and keyboard at narrow widths', async ({
+  page,
+}, info) => {
+  await mocks(page);
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/?screen=search');
+  await page.getByLabel('Cerca nel catalogo').fill('Catalog artist');
+  await expect(
+    page
+      .getByRole('region', { name: 'Risultato principale' })
+      .getByRole('button', {
+        name: 'Apri risultato principale: Catalog artist',
+        exact: true,
+      }),
+  ).toBeVisible();
+  await expect(page.locator('.search-entity-grid')).toHaveCount(2);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: info.outputPath('search-mobile.png'),
+    fullPage: true,
+  });
+  const input = page.getByLabel('Cerca nel catalogo');
+  await input.press('ArrowDown');
+  await expect(
+    page.getByRole('listbox', { name: 'Suggerimenti di ricerca' }),
+  ).toBeVisible();
+  await input.press('Escape');
+  await expect(
+    page.getByRole('listbox', { name: 'Suggerimenti di ricerca' }),
+  ).toHaveCount(0);
+  await page
+    .getByRole('button', { name: 'Dettagli Catalog artist', exact: true })
+    .tap();
+  await expect(
+    page.getByRole('heading', { name: 'Catalog artist', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('audio')).toHaveCount(1);
+});
+
+test('authenticated queue preparation sends a server hint without downloading the upcoming song through the phone', async ({
+  page,
+}) => {
+  await mocks(page);
+  const registered = await page.request.post('/api/auth/register', {
+    headers: { 'x-musicbit-request': '1' },
+    data: {
+      username: `cache_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`,
+      password: 'test-password-123',
+    },
+  });
+  expect(registered.ok()).toBe(true);
+  const plans: string[][] = [];
+  await page.route('**/api/me/audio-cache', (route) => {
+    if (route.request().method() === 'POST')
+      plans.push(route.request().postDataJSON().ids);
+    return route.fulfill({
+      json: {
+        enabled: true,
+        bytes: 0,
+        tracks: 0,
+        preparing: 0,
+        quotaBytes: 5_000_000_000,
+      },
+    });
+  });
+  const next = {
+    ...track,
+    id: 'lmnopqrstuv',
+    title: 'Next cached song',
+    audioUrl: '/api/audio/lmnopqrstuv',
+  };
+  await page.route('**/api/search?*', (route) =>
+    route.fulfill({
+      json: {
+        provider: 'youtube',
+        type: 'track',
+        items: [track, next],
+        timing,
+      },
+    }),
+  );
+  const requests: string[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === next.audioUrl)
+      requests.push(request.url());
+  });
+  await page.goto('/?screen=search');
+  await page.getByRole('button', { name: 'Brani', exact: true }).click();
+  await page.getByLabel('Cerca nel catalogo').fill('cache');
+  await page
+    .getByRole('button', { name: 'Riproduci Catalog song', exact: true })
+    .click();
+  await expect
+    .poll(async () =>
+      page.locator('audio').evaluate((el: HTMLAudioElement) => !el.paused),
+    )
+    .toBe(true);
+  await page
+    .getByRole('button', {
+      name: 'Aggiungi alla coda Next cached song',
+      exact: true,
+    })
+    .click();
+  await expect
+    .poll(() => plans.some((ids) => ids.includes(next.id)))
+    .toBe(true);
+  expect(requests).toHaveLength(0);
+  await expect(page.locator('audio')).toHaveCount(1);
+});
+
 test('home and album details resolve the first visible song before play without loading native audio', async ({
   page,
 }) => {
@@ -415,7 +529,7 @@ test('a superseded request cannot overwrite the newest search or an empty field'
   ).toHaveCount(0);
   await page.getByRole('button', { name: 'Cancella ricerca' }).click();
   await expect(
-    page.getByText('Scrivi almeno due caratteri per cercare.'),
+    page.getByRole('heading', { name: 'La prossima scoperta comincia qui' }),
   ).toBeVisible();
   await expect(page.locator('.catalog-result')).toHaveCount(0);
 });

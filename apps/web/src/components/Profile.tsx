@@ -5,6 +5,7 @@ import { readLibrary, type LibraryModel } from '../library';
 import type { LibrarySyncModel } from '../library-sync';
 import { downloadBackup, parseBackup } from '../backup';
 import { TasteProfile } from './TasteProfile';
+import { ServerAudioCache } from './ServerAudioCache';
 
 const colors = [
   '#d6f68a',
@@ -380,6 +381,7 @@ export function Profile({
         )}
       </section>
       <TasteProfile library={library} />
+      {account.user && <ServerAudioCache key={account.user.id} />}
     </div>
   );
 }

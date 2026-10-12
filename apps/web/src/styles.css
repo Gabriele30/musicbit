@@ -32,6 +32,211 @@
   --nav-height: 64px;
 }
 
+.search-page .catalog-search {
+  position: relative;
+  gap: 14px;
+}
+.search-page .catalog-input {
+  border-radius: 28px;
+  border-color: var(--line);
+  background: var(--surface-raised);
+}
+.search-page .catalog-input:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px #d6f68a14;
+}
+.search-page input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+.search-page .search-suggestions {
+  position: absolute;
+  z-index: 12;
+  top: 60px;
+  inset-inline: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  box-shadow: 0 16px 40px #0008;
+  border-radius: 16px;
+}
+.search-page .search-suggestions button {
+  min-height: 56px;
+  border-radius: 10px;
+}
+.search-page .catalog-filters {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.search-page .catalog-filters button {
+  min-height: 44px;
+  white-space: nowrap;
+}
+.search-empty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 44px 16px;
+}
+.search-empty > svg {
+  color: var(--accent);
+}
+.search-empty h2,
+.search-empty p {
+  margin: 0;
+}
+.search-featured {
+  margin-block: 24px 32px;
+}
+.search-featured h2 {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+.search-featured-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: linear-gradient(125deg, #d6f68a12, var(--surface));
+  border-radius: 18px;
+}
+.search-featured-details {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 20px;
+  text-align: left;
+}
+.search-featured-details > .cover-art {
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+}
+.search-featured-details > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+.search-featured-details strong {
+  font-size: clamp(22px, 3vw, 32px);
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+.search-featured-details small {
+  color: var(--muted);
+}
+.search-featured-play {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--background);
+}
+.search-entity-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  padding: 0;
+  margin: 0;
+}
+.search-entity-grid > li {
+  min-width: 0;
+}
+.search-entity-card {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  text-align: left;
+  background: var(--surface);
+}
+.search-entity-card:hover {
+  background: var(--surface-raised);
+}
+.search-entity-card .cover-art {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  margin-bottom: 4px;
+}
+.search-entity-card strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+.search-entity-card small {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.search-page .catalog-actions .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.search-skeleton {
+  display: grid;
+  gap: 12px;
+}
+.server-cache-progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--accent);
+}
+.search-skeleton > div {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.search-skeleton span {
+  display: block;
+  height: 52px;
+  width: 52px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+}
+.search-skeleton span + span {
+  height: 20px;
+  width: min(60%, 320px);
+}
+@media (max-width: 600px) {
+  .search-featured-card {
+    padding: 14px;
+  }
+  .search-featured-details {
+    gap: 12px;
+  }
+  .search-featured-details > .cover-art {
+    width: 72px;
+    height: 72px;
+  }
+  .search-featured-play {
+    width: 44px;
+    height: 44px;
+  }
+  .search-entity-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .search-entity-card {
+    padding: 10px;
+  }
+  .search-page .catalog-item-row {
+    gap: 2px;
+  }
+}
+
 .session-controls {
   display: flex;
   justify-content: center;
