@@ -12,4 +12,6 @@ There are at most four sessions total and two per account, one concurrent remux 
 
 Explicit song selections restart the selected track. The pause/Play path preserves its position. During native HLS source selection, the initial seek remains pending through metadata loading and is reapplied on `canplay` and `playing`: WebKit must not restore an older cached position after the initial metadata event. Stale clocks are ignored until the requested track has been selected natively.
 
+A settled native `seeked` event also completes a manual selection within an already-playing HLS source, which need not emit another `playing` event. Changing the upcoming queue preserves the current track position.
+
 Diagnostics show `native-continuous-hls-v7`, the selected transport and source URL. The meaningful iPhone check is **Transport: HLS continuo nativo** followed by several native boundaries with the screen physically locked. A passing desktop test or successful FFmpeg decode does not establish audible background playback on iOS or CarPlay.

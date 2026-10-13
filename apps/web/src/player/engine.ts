@@ -305,7 +305,26 @@ export class PlayerEngine {
     on('emptied', () => {});
     on('abort', () => {});
     on('seeking', () => {});
-    on('seeked', () => {});
+    on('seeked', () => {
+      // Seeking within an already-playing HLS source need not emit another
+      // playing event. A settled native seek must finish that manual command.
+      if (
+        this.pendingHlsSeek === undefined ||
+        this.pendingSeek !== undefined ||
+        audio.paused ||
+        audio.seeking ||
+        audio.readyState < 2 ||
+        Math.abs(audio.currentTime - this.pendingHlsSeek) > 1 ||
+        this.continuous.at(audio.currentTime)?.index !== this.state.index
+      )
+        return;
+      this.clearDeadline();
+      this.endWaiting();
+      this.mark('playingAt');
+      this.patch({ status: 'playing', error: null });
+      this.syncPosition();
+      this.prepareUpcoming();
+    });
     on('loadedmetadata', () => {
       if (this.pendingSeek !== undefined) {
         const position = this.pendingSeek;

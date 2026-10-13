@@ -146,7 +146,9 @@ describe('persistent player', () => {
     audio.currentTime = 2;
     audio.emit('timeupdate');
     player.select(1);
-    audio.emit('playing');
+    audio.readyState = 4;
+    audio.emit('seeked');
+    expect(player.getSnapshot().status).toBe('playing');
     player.select(0);
     expect(audio.currentTime).toBe(0);
     audio.emit('playing');
