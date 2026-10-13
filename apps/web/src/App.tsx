@@ -31,6 +31,7 @@ import { Profile } from './components/Profile';
 import { connectSessionPersistence, SESSION_KEY } from './player/session';
 import { useCloudSession } from './player/cloud-session';
 import { useServerCache } from './player/server-cache';
+import { useContinuousPlayback } from './player/use-continuous';
 import { useListening } from './player/listening';
 import { Wrapped } from './components/Wrapped';
 import { AiPlaylist } from './components/AiPlaylist';
@@ -113,6 +114,7 @@ function MusicApp({
   const sync = useLibrarySync(library, account.user?.id);
   const cloud = useCloudSession(player, account.user?.id);
   useServerCache(player, account.user?.id);
+  useContinuousPlayback(player, account.user?.id);
   const listeningError = useListening(player, account.user?.id);
   const { favorites, toggleFavorite, recordHistory, storageError } = library;
   const { recordOutcome } = library;

@@ -1,5 +1,25 @@
 # Registro prove fisiche
 
+## Flusso unico HLS — nuova segnalazione del 13 ottobre 2026
+
+L'utente conferma che il cambio silenzioso a schermo bloccato persiste dopo v4,
+anche senza skip rapidi. I precedenti interventi non hanno quindi risolto il
+caso fisico. La revisione `native-continuous-hls-v5` introduce un percorso diverso:
+una sorgente HLS nativa per la coda, con segmenti AAC remuxati sul server e
+discontinuità fra brani. Il passaggio automatico non cambia src e non richiama
+play. Il server prepara anche la radio a partire dalle richieste native dei
+segmenti. Vedi [architettura e limiti](continuous-playback.md).
+
+La verifica locale usa AAC reale, FFmpeg, manifesti con più brani e la stessa
+sorgente nel player con posizioni relative e skip/seek. L'uscita sonora su
+iPhone fisico e CarPlay resta da confermare: il nuovo percorso deve comparire
+come **HLS continuo nativo** nella diagnostica della stessa installazione.
+
+Controlli locali completati: `pnpm check` con 267 test e `pnpm test:e2e` con
+84 prove. Il test backend include AAC reale e l'estensione autonoma della radio
+da richieste di segmenti, senza un nuovo comando della pagina. I test desktop
+del percorso progressivo restano distinti dalla verifica HLS su iPhone.
+
 ## Skip rapidi da CarPlay — 13 ottobre 2026
 
 L'utente precisa che il difetto si ripresenta premendo rapidamente skip dai

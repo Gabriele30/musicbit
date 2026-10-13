@@ -76,6 +76,67 @@ afterEach(() => {
 });
 
 describe('persistent player', () => {
+  it('keeps one native HLS source across track boundaries, maps local positions and preserves pause/resume and skips', async () => {
+    const { player, audio } = setup();
+    const queue = tracks.map((track, index) => ({
+      ...track,
+      id: String(index).padStart(11, '0'),
+      audioUrl: `/api/audio/${String(index).padStart(11, '0')}`,
+    }));
+    const timeline = {
+      complete: true,
+      tracks: queue.map((track, index) => ({
+        index,
+        id: track.id,
+        start: index * 5,
+        duration: 5,
+      })),
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_source: string, options: RequestInit) => {
+        if (options.method === 'POST') expect(audio.play).toHaveBeenCalled();
+        return new Response(JSON.stringify(timeline), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }),
+    );
+    player.setContinuousPlayback(true);
+    player.playCollection(queue);
+    const source = audio.src;
+    expect(source).toMatch(/^\/api\/continuous\/[a-f0-9-]{36}\/index.m3u8$/);
+    expect(audio.play).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(player.getSnapshot().duration).toBe(5));
+    audio.emit('playing');
+    audio.currentTime = 5.25;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot()).toMatchObject({
+      index: 1,
+      position: 0.25,
+      duration: 5,
+    });
+    expect(audio.src).toBe(source);
+    expect(audio.play).toHaveBeenCalledOnce();
+    expect(audio.load).not.toHaveBeenCalled();
+    player.pause();
+    player.play();
+    expect(audio.currentTime).toBe(5.25);
+    audio.emit('playing');
+    player.next('media-session');
+    expect(audio.currentTime).toBe(10);
+    expect(audio.src).toBe(source);
+    audio.currentTime = 10.25;
+    audio.emit('playing');
+    audio.emit('timeupdate');
+    player.previous('media-session');
+    expect(audio.currentTime).toBe(5);
+    expect(audio.src).toBe(source);
+    audio.emit('playing');
+    player.seek(2);
+    expect(audio.currentTime).toBe(7);
+    expect(player.getSnapshot().position).toBe(2);
+    expect(player.getDelivery()).toBe('hls');
+  });
   it('cancels pending CarPlay skips synchronously and ignores stale source events and rejections', async () => {
     const handlers = new Map<string, MediaSessionActionHandler>();
     const session = {

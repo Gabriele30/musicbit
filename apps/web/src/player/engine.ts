@@ -3,8 +3,9 @@ import { shuffled } from './random';
 import { UpcomingAudio } from './upcoming-audio';
 import { UpcomingConnections } from './upcoming-connections';
 import { PlaybackAudioSession } from './audio-session';
+import { ContinuousPlayback } from './continuous';
 
-export const PLAYBACK_REVISION = 'native-session-handoff-v4-skip';
+export const PLAYBACK_REVISION = 'native-continuous-hls-v5';
 
 export type PlaybackStatus =
   | 'idle'
@@ -144,6 +145,17 @@ export class PlayerEngine {
   private durationRequest: AbortController | undefined;
   private resolvedDurations = new Map<string, number>();
   private pendingNativeProgress: number | undefined;
+  private continuous = new ContinuousPlayback(
+    () => this.syncPosition(),
+    (event) => this.log(event),
+  );
+  setContinuousPlayback(enabled: boolean) {
+    this.continuous.configure(enabled);
+    this.log(`continuous:${enabled ? 'enabled' : 'disabled'}`);
+  }
+  getDelivery() {
+    return this.continuous.active(this.source) ? 'hls' : 'progressive';
+  }
   private upcomingAudio = new UpcomingAudio((event) =>
     this.log(`upcoming:${event}`),
   );
@@ -151,6 +163,21 @@ export class PlayerEngine {
     this.log(`upcoming-prefix:${event}`),
   );
   private prepareUpcoming() {
+    if (this.continuous.active(this.source)) {
+      if (!this.continuous.validQueue(this.state.queue)) {
+        const playing =
+          this.state.status === 'playing' ||
+          (this.state.status === 'loading' && !this.audio.paused);
+        this.resumePosition = this.state.position;
+        this.continuous.clear();
+        this.source = undefined;
+        if (playing) this.select(this.state.index);
+        else this.releaseSource();
+        return;
+      }
+      this.continuous.syncQueue(this.state.queue, this.state.autoplay);
+      return;
+    }
     // Server disk caching does not prepare the phone's next HTTP connection.
     // Keep the immediate successor warm in the browser as well, including accounts.
     if (this.state.status !== 'playing' || this.audio.paused) return;
@@ -330,6 +357,7 @@ export class PlayerEngine {
       );
     });
     on('ended', () => {
+      if (this.continuous.active(this.source)) this.syncPosition();
       if (
         !audio.ended ||
         this.state.status === 'error' ||
@@ -465,9 +493,11 @@ export class PlayerEngine {
     const token = this.command;
     const position = this.audio.currentTime;
     // The proxy may need up to 45s to resolve plus 15s for upstream headers.
-    const timeoutMs = this.source?.startsWith('/api/audio/')
-      ? Math.max(this.timeoutMs, 60000)
-      : this.timeoutMs;
+    const timeoutMs = this.continuous.active(this.source)
+      ? 120000
+      : this.source?.startsWith('/api/audio/')
+        ? Math.max(this.timeoutMs, 60000)
+        : this.timeoutMs;
     this.deadline = setTimeout(() => {
       this.deadline = undefined;
       if (token !== this.command) return;
@@ -571,6 +601,7 @@ export class PlayerEngine {
     this.log(`prepare:${outcome}`);
   }
   private releaseSource() {
+    this.continuous.clear();
     this.audio.pause();
     this.source = undefined;
     this.audio.preload = 'none';
@@ -779,16 +810,32 @@ export class PlayerEngine {
       this.patch({ autoplayTracks: [], autoplayStatus: 'idle' });
     const resumeAt = index === this.state.index ? this.resumePosition : 0;
     this.resumePosition = 0;
+    const hlsTarget =
+      this.continuous.active(this.source) &&
+      this.continuous.validQueue(this.state.queue)
+        ? this.continuous.target(index)
+        : undefined;
+    const hlsSource = hlsTarget
+      ? this.source
+      : this.continuous.start(this.state.queue, index, this.state.autoplay);
+    const changedIndex = index !== this.state.index;
+    const hlsSeek = hlsTarget && (changedIndex || this.audio.ended || restart);
+    const selectedSource = hlsSource ?? track.audioUrl;
+    if (!hlsSource) this.continuous.clear();
     const prepared =
       index === this.state.index &&
       this.source === track.audioUrl &&
       ['loading', 'ready'].includes(this.state.preparation?.outcome ?? '');
     const load =
-      this.source !== track.audioUrl ||
-      index !== this.state.index ||
+      this.source !== selectedSource ||
+      (!hlsTarget && index !== this.state.index) ||
       this.state.status === 'error';
     this.pendingNativeProgress =
-      load || this.audio.ended || restart ? resumeAt : this.audio.currentTime;
+      hlsTarget && index !== this.state.index
+        ? hlsTarget.start + resumeAt
+        : load || this.audio.ended || restart
+          ? resumeAt
+          : this.audio.currentTime;
     const attempt: PlaybackAttempt = {
       id: ++this.attemptId,
       trackId: track.id,
@@ -820,8 +867,16 @@ export class PlayerEngine {
       index,
       status: 'loading',
       error: null,
-      position: load ? resumeAt : this.audio.currentTime,
-      duration: load ? track.durationSeconds || 0 : this.state.duration,
+      position: hlsSource
+        ? load || changedIndex
+          ? resumeAt
+          : this.state.position
+        : load
+          ? resumeAt
+          : this.audio.currentTime,
+      duration:
+        hlsTarget?.duration ??
+        (load ? track.durationSeconds || 0 : this.state.duration),
       attempts: [...this.state.attempts, attempt].slice(-20),
     });
     this.playbackSession.activate();
@@ -832,7 +887,7 @@ export class PlayerEngine {
     this.audio.preload = 'auto';
     if (load) {
       this.pendingSeek = resumeAt > 0 ? resumeAt : undefined;
-      this.source = track.audioUrl;
+      this.source = selectedSource;
       const requestIssuedAt = this.now();
       this.patch({
         attempts: this.state.attempts.map((item) =>
@@ -841,10 +896,11 @@ export class PlayerEngine {
       });
       // Keep native HTTP playback; a prefetched song can come from server RAM or disk.
       this.upcomingAudio.clear();
-      this.audio.src = track.audioUrl;
+      this.audio.src = selectedSource;
       // src assignment already starts native resource selection. An explicit
       // load() tears down the current pipeline again during the background handoff.
-    } else if (this.audio.ended || restart) this.audio.currentTime = 0;
+    } else if (hlsSeek) this.audio.currentTime = hlsTarget!.start + resumeAt;
+    else if (this.audio.ended || restart) this.audio.currentTime = 0;
     // Keep play in the synchronous user gesture stack; catch failures afterwards.
     try {
       void this.audio.play().then(
@@ -868,8 +924,9 @@ export class PlayerEngine {
       this.fail('Impossibile avviare l’audio. Tocca Riprova.');
     }
     if (this.state.status === 'loading') this.armDeadline();
+    if (this.continuous.active(this.source)) void this.continuous.submit();
     // play() above must stay synchronous in the gesture; metadata follows it.
-    if (load) this.resolveDuration(track);
+    if (load && !hlsSource) this.resolveDuration(track);
   }
   play(trigger: Trigger = 'tap') {
     this.select(this.state.index, trigger);
@@ -896,17 +953,17 @@ export class PlayerEngine {
     } else this.advanceAutoplay(trigger);
   }
   previous(trigger: Trigger = 'tap') {
-    if (this.audio.currentTime > 3) this.seek(0);
+    if (this.state.position > 3) this.seek(0);
     else if (this.state.index > 0) this.select(this.state.index - 1, trigger);
     else if (this.state.repeat === 'all')
       this.select(this.state.queue.length - 1, trigger);
   }
   seek(seconds: number) {
     if (!Number.isFinite(seconds) || this.state.duration <= 0) return;
-    this.audio.currentTime = Math.max(
-      0,
-      Math.min(seconds, this.state.duration),
-    );
+    this.audio.currentTime =
+      (this.continuous.active(this.source)
+        ? (this.continuous.target(this.state.index)?.start ?? 0)
+        : 0) + Math.max(0, Math.min(seconds, this.state.duration));
     if (this.pendingNativeProgress !== undefined)
       this.pendingNativeProgress = this.audio.currentTime;
     this.syncPosition();
@@ -961,6 +1018,54 @@ export class PlayerEngine {
   }
 
   private syncPosition() {
+    if (this.continuous.active(this.source)) {
+      const additions = this.continuous.appended(this.state.queue);
+      if (
+        additions.length &&
+        this.state.queue.length + additions.length <= PLAYBACK_QUEUE_LIMIT
+      )
+        this.patch({ queue: [...this.state.queue, ...additions] });
+      const position = this.continuous.at(this.audio.currentTime || 0);
+      if (!position || !this.continuous.validQueue(this.state.queue)) return;
+      if (position.index !== this.state.index) {
+        if (this.state.repeat === 'one') {
+          const previous = this.continuous.target(this.state.index);
+          if (previous) {
+            this.audio.currentTime = previous.start;
+            return;
+          }
+        }
+        const track = this.state.queue[position.index];
+        if (!track) return;
+        const at = this.now();
+        const attempt: PlaybackAttempt = {
+          id: ++this.attemptId,
+          trackId: track.id,
+          title: track.title,
+          trigger: 'ended',
+          kind: 'prepared',
+          clickAt: at,
+          playingAt: at,
+        };
+        this.activeAttempt = attempt.id;
+        this.patch({
+          index: position.index,
+          position: position.position,
+          duration: position.duration,
+          attempts: [...this.state.attempts, attempt].slice(-20),
+          autoplayTracks: [],
+          autoplayStatus: 'idle',
+        });
+        this.updateMetadata();
+        this.log('continuous:boundary');
+      } else
+        this.patch({
+          position: position.position,
+          duration: position.duration,
+        });
+      this.publishPosition(position.position, position.duration);
+      return;
+    }
     const track = this.state.queue[this.state.index];
     const rawAudioDuration = Number.isFinite(this.audio.duration)
       ? this.audio.duration
@@ -1002,6 +1107,9 @@ export class PlayerEngine {
       return;
     }
 
+    this.publishPosition(currentPosition, duration);
+  }
+  private publishPosition(currentPosition: number, duration: number) {
     if (!['playing', 'paused', 'ended'].includes(this.state.status)) {
       this.clearPositionState();
       return;
@@ -1011,7 +1119,7 @@ export class PlayerEngine {
       // Keep the system timeline paused until this source actually advances.
       if (
         this.pendingNativeProgress !== undefined &&
-        currentPosition <= this.pendingNativeProgress + 0.01
+        this.audio.currentTime <= this.pendingNativeProgress + 0.01
       ) {
         this.setPlaybackState('paused');
         this.clearPositionState();
@@ -1064,12 +1172,12 @@ export class PlayerEngine {
       [
         'seekbackward',
         (details) =>
-          this.seek(this.audio.currentTime - (details.seekOffset ?? 10)),
+          this.seek(this.state.position - (details.seekOffset ?? 10)),
       ],
       [
         'seekforward',
         (details) =>
-          this.seek(this.audio.currentTime + (details.seekOffset ?? 10)),
+          this.seek(this.state.position + (details.seekOffset ?? 10)),
       ],
       [
         'stop',
@@ -1129,6 +1237,7 @@ export class PlayerEngine {
           window.matchMedia?.('(display-mode: standalone)').matches ?? false,
         timeOrigin: performance.timeOrigin,
         playbackRevision: PLAYBACK_REVISION,
+        playbackDelivery: this.getDelivery(),
         audioSession: this.playbackSession.snapshot(),
         state: this.state,
         note: 'performance.now() timestamps. loadstart is a request event proxy; loadeddata is decoded data, not network TTFB. Device results must be recorded separately.',
@@ -1139,6 +1248,7 @@ export class PlayerEngine {
   }
   /** For tests / explicit application teardown only, never on navigation. */
   destroy() {
+    this.continuous.clear();
     this.durationRequest?.abort();
     this.clearDeadline();
     this.observer?.disconnect();

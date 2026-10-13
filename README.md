@@ -94,6 +94,8 @@ Chromium and WebKit are covered by automated browser tests. Physical iPhone back
 
 ## Development
 
+Authenticated browsers with native HLS support can use [continuous playback](docs/continuous-playback.md): one audio source for the queue, server-side AAC remuxing and radio preparation. This avoids replacing the native source at each song boundary. Physical iPhone and CarPlay background validation remains separate from automated tests.
+
 ```sh
 pnpm check
 pnpm exec playwright install chromium webkit

@@ -18,6 +18,7 @@ FROM build AS api-deps
 RUN CI=true pnpm install --prod --frozen-lockfile
 
 FROM node:24-alpine AS api
+RUN apk add --no-cache ffmpeg
 ENV NODE_ENV=production API_HOST=0.0.0.0 API_PORT=3001
 WORKDIR /app
 COPY --from=api-deps --chown=node:node /app/node_modules ./node_modules

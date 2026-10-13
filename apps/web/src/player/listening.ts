@@ -251,10 +251,7 @@ export function useListening(player: PlayerEngine, accountId?: string) {
       meter.sample(player.getSnapshot(), true);
     };
     const sought = () => {
-      meter.sample(
-        { ...player.getSnapshot(), position: player.audio.currentTime },
-        true,
-      );
+      meter.sample(player.getSnapshot(), true);
       seeking = false;
     };
     const hide = () => {

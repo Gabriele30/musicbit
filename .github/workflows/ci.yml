@@ -18,6 +18,7 @@ jobs:
           node-version: 24
       - run: npm install --global pnpm@11.25.0
       - run: pnpm install --frozen-lockfile
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: pnpm format:check
       - run: pnpm check
       - run: pnpm exec playwright install --with-deps chromium webkit

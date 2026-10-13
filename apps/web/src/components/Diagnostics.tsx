@@ -56,6 +56,15 @@ export function Diagnostics({
         misura sintetica.
       </p>
       <p className="muted">Revisione player: {PLAYBACK_REVISION}</p>
+      <a href="/api/app-update" className="text-button">
+        Aggiorna questa installazione
+      </a>
+      <p className="muted">
+        Trasporto:{' '}
+        {player.getDelivery() === 'hls'
+          ? 'HLS continuo nativo'
+          : 'Audio progressivo per brano'}
+      </p>
       {!state.attempts.length && (
         <p role="status" className="banner">
           Nessun tentativo di ascolto registrato in questa finestra. Dopo il

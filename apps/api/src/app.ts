@@ -13,6 +13,10 @@ import { CatalogError } from './catalog/errors.js';
 import { AudioStreamService } from './audio/stream-service.js';
 import { registerAudioRoutes } from './audio/routes.js';
 import type { AudioDiskCache } from './audio/disk-cache.js';
+import {
+  registerContinuousRoutes,
+  type ContinuousAudio,
+} from './audio/continuous.js';
 import { AccountStore, AccountError } from './accounts/store.js';
 import { registerAccountRoutes } from './accounts/routes.js';
 import { registerTrafficControls } from './accounts/traffic.js';
@@ -30,6 +34,7 @@ export function buildApp(
   accounts: AccountStore = new AccountStore(),
   aiPlaylists: AiPlaylistService = new AiPlaylistService(),
   diskCache?: AudioDiskCache,
+  continuous?: ContinuousAudio,
 ) {
   const logger = options.logger;
   const safeLogger = logger
@@ -52,6 +57,8 @@ export function buildApp(
   registerTrafficControls(app, accounts);
   registerCatalogRoutes(app, catalog, provider.id);
   const { requireUser } = registerAccountRoutes(app, accounts);
+  registerContinuousRoutes(app, continuous, requireUser);
+  app.addHook('onClose', async () => continuous?.close());
   registerAudioRoutes(app, audioService, {
     diskCache,
     userId: (request) => {

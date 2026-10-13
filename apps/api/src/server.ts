@@ -4,11 +4,14 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { AudioDiskCache } from './audio/disk-cache.js';
 import { AudioStreamService } from './audio/stream-service.js';
+import { ContinuousAudio } from './audio/continuous.js';
+import { CatalogService } from './catalog/service.js';
 
 const accountPath =
   process.env.MUSICBIT_DB_PATH ??
   fileURLToPath(new URL('../../../data/musicbit.sqlite', import.meta.url));
 const audioService = new AudioStreamService();
+const catalogService = new CatalogService();
 const diskCache =
   accountPath === ':memory:'
     ? undefined
@@ -20,11 +23,12 @@ const diskCache =
 const app = buildApp(
   { logger: true },
   undefined,
-  undefined,
+  catalogService,
   audioService,
   new AccountStore(accountPath),
   undefined,
   diskCache,
+  diskCache ? new ContinuousAudio(diskCache, catalogService) : undefined,
 );
 const port = Number(process.env.API_PORT ?? 3001);
 if (!Number.isInteger(port) || port < 1 || port > 65535)
