@@ -1,5 +1,31 @@
 # Registro prove fisiche
 
+## Skip rapidi da CarPlay — 13 ottobre 2026
+
+L'utente precisa che il difetto si ripresenta premendo rapidamente skip dai
+comandi al volante, con iPhone collegato tramite CarPlay. La preparazione del
+solo successore non copre tutti i brani attraversati da questi comandi.
+
+La revisione `native-session-handoff-v4-skip` interrompe il tentativo nativo ancora
+in caricamento prima di cambiare nuovamente sorgente, poi chiama play nello stesso
+handler Media Session. Conserva un solo elemento e non aggiunge load al cambio.
+Ignora eventi riferiti a currentSrc precedente, pause tardive quando il nodo non
+è in pausa ed errori senza un MediaError attuale. I token continuano a scartare
+le promesse dei comandi superati.
+
+Oltre al prefetch completo dell'immediato successore, prepara prefissi HTTP da
+64 KiB degli altri candidati nella finestra dei prossimi dieci, al massimo due
+richieste contemporanee. I piani server da 5 GB restano separati. I prefissi non
+sono brani completi né una garanzia di avvio in background; la preparazione
+fallita non controlla la riproduzione. La conferma fisica di skip rapidi CarPlay
+con telefono bloccato resta da raccogliere dopo il deploy.
+
+Verifica automatica: `pnpm check` superato con 264 test e `pnpm test:e2e` con
+84 prove. La prova di skip consecutivi usa la superficie Media Session nativa
+in Chromium e una simulazione dei comandi in WebKit Windows, che non espone
+quell'API. In entrambi i casi l'elemento HTMLAudioElement e la decodifica WAV
+sono reali; non sono una prova del percorso CarPlay fisico.
+
 ## Nuova segnalazione del 13 ottobre 2026 — cambio silenzioso
 
 L'utente riferisce nuovamente il passaggio al brano successivo con tempo in

@@ -17,6 +17,7 @@ const tracks: Track[] = [1, 2, 3].map((id) => ({
 }));
 class FakeAudio extends EventTarget {
   src = '';
+  currentSrc = '';
   preload = '';
   readyState = 0;
   networkState = 0;
@@ -75,6 +76,56 @@ afterEach(() => {
 });
 
 describe('persistent player', () => {
+  it('cancels pending CarPlay skips synchronously and ignores stale source events and rejections', async () => {
+    const handlers = new Map<string, MediaSessionActionHandler>();
+    const session = {
+      metadata: null,
+      playbackState: 'none',
+      setPositionState: vi.fn(),
+      setActionHandler: vi.fn((action, handler) =>
+        handlers.set(action, handler),
+      ),
+    };
+    Object.defineProperty(navigator, 'mediaSession', {
+      configurable: true,
+      value: session,
+    });
+    const { player, audio } = setup();
+    const rejections: ((reason: unknown) => void)[] = [];
+    audio.play.mockImplementation(() => {
+      audio.paused = false;
+      return new Promise<void>((_resolve, reject) => rejections.push(reject));
+    });
+    player.play();
+    audio.currentSrc = tracks[0]!.audioUrl;
+    handlers.get('nexttrack')!({ action: 'nexttrack' });
+    handlers.get('nexttrack')!({ action: 'nexttrack' });
+    expect(player.getSnapshot().index).toBe(2);
+    expect(audio.src).toBe(tracks[2]!.audioUrl);
+    expect(audio.play).toHaveBeenCalledTimes(3);
+    expect(audio.pause).toHaveBeenCalledTimes(2);
+    expect(audio.load).not.toHaveBeenCalled();
+    audio.emit('playing');
+    audio.error = { code: 2 };
+    audio.emit('error');
+    expect(player.getSnapshot().status).toBe('loading');
+    expect(player.getSnapshot().error).toBeNull();
+    rejections[0]!(new DOMException('Superseded', 'AbortError'));
+    rejections[1]!(new DOMException('Superseded', 'AbortError'));
+    await Promise.resolve();
+    expect(player.getSnapshot().error).toBeNull();
+    audio.error = null;
+    audio.currentSrc = tracks[2]!.audioUrl;
+    audio.currentTime = 0;
+    audio.emit('playing');
+    audio.emit('pause');
+    audio.emit('error');
+    expect(player.getSnapshot().status).toBe('playing');
+    expect(session.playbackState).toBe('paused');
+    audio.currentTime = 0.25;
+    audio.emit('timeupdate');
+    expect(session.playbackState).toBe('playing');
+  });
   it('allows a cold proxied stream to start beyond the old 15-second client deadline', async () => {
     vi.useFakeTimers();
     vi.stubGlobal(
@@ -757,6 +808,18 @@ describe('persistent player', () => {
     expect(session.playbackState).toBe('paused');
     handlers.get('pause')!({ action: 'pause' });
     expect(player.getSnapshot().status).toBe('paused');
+    player.cycleRepeat();
+    player.cycleRepeat();
+    player.play();
+    audio.emit('playing');
+    audio.currentTime = 120;
+    audio.emit('ended');
+    expect(audio.currentTime).toBe(0);
+    audio.emit('playing');
+    expect(session.playbackState).toBe('paused');
+    audio.currentTime = 0.25;
+    audio.emit('timeupdate');
+    expect(session.playbackState).toBe('playing');
   });
   it('works without Media Session and exports bounded diagnostics', () => {
     Object.defineProperty(navigator, 'mediaSession', {

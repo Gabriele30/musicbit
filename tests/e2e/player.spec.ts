@@ -111,6 +111,76 @@ test('diagnostics deep link can play and rapid track changes preserve the latest
   await expect(page.locator('audio')).toHaveCount(1);
 });
 
+test('rapid Media Session skips keep the final native source playing without replacing the audio element', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const handlers = new Map<MediaSessionAction, MediaSessionActionHandler>();
+    // Windows WebKit lacks Media Session: shim only the control surface while
+    // keeping the real HTMLAudioElement and native decoding in both projects.
+    const session =
+      navigator.mediaSession ??
+      ({
+        metadata: null,
+        playbackState: 'none',
+        setActionHandler() {},
+        setPositionState() {},
+      } as unknown as MediaSession);
+    if (!navigator.mediaSession)
+      Object.defineProperty(navigator, 'mediaSession', {
+        configurable: true,
+        value: session,
+      });
+    const register = session.setActionHandler.bind(session);
+    session.setActionHandler = (action, handler) => {
+      if (handler) handlers.set(action, handler);
+      else handlers.delete(action);
+      register(action, handler);
+    };
+    Object.defineProperty(window, '__rapidMediaSkips', {
+      value: () => {
+        handlers.get('nexttrack')?.({ action: 'nexttrack' });
+        handlers.get('nexttrack')?.({ action: 'nexttrack' });
+      },
+    });
+  });
+  await fixture(page);
+  const owner = await page.locator('audio').elementHandle();
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+    )
+    .toBeGreaterThan(0.1);
+  await page.evaluate(() =>
+    (window as Window & { __rapidMediaSkips: () => void }).__rapidMediaSkips(),
+  );
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.currentSrc),
+    )
+    .toContain('soundhelix-3.wav');
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+    )
+    .toBeGreaterThan(0.25);
+  expect(
+    await owner!.evaluate((audio) => audio === document.querySelector('audio')),
+  ).toBe(true);
+  await expect(page.locator('audio')).toHaveCount(1);
+  await openDiagnostics(page);
+  await expect(
+    page.getByText('handoff:cancel-pending', { exact: false }),
+  ).toBeAttached();
+});
+
 test('normal diagnostics never seeds demos or exports an empty new window', async ({
   page,
 }) => {

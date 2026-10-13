@@ -1,9 +1,10 @@
 import { PLAYBACK_QUEUE_LIMIT, type Track } from '@musicbit/shared';
 import { shuffled } from './random';
 import { UpcomingAudio } from './upcoming-audio';
+import { UpcomingConnections } from './upcoming-connections';
 import { PlaybackAudioSession } from './audio-session';
 
-export const PLAYBACK_REVISION = 'native-session-handoff-v3-prime';
+export const PLAYBACK_REVISION = 'native-session-handoff-v4-skip';
 
 export type PlaybackStatus =
   | 'idle'
@@ -146,6 +147,9 @@ export class PlayerEngine {
   private upcomingAudio = new UpcomingAudio((event) =>
     this.log(`upcoming:${event}`),
   );
+  private upcomingConnections = new UpcomingConnections((event) =>
+    this.log(`upcoming-prefix:${event}`),
+  );
   private prepareUpcoming() {
     // Server disk caching does not prepare the phone's next HTTP connection.
     // Keep the immediate successor warm in the browser as well, including accounts.
@@ -163,6 +167,30 @@ export class PlayerEngine {
       next?.id === this.state.queue[this.state.index]?.id
         ? undefined
         : next?.audioUrl,
+    );
+    const candidates =
+      this.state.repeat === 'one'
+        ? []
+        : this.state.queue.slice(this.state.index + 1, this.state.index + 11);
+    if (this.state.repeat === 'all' && candidates.length < 10)
+      candidates.push(
+        ...this.state.queue.slice(
+          0,
+          Math.min(this.state.index, 10 - candidates.length),
+        ),
+      );
+    else if (
+      this.state.autoplay &&
+      this.state.repeat === 'off' &&
+      candidates.length < 10
+    )
+      candidates.push(
+        ...this.state.autoplayTracks.slice(0, 10 - candidates.length),
+      );
+    this.upcomingConnections.prepare(
+      candidates
+        .filter((track) => track.audioUrl !== next?.audioUrl)
+        .map((track) => track.audioUrl),
     );
   }
 
@@ -207,6 +235,15 @@ export class PlayerEngine {
     audio.setAttribute('playsinline', '');
     const on = (event: string, fn: () => void) => {
       const listener = () => {
+        if (
+          this.source &&
+          audio.currentSrc &&
+          !['pause', 'abort', 'emptied'].includes(event) &&
+          audio.currentSrc !== new URL(this.source, document.baseURI).href
+        ) {
+          this.log(`ignored:${event}:previous-source`);
+          return;
+        }
         this.syncBuffer();
         this.log(event);
         fn();
@@ -260,6 +297,7 @@ export class PlayerEngine {
       this.prepareUpcoming();
     });
     on('pause', () => {
+      if (!audio.paused) return;
       if (
         audio.ended ||
         this.state.status === 'error' ||
@@ -284,12 +322,13 @@ export class PlayerEngine {
     on('stalled', () => {
       /* May recover automatically; do not replace the source. */
     });
-    on('error', () =>
+    on('error', () => {
+      if (!audio.error) return;
       this.fail(
         mediaErrorMessages[audio.error?.code ?? 0] ??
           'Errore audio. Tocca Riprova.',
-      ),
-    );
+      );
+    });
     on('ended', () => {
       if (
         !audio.ended ||
@@ -538,6 +577,7 @@ export class PlayerEngine {
     this.audio.removeAttribute('src');
     this.audio.load();
     this.upcomingAudio.clear();
+    this.upcomingConnections.clear();
     this.syncBuffer();
   }
   private mark(field: 'loadstartAt' | 'firstDataAt' | 'playingAt') {
@@ -720,6 +760,12 @@ export class PlayerEngine {
     if (!track) return;
     this.clearDeadline();
     if (this.state.status === 'loading') {
+      // Abort the superseded native play request before assigning another source.
+      // Keep the same audio element and immediately play the final selection.
+      if (!this.audio.paused) {
+        this.audio.pause();
+        this.log('handoff:cancel-pending');
+      }
       this.endWaiting();
       this.updateAttempt((item) =>
         item.playingAt === undefined
@@ -741,7 +787,8 @@ export class PlayerEngine {
       this.source !== track.audioUrl ||
       index !== this.state.index ||
       this.state.status === 'error';
-    this.pendingNativeProgress = load ? resumeAt : this.audio.currentTime;
+    this.pendingNativeProgress =
+      load || this.audio.ended || restart ? resumeAt : this.audio.currentTime;
     const attempt: PlaybackAttempt = {
       id: ++this.attemptId,
       trackId: track.id,
@@ -860,6 +907,8 @@ export class PlayerEngine {
       0,
       Math.min(seconds, this.state.duration),
     );
+    if (this.pendingNativeProgress !== undefined)
+      this.pendingNativeProgress = this.audio.currentTime;
     this.syncPosition();
   }
   private fail(message: string) {
@@ -1102,6 +1151,7 @@ export class PlayerEngine {
     this.audio.preload = 'none';
     this.audio.load();
     this.upcomingAudio.clear();
+    this.upcomingConnections.clear();
     this.playbackSession.destroy();
     document.removeEventListener('visibilitychange', this.visibilityChanged);
     for (const event of ['pagehide', 'pageshow', 'online', 'offline'])
