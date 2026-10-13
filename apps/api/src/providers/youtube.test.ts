@@ -34,6 +34,58 @@ function gateway(): MusicMetadataGateway {
 }
 
 describe('YouTube catalog provider with deterministic metadata mocks', () => {
+  it('inherits missing album-track artists while preserving explicit featured credits', async () => {
+    const client = gateway();
+    client.details = vi.fn(async () => ({
+      header: {
+        title: 'TRUVATURA',
+        artists: [{ name: 'Toni Zeno', channel_id: artistId }],
+        thumbnail: { contents: [thumbnail] },
+      },
+      contents: [
+        { ...song, artists: [], title: 'DISISA' },
+        {
+          ...song,
+          id: 'lmnopqrstuv',
+          title: 'UNA SARPA',
+          artists: undefined,
+          authors: [],
+        },
+        {
+          ...song,
+          id: '12345678901',
+          artists: [
+            { name: 'Toni Zeno', channel_id: artistId },
+            { name: 'Calì' },
+          ],
+        },
+        { ...song, id: '23456789012', artists: [{ name: 'Guest Artist' }] },
+      ],
+    }));
+    const detail = await new YouTubeCatalogProvider(client).details(
+      'album',
+      'MPRalbum123',
+      abort(),
+    );
+    expect(
+      detail?.tracks?.map((t) => ({ artist: t.artist, artistId: t.artistId })),
+    ).toEqual([
+      { artist: 'Toni Zeno', artistId },
+      { artist: 'Toni Zeno', artistId },
+      { artist: 'Toni Zeno, Calì', artistId },
+      { artist: 'Guest Artist', artistId: undefined },
+    ]);
+    client.details = vi.fn(async () => ({
+      header: { title: 'Unknown album' },
+      contents: [{ ...song, artists: [] }],
+    }));
+    const unknown = await new YouTubeCatalogProvider(client).details(
+      'album',
+      'MPRalbum123',
+      abort(),
+    );
+    expect(unknown?.tracks?.[0]?.artist).toBe('Artista non indicato');
+  });
   it('hydrates portraits for artists inferred from home tracks', async () => {
     const client = gateway();
     client.home = vi.fn(async () => ({

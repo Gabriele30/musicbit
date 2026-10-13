@@ -144,6 +144,7 @@ function artwork(node: Record<string, unknown>): string | undefined {
     .map((item) => String(item.url))[0];
 }
 
+const UNKNOWN_ARTIST = 'Artista non indicato';
 function normalize(
   raw: unknown,
   kind: CatalogKind,
@@ -163,7 +164,7 @@ function normalize(
         text(object(node.author).name) ||
         text(node.author) ||
         text(node.strapline_text_one) ||
-        'Artista non indicato';
+        UNKNOWN_ARTIST;
   const duration = object(node.duration).seconds;
   const artistId = text(
     object(array(node.artists ?? node.authors)[0]).channel_id ??
@@ -395,6 +396,11 @@ export class YouTubeCatalogProvider implements MusicProvider, CatalogProvider {
               .filter((track): track is CatalogItem => !!track)
               .map((track) => ({
                 ...track,
+                artist:
+                  track.artist === UNKNOWN_ARTIST ? item.artist : track.artist,
+                artistId:
+                  track.artistId ??
+                  (track.artist === UNKNOWN_ARTIST ? item.artistId : undefined),
                 album: item.title,
                 albumId: item.id,
                 artworkUrl: item.artworkUrl || track.artworkUrl,
