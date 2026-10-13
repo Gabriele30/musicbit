@@ -5,7 +5,7 @@ import { UpcomingConnections } from './upcoming-connections';
 import { PlaybackAudioSession } from './audio-session';
 import { ContinuousPlayback } from './continuous';
 
-export const PLAYBACK_REVISION = 'native-continuous-hls-v6';
+export const PLAYBACK_REVISION = 'native-continuous-hls-v7';
 
 export type PlaybackStatus =
   | 'idle'
@@ -172,7 +172,7 @@ export class PlayerEngine {
         this.resumePosition = this.state.position;
         this.continuous.clear();
         this.source = undefined;
-        if (playing) this.select(this.state.index);
+        if (playing) this.select(this.state.index, 'tap', true);
         else this.releaseSource();
         return;
       }
@@ -288,6 +288,7 @@ export class PlayerEngine {
         });
     });
     on('canplay', () => {
+      this.applyPendingHlsSeek();
       if (this.state.preparation?.outcome === 'loading') {
         this.clearDeadline();
         this.patch({
@@ -317,6 +318,7 @@ export class PlayerEngine {
     on('timeupdate', () => this.syncPosition());
     on('playing', () => {
       if (audio.paused) return;
+      this.applyPendingHlsSeek();
       this.clearDeadline();
       this.endWaiting();
       this.mark('playingAt');
@@ -793,7 +795,7 @@ export class PlayerEngine {
     this.prepareUpcoming();
   }
 
-  select(index: number, trigger: Trigger = 'tap') {
+  select(index: number, trigger: Trigger = 'tap', resume = false) {
     const clickAt = this.now();
     const track = this.state.queue[index];
     if (!track) return;
@@ -816,7 +818,8 @@ export class PlayerEngine {
     const restart = this.state.status === 'ended';
     if (this.state.queue[this.state.index]?.id !== track.id)
       this.patch({ autoplayTracks: [], autoplayStatus: 'idle' });
-    const resumeAt = index === this.state.index ? this.resumePosition : 0;
+    const resumeAt =
+      resume && index === this.state.index ? this.resumePosition : 0;
     this.resumePosition = 0;
     const hlsTarget =
       this.continuous.active(this.source) &&
@@ -827,7 +830,8 @@ export class PlayerEngine {
       ? this.source
       : this.continuous.start(this.state.queue, index, this.state.autoplay);
     const changedIndex = index !== this.state.index;
-    const hlsSeek = hlsTarget && (changedIndex || this.audio.ended || restart);
+    const hlsSeek =
+      hlsTarget && (!resume || changedIndex || this.audio.ended || restart);
     const selectedSource = hlsSource ?? track.audioUrl;
     if (!hlsSource) this.continuous.clear();
     const prepared =
@@ -848,9 +852,9 @@ export class PlayerEngine {
           : undefined
       : undefined;
     this.pendingNativeProgress =
-      hlsTarget && index !== this.state.index
+      hlsTarget && hlsSeek
         ? hlsTarget.start + resumeAt
-        : load || this.audio.ended || restart
+        : load || !resume || this.audio.ended || restart
           ? resumeAt
           : this.audio.currentTime;
     const attempt: PlaybackAttempt = {
@@ -885,10 +889,10 @@ export class PlayerEngine {
       status: 'loading',
       error: null,
       position: hlsSource
-        ? load || changedIndex
+        ? load || hlsSeek
           ? resumeAt
           : this.state.position
-        : load
+        : load || !resume
           ? resumeAt
           : this.audio.currentTime,
       duration:
@@ -917,7 +921,7 @@ export class PlayerEngine {
       // src assignment already starts native resource selection. An explicit
       // load() tears down the current pipeline again during the background handoff.
     } else if (hlsSeek) this.audio.currentTime = hlsTarget!.start + resumeAt;
-    else if (this.audio.ended || restart) this.audio.currentTime = 0;
+    else if (!resume || this.audio.ended || restart) this.audio.currentTime = 0;
     // Keep play in the synchronous user gesture stack; catch failures afterwards.
     try {
       void this.audio.play().then(
@@ -946,7 +950,7 @@ export class PlayerEngine {
     if (load && !hlsSource) this.resolveDuration(track);
   }
   play(trigger: Trigger = 'tap') {
-    this.select(this.state.index, trigger);
+    this.select(this.state.index, trigger, true);
   }
   pause() {
     this.clearDeadline();
@@ -1034,12 +1038,22 @@ export class PlayerEngine {
     }
   }
 
+  private applyPendingHlsSeek() {
+    if (
+      this.pendingHlsSeek !== undefined &&
+      this.pendingSeek === undefined &&
+      !this.audio.seeking &&
+      Math.abs(this.audio.currentTime - this.pendingHlsSeek) > 0.05
+    )
+      this.audio.currentTime = this.pendingHlsSeek;
+  }
   private syncPosition() {
     if (this.continuous.active(this.source)) {
       if (this.pendingSeek !== undefined) return;
       if (this.pendingHlsSeek !== undefined) {
         if (
           this.audio.seeking ||
+          this.state.status === 'loading' ||
           Math.abs(this.audio.currentTime - this.pendingHlsSeek) > 1 ||
           this.continuous.at(this.audio.currentTime)?.index !== this.state.index
         )

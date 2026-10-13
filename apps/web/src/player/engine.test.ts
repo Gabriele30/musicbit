@@ -107,6 +107,7 @@ describe('persistent player', () => {
     expect(source).toMatch(/^\/api\/continuous\/[a-f0-9-]{36}\/index.m3u8$/);
     expect(audio.play).toHaveBeenCalledOnce();
     audio.emit('loadedmetadata');
+    audio.emit('playing');
     await vi.waitFor(() => expect(player.getSnapshot().duration).toBe(5));
     audio.emit('playing');
     audio.currentTime = 5.25;
@@ -137,6 +138,29 @@ describe('persistent player', () => {
     expect(audio.currentTime).toBe(7);
     expect(player.getSnapshot().position).toBe(2);
     expect(player.getDelivery()).toBe('hls');
+    // Returning to a previously heard track starts at its beginning; only
+    // the explicit pause/play path keeps the current position.
+    player.select(0);
+    expect(audio.currentTime).toBe(0);
+    audio.emit('playing');
+    audio.currentTime = 2;
+    audio.emit('timeupdate');
+    player.select(1);
+    audio.emit('playing');
+    player.select(0);
+    expect(audio.currentTime).toBe(0);
+    audio.emit('playing');
+    audio.currentTime = 2;
+    audio.emit('timeupdate');
+    player.select(0);
+    expect(audio.currentTime).toBe(0);
+    audio.emit('playing');
+    audio.currentTime = 2;
+    audio.emit('timeupdate');
+    player.moveUpcoming(1, 1);
+    expect(player.getSnapshot().position).toBe(2);
+    audio.emit('loadedmetadata');
+    expect(audio.currentTime).toBe(2);
   });
   it('ignores the previous HLS clock until a manual selection has finished seeking', async () => {
     const { player, audio } = setup();
@@ -165,6 +189,7 @@ describe('persistent player', () => {
     player.setContinuousPlayback(true);
     player.playCollection(queue);
     audio.emit('loadedmetadata');
+    audio.emit('playing');
     await vi.waitFor(() => expect(player.getSnapshot().duration).toBe(120));
     await vi.waitFor(() => {
       player.seek(119);
@@ -194,6 +219,14 @@ describe('persistent player', () => {
     audio.emit('durationchange');
     expect(player.getSnapshot()).toMatchObject({ index: 0, position: 0 });
     audio.emit('loadedmetadata');
+    expect(requested).toBe(0);
+    // WebKit can restore its cached song position after loadedmetadata.
+    clock = 60;
+    requested = 60;
+    audio.emit('canplay');
+    expect(requested).toBe(0);
+    requested = 60;
+    audio.emit('playing');
     expect(requested).toBe(0);
     audio.emit('timeupdate');
     expect(player.getSnapshot()).toMatchObject({ index: 0, position: 0 });

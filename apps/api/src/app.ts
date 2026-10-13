@@ -21,6 +21,7 @@ import { AccountStore, AccountError } from './accounts/store.js';
 import { registerAccountRoutes } from './accounts/routes.js';
 import { registerTrafficControls } from './accounts/traffic.js';
 import { registerExperienceRoutes } from './accounts/experience-routes.js';
+import { ArtistDiscoveryService } from './accounts/discovery.js';
 import {
   AiPlaylistService,
   registerAiPlaylistRoutes,
@@ -55,8 +56,18 @@ export function buildApp(
     ajv: { customOptions: { removeAdditional: false } },
   });
   registerTrafficControls(app, accounts);
+  const artistDiscovery = new ArtistDiscoveryService();
   registerCatalogRoutes(app, catalog, provider.id);
   const { requireUser } = registerAccountRoutes(app, accounts);
+  app.get('/api/me/discovery/artists', async (request) => {
+    const user = requireUser(request);
+    return artistDiscovery.get(
+      user.id,
+      accounts.library(user.id).library,
+      catalog,
+      aiPlaylists,
+    );
+  });
   registerContinuousRoutes(app, continuous, requireUser);
   app.addHook('onClose', async () => continuous?.close());
   registerAudioRoutes(app, audioService, {

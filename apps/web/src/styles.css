@@ -2916,6 +2916,9 @@ main:focus {
 .wrapped-page,
 .ai-playlist-page {
   display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   max-width: 1150px;
 }
@@ -2992,6 +2995,42 @@ main:focus {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   gap: 20px;
+}
+.wrapped-page > *,
+.wrapped-columns > *,
+.wrapped-period label {
+  min-width: 0;
+}
+.wrapped-period select {
+  max-width: 100%;
+  width: 100%;
+}
+.wrapped-metrics strong {
+  overflow-wrap: anywhere;
+}
+.listening-months {
+  max-width: 100%;
+}
+.chart-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.chart-links a {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #204b37, #182d36);
+  color: var(--text);
+  text-decoration: none;
+}
+.chart-links span {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
 }
 .wrapped-ranking,
 .taste-artists,
@@ -3322,5 +3361,35 @@ main:focus {
   .wrapped-period {
     gap: 10px;
     flex-wrap: wrap;
+  }
+  .wrapped-period label {
+    flex: 1 1 100px;
+  }
+  .wrapped-page .profile-card {
+    padding: 16px;
+  }
+  .wrapped-page .listening-months {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px 6px;
+    overflow: visible;
+  }
+  .wrapped-page .listening-months button {
+    min-width: 0;
+    height: 180px;
+    padding: 0;
+    font-size: 11px;
+  }
+  .wrapped-page .wrapped-ranking li,
+  .wrapped-page .wrapped-ranking li > button {
+    gap: 8px;
+  }
+  .experience-shortcuts button {
+    min-width: 0;
+    flex-basis: 100%;
+    box-sizing: border-box;
+  }
+  .chart-links a {
+    padding: 16px;
   }
 }

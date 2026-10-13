@@ -34,6 +34,32 @@ function gateway(): MusicMetadataGateway {
 }
 
 describe('YouTube catalog provider with deterministic metadata mocks', () => {
+  it('hydrates portraits for artists inferred from home tracks', async () => {
+    const client = gateway();
+    client.home = vi.fn(async () => ({
+      sections: [
+        {
+          title: 'Quick picks',
+          contents: [
+            { ...song, artists: [{ name: 'Artist', channel_id: artistId }] },
+          ],
+        },
+      ],
+    }));
+    client.details = vi.fn(async () => ({
+      header: { title: 'Artist', thumbnail: { contents: [thumbnail] } },
+      sections: [],
+    }));
+    const sections = await new YouTubeCatalogProvider(client).home(abort());
+    expect(
+      sections.find((s) => s.id === 'discover-artist')?.items[0],
+    ).toMatchObject({ id: artistId, artworkUrl: thumbnail.url });
+    expect(client.details).toHaveBeenCalledWith(
+      'artist',
+      artistId,
+      expect.any(AbortSignal),
+    );
+  });
   it('builds a mixed home feed and radio without leaking raw provider data', async () => {
     const client = gateway();
     client.home = vi.fn(async () => ({

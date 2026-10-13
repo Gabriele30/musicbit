@@ -190,6 +190,26 @@ export class AiPlaylistService {
       Boolean(process.env.OPENAI_API_KEY)
     );
   }
+  async discoveryArtists(
+    artists: string[],
+    signal: AbortSignal,
+  ): Promise<string[]> {
+    const plan = await this.plan(
+      'Suggest 5 real songs by DIFFERENT artists to discover based on tasteArtists. Exclude all tasteArtists themselves. Choose musically similar artists, not random popular names.',
+      5,
+      artists,
+      signal,
+    );
+    if (!Array.isArray(plan?.songs))
+      throw new Error('Invalid artist suggestions');
+    return [
+      ...new Set(
+        plan.songs
+          .filter((s) => s && shortText(s.artist, 100))
+          .map((s) => s.artist.trim()),
+      ),
+    ].slice(0, 5);
+  }
   async generate(
     prompt: string,
     count: number,

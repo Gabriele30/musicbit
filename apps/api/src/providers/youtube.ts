@@ -287,6 +287,41 @@ export class YouTubeCatalogProvider implements MusicProvider, CatalogProvider {
           items,
         });
     }
+    // Track-derived artist references have no portrait. Resolve the artist page
+    // instead of reusing a song thumbnail as an artist photograph.
+    const missing = [
+      ...new Map(
+        sections
+          .flatMap((s) => s.items)
+          .filter((i) => i.kind === 'artist' && !i.artworkUrl)
+          .map((i) => [i.id, i]),
+      ).values(),
+    ].slice(0, 8);
+    const portraitSignal = AbortSignal.any([signal, AbortSignal.timeout(2500)]);
+    for (
+      let start = 0;
+      start < missing.length && !portraitSignal.aborted;
+      start += 2
+    ) {
+      await Promise.all(
+        missing.slice(start, start + 2).map(async (artist) => {
+          try {
+            const detail = await this.details(
+              'artist',
+              artist.id,
+              portraitSignal,
+            );
+            if (detail?.artworkUrl)
+              for (const section of sections)
+                for (const item of section.items)
+                  if (item.kind === 'artist' && item.id === artist.id)
+                    item.artworkUrl = detail.artworkUrl;
+          } catch {
+            /* Keep discovery usable when one portrait is unavailable. */
+          }
+        }),
+      );
+    }
     return sections;
   }
   async recommendations(

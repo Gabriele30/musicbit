@@ -1,5 +1,20 @@
 # Registro prove fisiche
 
+## Ritorno a un brano già ascoltato — revisione v7
+
+L'utente segnala che A → B → A riprende A a metà anziché da zero. La revisione
+`native-continuous-hls-v7` distingue la selezione esplicita dalla ripresa dopo
+pausa e mantiene il seek iniziale fino all'avvio nativo, riapplicandolo a
+`canplay` e `playing` se WebKit ripristina una vecchia posizione dopo i metadati.
+I test coprono A → B → A, la riselezione dello stesso brano e il ripristino
+di un clock vecchio dopo `loadedmetadata`. La conferma su iPhone resta aperta.
+
+Controlli completati: `pnpm check` (272 test) e `pnpm test:e2e` (86 prove,
+Chromium e WebKit mobile). Il caso Home personalizzata verifica il profilo
+dell'account, il ritratto dell'artista e i collegamenti alle classifiche
+ufficiali. Wrapped è verificato a 320, 375, 390 e 430 px con dodici mesi e
+titoli lunghi, senza overflow della pagina o del grafico.
+
 ## Selezione manuale e copertine album — revisione v6
 
 L'utente riferisce che la riproduzione continua ora sembra funzionare; resta

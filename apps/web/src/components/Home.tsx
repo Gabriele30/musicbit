@@ -15,6 +15,7 @@ import type { LibraryModel } from '../library';
 import { Icon } from './Icon';
 import { CoverArt } from './CoverArt';
 import { useAudioWarmup } from '../player/use-audio-warmup';
+import { quickPicks } from '../home-personalization';
 
 export function CatalogShelf({
   title,
@@ -134,6 +135,20 @@ export function Home({
   const [error, setError] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [filter, setFilter] = useState<CatalogKind | 'all'>('all');
+  const [artistDiscovery, setArtistDiscovery] = useState<{
+    artists: CatalogItem[];
+    basedOn: string[];
+    source: string;
+  }>();
+  const [discoveryLoading, setDiscoveryLoading] = useState(false);
+  const [discoveryError, setDiscoveryError] = useState(false);
+  const profileKey = JSON.stringify([
+    library.history.slice(0, 20).map((h) => h.track.id),
+    library.favorites.map((t) => t.id),
+    library.followedArtists.map((a) => a.id),
+    library.snapshot.taste?.artistPreferences,
+  ]);
+  const picks = quickPicks(library.snapshot);
   const [personalCandidates, setPersonalCandidates] = useState<CatalogItem[]>(
     [],
   );
@@ -156,7 +171,34 @@ export function Home({
         /* The normal feed and locally ranked suggestions remain usable. */
       });
     return () => controller.abort();
-  }, [active, accountId, syncStatus, refresh]);
+  }, [active, accountId, syncStatus, refresh, profileKey]);
+  useEffect(() => {
+    if (!active || !accountId || syncStatus !== 'saved') return;
+    const controller = new AbortController();
+    setDiscoveryLoading(true);
+    setDiscoveryError(false);
+    void accountRequest<{
+      artists: CatalogItem[];
+      basedOn: string[];
+      source: string;
+    }>('/api/me/discovery/artists', undefined, 'GET', controller.signal, 95000)
+      .then((data) => {
+        if (!controller.signal.aborted)
+          setArtistDiscovery({
+            ...data,
+            artists: data.artists.filter(
+              (i) => isCatalogItem(i) && i.kind === 'artist',
+            ),
+          });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setDiscoveryError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setDiscoveryLoading(false);
+      });
+    return () => controller.abort();
+  }, [active, accountId, syncStatus, refresh, profileKey]);
   const hasListeningProfile =
     library.favorites.length > 0 ||
     library.followedArtists.length > 0 ||
@@ -381,6 +423,47 @@ export function Home({
           />
         </>
       )}
+      {(filter === 'all' || filter === 'track') && (
+        <section aria-label="Le tue scelte veloci">
+          <TrackShelf title="Scelte veloci" tracks={picks} onPlay={onPlay} />
+          {!picks.length && (
+            <p className="muted">
+              Le scelte veloci si riempiono con i brani che ascolti e salvi.
+            </p>
+          )}
+        </section>
+      )}
+      {(filter === 'all' || filter === 'artist') &&
+        hasListeningProfile &&
+        accountId && (
+          <section
+            className="feed-section"
+            aria-label="Scoperta artisti personalizzata"
+          >
+            <CatalogShelf
+              title="Artisti da scoprire"
+              items={artistDiscovery?.artists ?? []}
+              onOpen={onOpen}
+              onPlay={onPlay}
+            />
+            {artistDiscovery?.artists.length ? (
+              <p className="muted">
+                {artistDiscovery.source === 'ai'
+                  ? 'Suggeriti dall’AI e verificati nel catalogo'
+                  : 'Artisti correlati ai tuoi ascolti'}{' '}
+                · Da {artistDiscovery.basedOn.slice(0, 3).join(', ')}
+              </p>
+            ) : (
+              <p className="muted" role="status">
+                {discoveryLoading
+                  ? 'Cerchiamo nuovi artisti dai tuoi ascolti…'
+                  : discoveryError
+                    ? 'Scoperta artisti non disponibile. Tocca Aggiorna feed per riprovare.'
+                    : 'Continua ad ascoltare per trovare nuovi artisti affini.'}
+              </p>
+            )}
+          </section>
+        )}
       {(filter === 'all' || filter === 'artist') && (
         <CatalogShelf
           title="Gli artisti che segui"
@@ -415,17 +498,28 @@ export function Home({
           </button>
         </div>
       )}
-      {feed?.sections.map((section) => (
-        <CatalogShelf
-          key={section.id}
-          title={section.title}
-          items={section.items.filter(
-            (item) => filter === 'all' || item.kind === filter,
-          )}
-          onOpen={onOpen}
-          onPlay={onPlay}
-        />
-      ))}
+      {feed?.sections
+        .filter(
+          (section) =>
+            !/^(Scelte veloci|Quick picks)$/i.test(section.title) &&
+            !(
+              hasListeningProfile &&
+              accountId &&
+              (section.id === 'discover-artist' ||
+                section.title === 'Artisti da scoprire')
+            ),
+        )
+        .map((section) => (
+          <CatalogShelf
+            key={section.id}
+            title={section.title}
+            items={section.items.filter(
+              (item) => filter === 'all' || item.kind === filter,
+            )}
+            onOpen={onOpen}
+            onPlay={onPlay}
+          />
+        ))}
       {feed &&
         !feed.sections.some((section) =>
           section.items.some(
@@ -437,6 +531,40 @@ export function Home({
             artista o esplora un genere.
           </p>
         )}
+      {(filter === 'all' || filter === 'track') && (
+        <section
+          className="feed-section spotify-charts"
+          aria-label="Classifica Spotify"
+        >
+          <h2>Classifica</h2>
+          <p className="muted">
+            Le classifiche reali si aprono su Spotify, con posizioni e data
+            aggiornate dalla fonte.
+          </p>
+          <div className="chart-links">
+            <a
+              href="https://charts.spotify.com/charts/view/regional-it-daily/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <strong>Top Italia</strong>
+              <span>Classifica giornaliera · Spotify ↗</span>
+            </a>
+            <a
+              href="https://charts.spotify.com/charts/view/regional-global-daily/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <strong>Top Global</strong>
+              <span>Classifica giornaliera · Spotify ↗</span>
+            </a>
+          </div>
+          <small className="muted">
+            Spotify può richiedere l’accesso per mostrare la classifica
+            completa.
+          </small>
+        </section>
+      )}
       <section className="feed-section">
         <h2>Segui il tuo umore</h2>
         <div className="genre-grid">
