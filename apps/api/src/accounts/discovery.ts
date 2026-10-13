@@ -10,14 +10,19 @@ export interface ArtistDiscovery {
   artists: CatalogItem[];
   basedOn: string[];
   source: 'ai' | 'related' | 'empty';
+  pending?: boolean;
 }
 /** Cache bounded, verified suggestions; never let model output become catalog IDs. */
 export class ArtistDiscoveryService {
   private cache = new Map<
     string,
-    { until: number; result: Promise<ArtistDiscovery> }
+    { until: number; result: Promise<ArtistDiscovery>; pending: boolean }
   >();
   private active = 0;
+  private controllers = new Set<AbortController>();
+  close() {
+    for (const controller of this.controllers) controller.abort();
+  }
   async get(
     user: string,
     library: LocalLibrary,
@@ -35,40 +40,70 @@ export class ArtistDiscoveryService {
     for (const [id, entry] of this.cache)
       if (entry.until < now) this.cache.delete(id);
     const old = this.cache.get(key);
-    if (old) return old.result;
-    if (this.active >= 1)
-      return this.load(
-        library,
-        seeds,
-        profile.map((a) => a.key),
-        catalog,
-        ai,
-        false,
-      );
-    this.active++;
-    const result = this.load(
-      library,
-      seeds,
-      profile.map((a) => a.key),
-      catalog,
-      ai,
-    ).finally(() => {
-      this.active--;
-    });
+    if (old) {
+      const pending = old.pending;
+      return { ...(await old.result), pending };
+    }
+    const known = profile.map((a) => a.key);
+    const pending = ai.available() && this.active < 1;
+    const entry = {
+      until: now + 3600000,
+      result: this.load(library, seeds, known, catalog, ai, false),
+      pending,
+    };
     if (this.cache.size >= 100)
       this.cache.delete(this.cache.keys().next().value!);
-    const entry = { until: now + 3600000, result };
     this.cache.set(key, entry);
-    void result
-      .then((value) => {
-        if (!value.artists.length) entry.until = Date.now() + 60000;
-        else if (value.source !== 'ai') entry.until = Date.now() + 600000;
-      })
-      .catch(() => {
-        this.cache.delete(key);
-      });
-    return result;
+    if (pending) {
+      this.active++;
+      const controller = new AbortController();
+      this.controllers.add(controller);
+      void entry.result
+        .then(() =>
+          this.load(
+            library,
+            seeds,
+            known,
+            catalog,
+            ai,
+            true,
+            controller.signal,
+          ),
+        )
+        .then((value) => {
+          if (this.cache.get(key) === entry && value.source === 'ai')
+            entry.result = Promise.resolve(value);
+        })
+        .catch(() => {
+          /* Retain the usable related artists. */
+        })
+        .finally(() => {
+          entry.pending = false;
+          this.active--;
+          this.controllers.delete(controller);
+          void entry.result
+            .then((value) => {
+              entry.until =
+                Date.now() +
+                (value.source === 'ai'
+                  ? 3600000
+                  : value.artists.length
+                    ? 600000
+                    : 60000);
+            })
+            .catch(() => this.cache.delete(key));
+        });
+    } else {
+      void entry.result
+        .then((value) => {
+          entry.until = Date.now() + (value.artists.length ? 600000 : 60000);
+        })
+        .catch(() => this.cache.delete(key));
+    }
+    const stillPending = entry.pending;
+    return { ...(await entry.result), pending: stillPending };
   }
+
   private async load(
     library: LocalLibrary,
     seeds: string[],
@@ -76,8 +111,12 @@ export class ArtistDiscoveryService {
     catalog: CatalogService,
     ai: AiPlaylistService,
     useAi = true,
+    background?: AbortSignal,
   ): Promise<ArtistDiscovery> {
-    const signal = AbortSignal.timeout(60000);
+    const signal = AbortSignal.any([
+      AbortSignal.timeout(300000),
+      ...(background ? [background] : []),
+    ]);
     const norm = (s: string) => s.trim().toLocaleLowerCase();
     const excluded = new Set(known);
     const artists = new Map<string, CatalogItem>();
@@ -108,6 +147,8 @@ export class ArtistDiscoveryService {
     } catch {
       /* Related artists provide an explicitly labelled fallback. */
     }
+    if (background?.aborted)
+      return { artists: [], basedOn: seeds, source: 'empty' };
     if (artists.size < 5) {
       const fallbackSignal = AbortSignal.timeout(15000);
       const references = [

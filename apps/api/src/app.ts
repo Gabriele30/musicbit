@@ -57,6 +57,7 @@ export function buildApp(
   });
   registerTrafficControls(app, accounts);
   const artistDiscovery = new ArtistDiscoveryService();
+  app.addHook('onClose', async () => artistDiscovery.close());
   registerCatalogRoutes(app, catalog, provider.id);
   const { requireUser } = registerAccountRoutes(app, accounts);
   app.get('/api/me/discovery/artists', async (request) => {

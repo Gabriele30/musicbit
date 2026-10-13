@@ -139,6 +139,7 @@ export function Home({
     artists: CatalogItem[];
     basedOn: string[];
     source: string;
+    pending?: boolean;
   }>();
   const [discoveryLoading, setDiscoveryLoading] = useState(false);
   const [discoveryError, setDiscoveryError] = useState(false);
@@ -177,27 +178,43 @@ export function Home({
     const controller = new AbortController();
     setDiscoveryLoading(true);
     setDiscoveryError(false);
-    void accountRequest<{
-      artists: CatalogItem[];
-      basedOn: string[];
-      source: string;
-    }>('/api/me/discovery/artists', undefined, 'GET', controller.signal, 95000)
-      .then((data) => {
-        if (!controller.signal.aborted)
-          setArtistDiscovery({
-            ...data,
-            artists: data.artists.filter(
-              (i) => isCatalogItem(i) && i.kind === 'artist',
-            ),
-          });
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setDiscoveryError(true);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setDiscoveryLoading(false);
-      });
-    return () => controller.abort();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const update = () => {
+      void accountRequest<{
+        artists: CatalogItem[];
+        basedOn: string[];
+        source: string;
+        pending?: boolean;
+      }>(
+        '/api/me/discovery/artists',
+        undefined,
+        'GET',
+        controller.signal,
+        40000,
+      )
+        .then((data) => {
+          if (!controller.signal.aborted)
+            setArtistDiscovery({
+              ...data,
+              artists: data.artists.filter(
+                (i) => isCatalogItem(i) && i.kind === 'artist',
+              ),
+            });
+          if (!controller.signal.aborted && data.pending)
+            timer = setTimeout(update, 15000);
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) setDiscoveryError(true);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setDiscoveryLoading(false);
+        });
+    };
+    update();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
   }, [active, accountId, syncStatus, refresh, profileKey]);
   const hasListeningProfile =
     library.favorites.length > 0 ||
@@ -452,6 +469,8 @@ export function Home({
                   ? 'Suggeriti dall’AI e verificati nel catalogo'
                   : 'Artisti correlati ai tuoi ascolti'}{' '}
                 · Da {artistDiscovery.basedOn.slice(0, 3).join(', ')}
+                {artistDiscovery.pending &&
+                  ' · L’AI sta affinando i suggerimenti…'}
               </p>
             ) : (
               <p className="muted" role="status">

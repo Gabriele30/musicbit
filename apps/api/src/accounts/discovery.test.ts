@@ -86,6 +86,12 @@ it('verifies AI artist names, respects blocked artists and caches each account s
     })),
   });
   const service = new ArtistDiscoveryService();
+  await service.get('first-account', library, catalog, ai);
+  await vi.waitFor(async () =>
+    expect(
+      (await service.get('first-account', library, catalog, ai)).source,
+    ).toBe('ai'),
+  );
   const result = await service.get('first-account', library, catalog, ai);
   expect(result).toMatchObject({
     source: 'ai',
@@ -102,8 +108,14 @@ it('verifies AI artist names, respects blocked artists and caches each account s
   await service.get('first-account', library, catalog, ai);
   expect(plan).toHaveBeenCalledOnce();
   await service.get('second-account', library, catalog, ai);
+  await vi.waitFor(async () =>
+    expect(
+      (await service.get('second-account', library, catalog, ai)).source,
+    ).toBe('ai'),
+  );
   expect(plan).toHaveBeenCalledTimes(2);
   catalog.close();
+  service.close();
 });
 
 it('does not call the AI before an account has a listening profile', async () => {
@@ -117,5 +129,66 @@ it('does not call the AI before an account has a listening profile', async () =>
   );
   expect(result).toEqual({ artists: [], basedOn: [], source: 'empty' });
   expect(plan).not.toHaveBeenCalled();
+  catalog.close();
+});
+it('returns related artists before a slow AI resolves and publishes verified AI results later', async () => {
+  const artist: CatalogItem = {
+    id: 'UCabcdefghijklmnopqrstuv',
+    provider: 'youtube',
+    kind: 'artist',
+    title: 'Related Artist',
+    artist: 'Related Artist',
+    sourceUrl: 'https://music.youtube.com/channel/UCabcdefghijklmnopqrstuv',
+    artworkUrl: 'https://lh3.googleusercontent.com/portrait',
+    playback: { available: false },
+  };
+  const library = emptyLibrary();
+  library.followedArtists = [
+    { ...artist, id: 'UC1234567890123456789012', title: 'Seed Artist' },
+  ];
+  let complete!: (value: {
+    name: string;
+    description: string;
+    songs: { title: string; artist: string }[];
+  }) => void;
+  const ai = new AiPlaylistService(
+    () =>
+      new Promise((resolve) => {
+        complete = resolve;
+      }),
+  );
+  const catalog = new CatalogService({
+    id: 'youtube',
+    search: async () => [
+      { ...artist, id: 'UC9999999999999999999999', title: 'AI Artist' },
+    ],
+    details: async () => ({
+      ...library.followedArtists[0]!,
+      relatedArtists: [artist],
+    }),
+  });
+  const service = new ArtistDiscoveryService();
+  const initial = await service.get('account', library, catalog, ai);
+  expect(initial).toMatchObject({
+    source: 'related',
+    pending: true,
+    artists: [{ title: 'Related Artist' }],
+  });
+  await vi.waitFor(() => expect(complete).toBeTypeOf('function'));
+  complete({
+    name: 'AI',
+    description: 'Artists',
+    songs: [{ title: 'Song', artist: 'AI Artist' }],
+  });
+  await vi.waitFor(async () =>
+    expect(await service.get('account', library, catalog, ai)).toMatchObject({
+      source: 'ai',
+      pending: false,
+      artists: expect.arrayContaining([
+        expect.objectContaining({ title: 'AI Artist' }),
+      ]),
+    }),
+  );
+  service.close();
   catalog.close();
 });
