@@ -184,14 +184,31 @@ describe('YouTube catalog provider with deterministic metadata mocks', () => {
         strapline_text_one: { toString: () => 'Artist' },
         thumbnail: { contents: [thumbnail] },
       },
-      contents: [song],
+      contents: [
+        {
+          ...song,
+          thumbnails: [
+            {
+              ...thumbnail,
+              url: 'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg',
+            },
+          ],
+        },
+      ],
       sections: ['unrelated recommendations'],
     }));
     const detail = await provider.details('album', 'MPRalbum123', abort());
     expect(detail).toMatchObject({
       title: 'Album title',
       artist: 'Artist',
-      tracks: [{ id }],
+      tracks: [
+        {
+          id,
+          album: 'Album title',
+          albumId: 'MPRalbum123',
+          artworkUrl: thumbnail.url,
+        },
+      ],
     });
     expect(JSON.stringify(detail)).not.toContain('recommendations');
     client.details = vi.fn(async () => undefined);

@@ -106,6 +106,7 @@ describe('persistent player', () => {
     const source = audio.src;
     expect(source).toMatch(/^\/api\/continuous\/[a-f0-9-]{36}\/index.m3u8$/);
     expect(audio.play).toHaveBeenCalledOnce();
+    audio.emit('loadedmetadata');
     await vi.waitFor(() => expect(player.getSnapshot().duration).toBe(5));
     audio.emit('playing');
     audio.currentTime = 5.25;
@@ -136,6 +137,69 @@ describe('persistent player', () => {
     expect(audio.currentTime).toBe(7);
     expect(player.getSnapshot().position).toBe(2);
     expect(player.getDelivery()).toBe('hls');
+  });
+  it('ignores the previous HLS clock until a manual selection has finished seeking', async () => {
+    const { player, audio } = setup();
+    const queue = tracks.map((track, index) => ({
+      ...track,
+      id: String(index).padStart(11, '0'),
+      audioUrl: `/api/audio/${String(index).padStart(11, '0')}`,
+    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              complete: true,
+              tracks: queue.map((track, index) => ({
+                index,
+                id: track.id,
+                start: index * 120,
+                duration: 120,
+              })),
+            }),
+          ),
+      ),
+    );
+    player.setContinuousPlayback(true);
+    player.playCollection(queue);
+    audio.emit('loadedmetadata');
+    await vi.waitFor(() => expect(player.getSnapshot().duration).toBe(120));
+    await vi.waitFor(() => {
+      player.seek(119);
+      expect(player.getSnapshot().position).toBe(119);
+    });
+    audio.emit('playing');
+    let clock = 119;
+    let requested = 119;
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get: () => clock,
+      set: (value: number) => {
+        requested = value;
+      },
+    });
+    player.select(1);
+    expect(requested).toBe(120);
+    audio.emit('timeupdate');
+    audio.emit('ended');
+    expect(player.getSnapshot()).toMatchObject({ index: 1, position: 0 });
+    clock = 120;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot()).toMatchObject({ index: 1, position: 0 });
+    // A different collection gets a new source, even if WebKit retains the old clock.
+    clock = 359;
+    player.playCollection([queue[1]!]);
+    audio.emit('durationchange');
+    expect(player.getSnapshot()).toMatchObject({ index: 0, position: 0 });
+    audio.emit('loadedmetadata');
+    expect(requested).toBe(0);
+    audio.emit('timeupdate');
+    expect(player.getSnapshot()).toMatchObject({ index: 0, position: 0 });
+    clock = 0;
+    audio.emit('playing');
+    expect(player.getSnapshot()).toMatchObject({ index: 0, position: 0 });
   });
   it('cancels pending CarPlay skips synchronously and ignores stale source events and rejections', async () => {
     const handlers = new Map<string, MediaSessionActionHandler>();

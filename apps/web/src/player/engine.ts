@@ -5,7 +5,7 @@ import { UpcomingConnections } from './upcoming-connections';
 import { PlaybackAudioSession } from './audio-session';
 import { ContinuousPlayback } from './continuous';
 
-export const PLAYBACK_REVISION = 'native-continuous-hls-v5';
+export const PLAYBACK_REVISION = 'native-continuous-hls-v6';
 
 export type PlaybackStatus =
   | 'idle'
@@ -142,6 +142,7 @@ export class PlayerEngine {
   private observer: PerformanceObserver | undefined;
   private resumePosition = 0;
   private pendingSeek: number | undefined;
+  private pendingHlsSeek: number | undefined;
   private durationRequest: AbortController | undefined;
   private resolvedDurations = new Map<string, number>();
   private pendingNativeProgress: number | undefined;
@@ -305,12 +306,12 @@ export class PlayerEngine {
     on('seeking', () => {});
     on('seeked', () => {});
     on('loadedmetadata', () => {
-      this.syncPosition();
-      if (this.pendingSeek !== undefined && this.state.duration > 0) {
+      if (this.pendingSeek !== undefined) {
         const position = this.pendingSeek;
         this.pendingSeek = undefined;
-        this.seek(Math.min(position, Math.max(0, this.state.duration - 0.1)));
+        this.audio.currentTime = position;
       }
+      this.syncPosition();
     });
     on('durationchange', () => this.syncPosition());
     on('timeupdate', () => this.syncPosition());
@@ -357,6 +358,11 @@ export class PlayerEngine {
       );
     });
     on('ended', () => {
+      if (
+        this.continuous.active(this.source) &&
+        (this.pendingSeek !== undefined || this.pendingHlsSeek !== undefined)
+      )
+        return;
       if (this.continuous.active(this.source)) this.syncPosition();
       if (
         !audio.ended ||
@@ -601,6 +607,8 @@ export class PlayerEngine {
     this.log(`prepare:${outcome}`);
   }
   private releaseSource() {
+    this.pendingSeek = undefined;
+    this.pendingHlsSeek = undefined;
     this.continuous.clear();
     this.audio.pause();
     this.source = undefined;
@@ -830,6 +838,15 @@ export class PlayerEngine {
       this.source !== selectedSource ||
       (!hlsTarget && index !== this.state.index) ||
       this.state.status === 'error';
+    // Safari can still expose the old clock while source selection or a seek
+    // is pending. Do not map that clock onto the newly selected HLS track.
+    this.pendingHlsSeek = hlsSource
+      ? load
+        ? resumeAt
+        : hlsSeek
+          ? hlsTarget!.start + resumeAt
+          : undefined
+      : undefined;
     this.pendingNativeProgress =
       hlsTarget && index !== this.state.index
         ? hlsTarget.start + resumeAt
@@ -886,7 +903,7 @@ export class PlayerEngine {
     this.updateMetadata();
     this.audio.preload = 'auto';
     if (load) {
-      this.pendingSeek = resumeAt > 0 ? resumeAt : undefined;
+      this.pendingSeek = hlsSource || resumeAt > 0 ? resumeAt : undefined;
       this.source = selectedSource;
       const requestIssuedAt = this.now();
       this.patch({
@@ -1019,6 +1036,16 @@ export class PlayerEngine {
 
   private syncPosition() {
     if (this.continuous.active(this.source)) {
+      if (this.pendingSeek !== undefined) return;
+      if (this.pendingHlsSeek !== undefined) {
+        if (
+          this.audio.seeking ||
+          Math.abs(this.audio.currentTime - this.pendingHlsSeek) > 1 ||
+          this.continuous.at(this.audio.currentTime)?.index !== this.state.index
+        )
+          return;
+        this.pendingHlsSeek = undefined;
+      }
       const additions = this.continuous.appended(this.state.queue);
       if (
         additions.length &&

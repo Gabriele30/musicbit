@@ -358,6 +358,12 @@ export class YouTubeCatalogProvider implements MusicProvider, CatalogProvider {
               .slice(0, 100)
               .map((node) => normalize(node, 'track'))
               .filter((track): track is CatalogItem => !!track)
+              .map((track) => ({
+                ...track,
+                album: item.title,
+                albumId: item.id,
+                artworkUrl: item.artworkUrl || track.artworkUrl,
+              }))
           : kind === 'artist'
             ? artistItems.filter((entry) => entry.kind === 'track')
             : undefined,

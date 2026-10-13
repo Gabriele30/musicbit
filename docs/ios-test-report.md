@@ -1,5 +1,18 @@
 # Registro prove fisiche
 
+## Selezione manuale e copertine album — revisione v6
+
+L'utente riferisce che la riproduzione continua ora sembra funzionare; resta
+da confermare una prova prolungata con schermo bloccato e CarPlay. Segnala
+inoltre che scegliendo un altro brano vicino alla fine, la nuova selezione
+eredita la posizione precedente. La revisione `native-continuous-hls-v6`
+imposta esplicitamente la posizione iniziale alla ricezione dei metadati della
+nuova sorgente e ignora il vecchio clock HLS mentre il salto è in corso.
+Il test riproduce un seek asincrono a un secondo dal confine e un cambio
+di raccolta con il vecchio clock ancora esposto. La correzione delle copertine
+assegna alle tracce di un album l'immagine e i riferimenti dell'album stesso.
+La verifica automatica non sostituisce la conferma su iPhone fisico.
+
 ## Flusso unico HLS — nuova segnalazione del 13 ottobre 2026
 
 L'utente conferma che il cambio silenzioso a schermo bloccato persiste dopo v4,
