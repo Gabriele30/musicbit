@@ -20,6 +20,13 @@ Controlli locali completati: `pnpm check` con 267 test e `pnpm test:e2e` con
 da richieste di segmenti, senza un nuovo comando della pagina. I test desktop
 del percorso progressivo restano distinti dalla verifica HLS su iPhone.
 
+Verifica sul server distribuito: disponibilità HLS attiva, due brani reali
+preparati in un manifesto da 175 segmenti e una discontinuità. Durate effettive
+187,651571 e 160,240907 secondi. La decodifica di sei secondi attraverso il
+confine completa 1.058.400 byte PCM stereo a 44,1 kHz, uscita FFmpeg 0, nessuna
+riga di errore, RMS 554 prima e 2.446 dopo il confine. È evidenza di audio nel
+flusso generato dal server, non di uscita udibile dall'iPhone bloccato.
+
 ## Skip rapidi da CarPlay — 13 ottobre 2026
 
 L'utente precisa che il difetto si ripresenta premendo rapidamente skip dai
