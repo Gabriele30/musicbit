@@ -258,3 +258,4 @@ export * from './youtube-playback.js';
 export * from './library.js';
 export * from './recommendations.js';
 export * from './experience.js';
+export * from './charts.js';

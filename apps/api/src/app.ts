@@ -9,6 +9,7 @@ import { isCatalogId, personalRecommendations } from '@musicbit/shared';
 import { DemoMusicProvider } from './providers/demo.js';
 import { CatalogService } from './catalog/service.js';
 import { registerCatalogRoutes } from './catalog/routes.js';
+import { registerSpotifyCharts } from './catalog/charts.js';
 import { CatalogError } from './catalog/errors.js';
 import { AudioStreamService } from './audio/stream-service.js';
 import { registerAudioRoutes } from './audio/routes.js';
@@ -59,6 +60,7 @@ export function buildApp(
   const artistDiscovery = new ArtistDiscoveryService();
   app.addHook('onClose', async () => artistDiscovery.close());
   registerCatalogRoutes(app, catalog, provider.id);
+  registerSpotifyCharts(app);
   const { requireUser } = registerAccountRoutes(app, accounts);
   app.get('/api/me/discovery/artists', async (request) => {
     const user = requireUser(request);

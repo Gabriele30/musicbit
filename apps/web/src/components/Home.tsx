@@ -16,6 +16,7 @@ import { Icon } from './Icon';
 import { CoverArt } from './CoverArt';
 import { useAudioWarmup } from '../player/use-audio-warmup';
 import { quickPicks } from '../home-personalization';
+import { Charts } from './Charts';
 
 export function CatalogShelf({
   title,
@@ -551,38 +552,10 @@ export function Home({
           </p>
         )}
       {(filter === 'all' || filter === 'track') && (
-        <section
-          className="feed-section spotify-charts"
-          aria-label="Classifica Spotify"
-        >
-          <h2>Classifica</h2>
-          <p className="muted">
-            Le classifiche reali si aprono su Spotify, con posizioni e data
-            aggiornate dalla fonte.
-          </p>
-          <div className="chart-links">
-            <a
-              href="https://charts.spotify.com/charts/view/regional-it-daily/latest"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <strong>Top Italia</strong>
-              <span>Classifica giornaliera · Spotify ↗</span>
-            </a>
-            <a
-              href="https://charts.spotify.com/charts/view/regional-global-daily/latest"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <strong>Top Global</strong>
-              <span>Classifica giornaliera · Spotify ↗</span>
-            </a>
-          </div>
-          <small className="muted">
-            Spotify può richiedere l’accesso per mostrare la classifica
-            completa.
-          </small>
-        </section>
+        <Charts
+          active={active}
+          onSearch={(query) => onSearch(query, 'track')}
+        />
       )}
       <section className="feed-section">
         <h2>Segui il tuo umore</h2>

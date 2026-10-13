@@ -82,6 +82,26 @@ test('personal home replaces generic quick picks and Wrapped fits narrow iPhones
     artworkUrl: 'https://lh3.googleusercontent.com/test-portrait',
     playback: { available: false },
   };
+  await page.route('**/api/charts/spotify?*', (r) => {
+    const market = new URL(r.request().url()).searchParams.get('market');
+    return r.fulfill({
+      json: {
+        market,
+        date: '2026-10-12',
+        sourceUrl: `https://kworb.net/spotify/country/${market}_daily.html`,
+        officialUrl: 'https://charts.spotify.com',
+        stale: false,
+        entries: Array.from({ length: 10 }, (_, i) => ({
+          position: i + 1,
+          change: '=',
+          title: `${market === 'it' ? 'Italy' : 'Global'} chart song ${i + 1}`,
+          artist: 'Chart Artist',
+          streams: 123456,
+          spotifyUrl: `https://open.spotify.com/track/${String(i).padStart(22, '0')}`,
+        })),
+      },
+    });
+  });
   await page.route(artist.artworkUrl, (r) =>
     r.fulfill({
       contentType: 'image/svg+xml',
@@ -155,6 +175,23 @@ test('personal home replaces generic quick picks and Wrapped fits narrow iPhones
   ).toHaveAttribute(
     'href',
     'https://charts.spotify.com/charts/view/regional-it-daily/latest',
+  );
+  const ranking = page.getByLabel('Classifica Spotify');
+  await expect(
+    ranking.getByText('Italy chart song 1', { exact: true }),
+  ).toBeVisible();
+  await ranking.getByRole('button', { name: 'Global', exact: true }).click();
+  await expect(
+    ranking.getByText('Global chart song 1', { exact: true }),
+  ).toBeVisible();
+  await ranking
+    .getByRole('button', {
+      name: 'Cerca in MusicBit Global chart song 1 di Chart Artist',
+      exact: true,
+    })
+    .click();
+  await expect(page.getByLabel('Cerca nel catalogo')).toHaveValue(
+    'Global chart song 1 Chart Artist',
   );
   const year = new Date().getUTCFullYear();
   await page.route('**/api/me/stats?*', (r) =>

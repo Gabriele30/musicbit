@@ -9,11 +9,16 @@ pausa e mantiene il seek iniziale fino all'avvio nativo, riapplicandolo a
 I test coprono A → B → A, la riselezione dello stesso brano e il ripristino
 di un clock vecchio dopo `loadedmetadata`. La conferma su iPhone resta aperta.
 
-Controlli completati: `pnpm check` (274 test) e `pnpm test:e2e` (86 prove,
+Controlli completati: `pnpm check` (276 test) e `pnpm test:e2e` (86 prove,
 Chromium e WebKit mobile). Il caso Home personalizzata verifica il profilo
-dell'account, il ritratto dell'artista e i collegamenti alle classifiche
-ufficiali. Wrapped è verificato a 320, 375, 390 e 430 px con dodici mesi e
+dell'account, il ritratto dell'artista, le classifiche datate Italia/Global
+e la ricerca di un brano dalla classifica. Wrapped è verificato a 320, 375, 390 e 430 px con dodici mesi e
 titoli lunghi, senza overflow della pagina o del grafico.
+
+Verifica AI sul server: la Home risponde in 1,7 secondi con sette artisti
+correlati e sette immagini; il lavoro in background completa in circa
+77 secondi, pubblicando otto artisti verificati con otto immagini e
+`source: ai`. La richiesta successiva usa la cache in circa 25 ms.
 
 ## Selezione manuale e copertine album — revisione v6
 

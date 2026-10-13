@@ -32,6 +32,7 @@ export default defineConfig({
         AUTH_REGISTRATION: 'true',
         AUTH_COOKIE_SECURE: 'false',
         MUSICBIT_REQUIRE_ACCOUNT: 'false',
+        MUSICBIT_CHARTS_ENABLED: 'false',
       },
     },
     {

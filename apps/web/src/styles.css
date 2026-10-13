@@ -3032,6 +3032,65 @@ main:focus {
   line-height: 1.5;
   color: var(--muted);
 }
+.chart-tracks {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+.chart-tracks li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid #30372f;
+}
+.chart-position {
+  width: 28px;
+  flex-shrink: 0;
+  color: #d6f68a;
+  text-align: center;
+  font-weight: 700;
+}
+.chart-tracks button {
+  min-width: 0;
+  flex: 1;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-align: left;
+}
+.chart-tracks button > span {
+  min-width: 0;
+  flex: 1;
+}
+.chart-tracks strong {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+.chart-tracks small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.chart-tracks a {
+  padding: 12px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.chart-tracks svg {
+  flex-shrink: 0;
+}
 .wrapped-ranking,
 .taste-artists,
 .taste-history {
@@ -3391,5 +3450,8 @@ main:focus {
   }
   .chart-links a {
     padding: 16px;
+  }
+  .chart-tracks {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
