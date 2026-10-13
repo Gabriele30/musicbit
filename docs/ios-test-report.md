@@ -9,7 +9,7 @@ pausa e mantiene il seek iniziale fino all'avvio nativo, riapplicandolo a
 I test coprono A → B → A, la riselezione dello stesso brano e il ripristino
 di un clock vecchio dopo `loadedmetadata`. La conferma su iPhone resta aperta.
 
-Controlli completati: `pnpm check` (272 test) e `pnpm test:e2e` (86 prove,
+Controlli completati: `pnpm check` (273 test) e `pnpm test:e2e` (86 prove,
 Chromium e WebKit mobile). Il caso Home personalizzata verifica il profilo
 dell'account, il ritratto dell'artista e i collegamenti alle classifiche
 ufficiali. Wrapped è verificato a 320, 375, 390 e 430 px con dodici mesi e

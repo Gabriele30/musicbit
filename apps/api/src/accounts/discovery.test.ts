@@ -1,8 +1,52 @@
-import { expect, it, vi } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { emptyLibrary, emptyTaste, type CatalogItem } from '@musicbit/shared';
 import { ArtistDiscoveryService } from './discovery.js';
 import { AiPlaylistService } from './ai-playlists.js';
 import { CatalogService } from '../catalog/service.js';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
+it('uses a short artist-only request for the local model and validates its output', async () => {
+  vi.stubEnv('AI_PROVIDER', 'ollama');
+  vi.stubEnv('OLLAMA_BASE_URL', 'http://localhost:11434');
+  const request = vi.fn(
+    async () =>
+      new Response(
+        JSON.stringify({
+          done: true,
+          response: JSON.stringify({ artists: ['New Artist'] }),
+        }),
+      ),
+  );
+  vi.stubGlobal('fetch', request);
+  expect(
+    await new AiPlaylistService().discoveryArtists(
+      ['Seed Artist'],
+      new AbortController().signal,
+    ),
+  ).toEqual(['New Artist']);
+  const options = request.mock.calls[0] as unknown as [URL, RequestInit];
+  expect(JSON.parse(String(options[1].body))).toMatchObject({
+    options: { num_ctx: 1024, num_predict: 128 },
+    prompt: JSON.stringify({ artists: ['Seed Artist'], count: 5 }),
+  });
+  request.mockResolvedValueOnce(
+    new Response(
+      JSON.stringify({
+        done: true,
+        response: JSON.stringify({ artists: [42] }),
+      }),
+    ),
+  );
+  await expect(
+    new AiPlaylistService().discoveryArtists(
+      ['Seed Artist'],
+      new AbortController().signal,
+    ),
+  ).rejects.toThrow('Invalid artist names');
+});
 
 it('verifies AI artist names, respects blocked artists and caches each account separately', async () => {
   const artist: CatalogItem = {
