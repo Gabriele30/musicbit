@@ -261,11 +261,19 @@ test('automatically advances after the real ended event', async ({ page }) => {
   ).toBeVisible();
 });
 
-test('a fully prefetched unheard song starts on native ended even when its upstream becomes unavailable', async ({
+test('a signed-in user advances to a prefetched unheard song when its upstream becomes unavailable', async ({
   page,
 }, info) => {
   const id =
     info.project.name === 'webkit-mobile' ? 'prefetch002' : 'prefetch001';
+  const registered = await page.request.post('/api/auth/register', {
+    headers: { 'x-musicbit-request': '1' },
+    data: {
+      username: `handoff_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`,
+      password: 'test-password-123',
+    },
+  });
+  expect(registered.ok()).toBe(true);
   await page.request.post(`/__test_prefetch/reset/${id}`);
   await page.route('**/api/tracks', async (route) => {
     const response = await route.fetch();

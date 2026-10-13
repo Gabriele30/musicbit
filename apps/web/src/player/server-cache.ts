@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import type { AudioCacheStatus } from '@musicbit/shared';
 import { accountRequest } from '../account';
 import { createClientId } from '../client-id';
 import type { PlayerEngine } from './engine';
@@ -41,7 +40,6 @@ export function cacheWindow(state: ReturnType<PlayerEngine['getSnapshot']>) {
 export function useServerCache(player: PlayerEngine, accountId?: string) {
   useEffect(() => {
     if (!accountId) return;
-    player.setServerCache(true);
     const controller = new AbortController(),
       device = createClientId();
     let last = '',
@@ -60,14 +58,13 @@ export function useServerCache(player: PlayerEngine, accountId?: string) {
         return;
       sending = true;
       try {
-        const result = await accountRequest<AudioCacheStatus>(
+        await accountRequest(
           '/api/me/audio-cache',
           { device, ids },
           'POST',
           controller.signal,
         );
         if (disposed) return;
-        player.setServerCache(result.enabled);
         last = key;
       } catch {
         retryAfter = Date.now() + 15000;
@@ -90,7 +87,6 @@ export function useServerCache(player: PlayerEngine, accountId?: string) {
       controller.abort();
       clearInterval(heartbeat);
       unsubscribe();
-      player.setServerCache(false);
     };
   }, [player, accountId]);
 }

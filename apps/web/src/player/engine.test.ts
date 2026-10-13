@@ -731,6 +731,9 @@ describe('persistent player', () => {
         },
       ],
     });
+    expect(session.playbackState).toBe('paused');
+    audio.currentTime = 0.25;
+    audio.emit('timeupdate');
     expect(session.playbackState).toBe('playing');
     audio.currentTime = 119;
     audio.emit('timeupdate');
@@ -738,7 +741,17 @@ describe('persistent player', () => {
     expect(player.getSnapshot().index).toBe(1);
     expect(session.playbackState).toBe('paused');
     expect(session.setPositionState).toHaveBeenLastCalledWith();
+    audio.emit('loadedmetadata');
+    audio.emit('durationchange');
+    audio.emit('timeupdate');
+    expect(session.playbackState).toBe('paused');
+    expect(session.setPositionState).toHaveBeenLastCalledWith();
+    audio.currentTime = 0;
     audio.emit('playing');
+    expect(session.playbackState).toBe('paused');
+    expect(session.setPositionState).toHaveBeenLastCalledWith();
+    audio.currentTime = 0.25;
+    audio.emit('timeupdate');
     expect(session.playbackState).toBe('playing');
     audio.emit('waiting');
     expect(session.playbackState).toBe('paused');

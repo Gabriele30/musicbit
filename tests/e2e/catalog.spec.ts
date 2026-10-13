@@ -77,7 +77,7 @@ test('search highlights the matching artist, presents entity grids and supports 
   await expect(page.locator('audio')).toHaveCount(1);
 });
 
-test('authenticated queue preparation sends a server hint without downloading the upcoming song through the phone', async ({
+test('authenticated queue prepares the immediate successor in the browser alongside server cache hints', async ({
   page,
 }) => {
   await mocks(page);
@@ -120,6 +120,19 @@ test('authenticated queue preparation sends a server hint without downloading th
     }),
   );
   const requests: string[] = [];
+  await page.route(`**${next.audioUrl}`, (route) =>
+    route.fulfill({
+      status: 206,
+      headers: {
+        'Content-Type': 'audio/mp4',
+        'Content-Length': '3',
+        'Content-Range': 'bytes 0-2/3',
+        'X-MusicBit-Audio-Cache': 'hit',
+        'X-MusicBit-Audio-Storage': 'disk',
+      },
+      body: Buffer.from([1, 2, 3]),
+    }),
+  );
   page.on('request', (request) => {
     if (new URL(request.url()).pathname === next.audioUrl)
       requests.push(request.url());
@@ -144,7 +157,7 @@ test('authenticated queue preparation sends a server hint without downloading th
   await expect
     .poll(() => plans.some((ids) => ids.includes(next.id)))
     .toBe(true);
-  expect(requests).toHaveLength(0);
+  await expect.poll(() => requests.length).toBe(1);
   await expect(page.locator('audio')).toHaveCount(1);
 });
 

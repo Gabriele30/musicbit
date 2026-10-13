@@ -3,7 +3,7 @@ import { shuffled } from './random';
 import { UpcomingAudio } from './upcoming-audio';
 import { PlaybackAudioSession } from './audio-session';
 
-export const PLAYBACK_REVISION = 'native-session-handoff-v2';
+export const PLAYBACK_REVISION = 'native-session-handoff-v3-prime';
 
 export type PlaybackStatus =
   | 'idle'
@@ -142,18 +142,13 @@ export class PlayerEngine {
   private pendingSeek: number | undefined;
   private durationRequest: AbortController | undefined;
   private resolvedDurations = new Map<string, number>();
+  private pendingNativeProgress: number | undefined;
   private upcomingAudio = new UpcomingAudio((event) =>
     this.log(`upcoming:${event}`),
   );
-  private serverCache = false;
-  setServerCache(enabled: boolean) {
-    this.serverCache = enabled;
-    if (enabled) this.upcomingAudio.clear();
-    else this.prepareUpcoming();
-  }
-
   private prepareUpcoming() {
-    if (this.serverCache) return;
+    // Server disk caching does not prepare the phone's next HTTP connection.
+    // Keep the immediate successor warm in the browser as well, including accounts.
     if (this.state.status !== 'playing' || this.audio.paused) return;
     const next =
       this.state.repeat === 'one'
@@ -261,7 +256,7 @@ export class PlayerEngine {
       this.endWaiting();
       this.mark('playingAt');
       this.patch({ status: 'playing', error: null });
-      this.setPlaybackState('playing');
+      this.syncPosition();
       this.prepareUpcoming();
     });
     on('pause', () => {
@@ -746,6 +741,7 @@ export class PlayerEngine {
       this.source !== track.audioUrl ||
       index !== this.state.index ||
       this.state.status === 'error';
+    this.pendingNativeProgress = load ? resumeAt : this.audio.currentTime;
     const attempt: PlaybackAttempt = {
       id: ++this.attemptId,
       trackId: track.id,
@@ -796,7 +792,7 @@ export class PlayerEngine {
           item.id === attempt.id ? { ...item, requestIssuedAt } : item,
         ),
       });
-      // Keep native HTTP playback; a prefetched song is served from server RAM.
+      // Keep native HTTP playback; a prefetched song can come from server RAM or disk.
       this.upcomingAudio.clear();
       this.audio.src = track.audioUrl;
       // src assignment already starts native resource selection. An explicit
@@ -804,18 +800,23 @@ export class PlayerEngine {
     } else if (this.audio.ended || restart) this.audio.currentTime = 0;
     // Keep play in the synchronous user gesture stack; catch failures afterwards.
     try {
-      void this.audio.play().catch((error: unknown) => {
-        if (token !== this.command) return; // Superseded rapid tap / pause.
-        const name =
-          error && typeof error === 'object' && 'name' in error
-            ? error.name
-            : '';
-        this.fail(
-          name === 'NotAllowedError'
-            ? 'Il browser richiede un tocco sul pulsante Play per avviare l’audio.'
-            : 'Riproduzione non riuscita. Controlla la connessione e tocca Riprova.',
-        );
-      });
+      void this.audio.play().then(
+        () => {
+          if (token === this.command) this.log('play:resolved');
+        },
+        (error: unknown) => {
+          if (token !== this.command) return; // Superseded rapid tap / pause.
+          const name =
+            error && typeof error === 'object' && 'name' in error
+              ? error.name
+              : '';
+          this.fail(
+            name === 'NotAllowedError'
+              ? 'Il browser richiede un tocco sul pulsante Play per avviare l’audio.'
+              : 'Riproduzione non riuscita. Controlla la connessione e tocca Riprova.',
+          );
+        },
+      );
     } catch {
       this.fail('Impossibile avviare l’audio. Tocca Riprova.');
     }
@@ -952,6 +953,24 @@ export class PlayerEngine {
       return;
     }
 
+    if (!['playing', 'paused', 'ended'].includes(this.state.status)) {
+      this.clearPositionState();
+      return;
+    }
+    if (this.state.status === 'playing') {
+      // A fulfilled play promise or an early playing event is not clock progress.
+      // Keep the system timeline paused until this source actually advances.
+      if (
+        this.pendingNativeProgress !== undefined &&
+        currentPosition <= this.pendingNativeProgress + 0.01
+      ) {
+        this.setPlaybackState('paused');
+        this.clearPositionState();
+        return;
+      }
+      this.pendingNativeProgress = undefined;
+      this.setPlaybackState('playing');
+    }
     if (duration > 0 && typeof this.session?.setPositionState === 'function') {
       try {
         this.session.setPositionState({

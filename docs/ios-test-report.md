@@ -1,5 +1,26 @@
 # Registro prove fisiche
 
+## Nuova segnalazione del 13 ottobre 2026 — cambio silenzioso
+
+L'utente riferisce nuovamente il passaggio al brano successivo con tempo in
+avanzamento sulla schermata di blocco, senza audio. Allo sblocco il brano parte
+da zero. La precedente conferma non valida quindi la build con cache su disco.
+
+La revisione `native-session-handoff-v3-prime` rimuove la disattivazione del
+prefetch del prossimo brano nel browser introdotta dalla cache per account.
+Restano i dieci download sul server, mentre una sola sorgente successiva viene
+preparata anche attraverso il telefono. È una regressione individuata nel codice
+e una possibile spiegazione della ricomparsa; manca la conferma causale fisica.
+Il player conserva il nodo audio, la chiamata sincrona a play e la categoria
+playback. Gli eventi di metadati/caricamento non ripubblicano la posizione Media
+Session fino all'avanzamento effettivo di currentTime dopo playing; la diagnostica registra anche la risoluzione della
+promessa play senza interpretarla come prova di suono. La verifica su iPhone
+bloccato dopo l'aggiornamento resta da raccogliere.
+
+Un precedente [bug WebKit sul cambio sorgente in background](https://bugs.webkit.org/show_bug.cgi?id=229688)
+descrive una classe di difetti simile; non dimostra un bug nella versione iOS
+attuale né che questa modifica risolva la segnalazione.
+
 ## Segnalazione del 12 ottobre 2026 — coda a schermo bloccato
 
 L'utente riferisce avvii lenti sul server Tailscale e mancato passaggio automatico
