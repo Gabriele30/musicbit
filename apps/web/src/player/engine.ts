@@ -5,7 +5,7 @@ import { UpcomingConnections } from './upcoming-connections';
 import { PlaybackAudioSession } from './audio-session';
 import { ContinuousPlayback } from './continuous';
 
-export const PLAYBACK_REVISION = 'native-continuous-hls-v7';
+export const PLAYBACK_REVISION = 'native-continuous-hls-v8';
 
 export type PlaybackStatus =
   | 'idle'
@@ -141,14 +141,19 @@ export class PlayerEngine {
   private deadline: ReturnType<typeof setTimeout> | undefined;
   private observer: PerformanceObserver | undefined;
   private resumePosition = 0;
-  private pendingSeek: number | undefined;
-  private pendingHlsSeek: number | undefined;
+  private pendingSeek?: {
+    target: number;
+    awaitingMetadata: boolean;
+    issuedAt?: number;
+    corrected?: boolean;
+  };
   private durationRequest: AbortController | undefined;
   private resolvedDurations = new Map<string, number>();
   private pendingNativeProgress: number | undefined;
   private continuous = new ContinuousPlayback(
     () => this.syncPosition(),
     (event) => this.log(event),
+    () => this.audio.currentTime,
   );
   setContinuousPlayback(enabled: boolean) {
     this.continuous.configure(enabled);
@@ -165,7 +170,10 @@ export class PlayerEngine {
   );
   private prepareUpcoming() {
     if (this.continuous.active(this.source)) {
-      if (!this.continuous.validQueue(this.state.queue)) {
+      if (
+        !this.continuous.validQueue(this.state.queue) ||
+        this.continuous.requiresRestart(this.state.queue, this.state.autoplay)
+      ) {
         const playing =
           this.state.status === 'playing' ||
           (this.state.status === 'loading' && !this.audio.paused);
@@ -288,7 +296,7 @@ export class PlayerEngine {
         });
     });
     on('canplay', () => {
-      this.applyPendingHlsSeek();
+      if (this.pendingSeek?.awaitingMetadata) this.issueNativeSeek();
       if (this.state.preparation?.outcome === 'loading') {
         this.clearDeadline();
         this.patch({
@@ -309,13 +317,10 @@ export class PlayerEngine {
       // Seeking within an already-playing HLS source need not emit another
       // playing event. A settled native seek must finish that manual command.
       if (
-        this.pendingHlsSeek === undefined ||
-        this.pendingSeek !== undefined ||
+        !this.confirmNativeSeek('seeked') ||
         audio.paused ||
         audio.seeking ||
-        audio.readyState < 2 ||
-        Math.abs(audio.currentTime - this.pendingHlsSeek) > 1 ||
-        this.continuous.at(audio.currentTime)?.index !== this.state.index
+        audio.readyState < 2
       )
         return;
       this.clearDeadline();
@@ -326,18 +331,20 @@ export class PlayerEngine {
       this.prepareUpcoming();
     });
     on('loadedmetadata', () => {
-      if (this.pendingSeek !== undefined) {
-        const position = this.pendingSeek;
-        this.pendingSeek = undefined;
-        this.audio.currentTime = position;
-      }
+      if (this.pendingSeek?.awaitingMetadata) this.issueNativeSeek();
       this.syncPosition();
     });
     on('durationchange', () => this.syncPosition());
     on('timeupdate', () => this.syncPosition());
     on('playing', () => {
       if (audio.paused) return;
-      this.applyPendingHlsSeek();
+      if (this.pendingSeek?.awaitingMetadata) this.issueNativeSeek();
+      this.confirmNativeSeek('playing');
+      if (this.pendingSeek) {
+        this.patch({ status: 'loading' });
+        this.armDeadline();
+        return;
+      }
       this.clearDeadline();
       this.endWaiting();
       this.mark('playingAt');
@@ -379,10 +386,7 @@ export class PlayerEngine {
       );
     });
     on('ended', () => {
-      if (
-        this.continuous.active(this.source) &&
-        (this.pendingSeek !== undefined || this.pendingHlsSeek !== undefined)
-      )
+      if (this.continuous.active(this.source) && this.pendingSeek !== undefined)
         return;
       if (this.continuous.active(this.source)) this.syncPosition();
       if (
@@ -395,7 +399,10 @@ export class PlayerEngine {
         (item) => item.id === this.activeAttempt,
       );
       if (!attempt) return;
-      if (attempt.playingAt === undefined) {
+      if (
+        attempt.playingAt === undefined &&
+        this.pendingNativeProgress !== undefined
+      ) {
         this.fail(
           'Il browser ha terminato lo stream prima di avviare l’audio. Tocca Riprova o scegli un altro brano.',
         );
@@ -528,14 +535,15 @@ export class PlayerEngine {
     this.deadline = setTimeout(() => {
       this.deadline = undefined;
       if (token !== this.command) return;
+      this.syncPosition();
       // A suspended page can receive timers before delayed media events on resume.
       // Never stop progressing native audio merely because JS did not see playing.
       if (
+        !this.pendingSeek &&
         !this.audio.paused &&
         this.audio.readyState >= 3 &&
         this.audio.currentTime > position
       ) {
-        this.syncPosition();
         this.endWaiting();
         this.patch({ status: 'playing' });
         this.setPlaybackState('playing');
@@ -629,7 +637,6 @@ export class PlayerEngine {
   }
   private releaseSource() {
     this.pendingSeek = undefined;
-    this.pendingHlsSeek = undefined;
     this.continuous.clear();
     this.audio.pause();
     this.source = undefined;
@@ -733,6 +740,7 @@ export class PlayerEngine {
   toggleAutoplay() {
     this.patch({
       autoplay: !this.state.autoplay,
+      ...(!this.state.autoplay ? { repeat: 'off' as const } : {}),
       autoplayTracks: [],
       autoplayStatus: 'idle',
     });
@@ -847,7 +855,12 @@ export class PlayerEngine {
         : undefined;
     const hlsSource = hlsTarget
       ? this.source
-      : this.continuous.start(this.state.queue, index, this.state.autoplay);
+      : resume &&
+          index === this.state.index &&
+          this.continuous.active(this.source) &&
+          this.continuous.canResume(index)
+        ? this.source
+        : this.continuous.start(this.state.queue, index, this.state.autoplay);
     const changedIndex = index !== this.state.index;
     const hlsSeek =
       hlsTarget && (!resume || changedIndex || this.audio.ended || restart);
@@ -863,13 +876,16 @@ export class PlayerEngine {
       this.state.status === 'error';
     // Safari can still expose the old clock while source selection or a seek
     // is pending. Do not map that clock onto the newly selected HLS track.
-    this.pendingHlsSeek = hlsSource
-      ? load
-        ? resumeAt
-        : hlsSeek
-          ? hlsTarget!.start + resumeAt
-          : undefined
-      : undefined;
+    const nativeTarget =
+      hlsTarget && hlsSeek ? hlsTarget.start + resumeAt : resumeAt;
+    const needsSeek =
+      load || !!hlsSeek || !resume || this.audio.ended || restart;
+    if (needsSeek)
+      this.pendingSeek = {
+        target: nativeTarget,
+        awaitingMetadata: load,
+        issuedAt: this.now(),
+      };
     this.pendingNativeProgress =
       hlsTarget && hlsSeek
         ? hlsTarget.start + resumeAt
@@ -926,7 +942,6 @@ export class PlayerEngine {
     this.updateMetadata();
     this.audio.preload = 'auto';
     if (load) {
-      this.pendingSeek = hlsSource || resumeAt > 0 ? resumeAt : undefined;
       this.source = selectedSource;
       const requestIssuedAt = this.now();
       this.patch({
@@ -939,8 +954,7 @@ export class PlayerEngine {
       this.audio.src = selectedSource;
       // src assignment already starts native resource selection. An explicit
       // load() tears down the current pipeline again during the background handoff.
-    } else if (hlsSeek) this.audio.currentTime = hlsTarget!.start + resumeAt;
-    else if (!resume || this.audio.ended || restart) this.audio.currentTime = 0;
+    } else if (needsSeek) this.issueNativeSeek();
     // Keep play in the synchronous user gesture stack; catch failures afterwards.
     try {
       void this.audio.play().then(
@@ -1000,12 +1014,16 @@ export class PlayerEngine {
   }
   seek(seconds: number) {
     if (!Number.isFinite(seconds) || this.state.duration <= 0) return;
-    this.audio.currentTime =
+    const position = Math.max(0, Math.min(seconds, this.state.duration));
+    const target =
       (this.continuous.active(this.source)
         ? (this.continuous.target(this.state.index)?.start ?? 0)
-        : 0) + Math.max(0, Math.min(seconds, this.state.duration));
+        : 0) + position;
+    this.pendingSeek = { target, awaitingMetadata: false };
+    this.issueNativeSeek();
+    this.patch({ position });
     if (this.pendingNativeProgress !== undefined)
-      this.pendingNativeProgress = this.audio.currentTime;
+      this.pendingNativeProgress = target;
     this.syncPosition();
   }
   private fail(message: string) {
@@ -1057,28 +1075,63 @@ export class PlayerEngine {
     }
   }
 
-  private applyPendingHlsSeek() {
+  private issueNativeSeek() {
+    const seek = this.pendingSeek;
+    if (!seek) return;
+    seek.awaitingMetadata = false;
+    seek.issuedAt = this.now();
+    this.audio.currentTime = seek.target;
+  }
+  private confirmNativeSeek(event: 'playing' | 'seeked' | 'progress') {
+    const seek = this.pendingSeek;
+    if (!seek || seek.awaitingMetadata || this.audio.seeking) return false;
+    const delta = this.audio.currentTime - seek.target;
+    const elapsed = Math.max(
+      0,
+      (this.now() - (seek.issuedAt ?? this.now())) / 1000,
+    );
+    const plausible = delta >= -0.01 && delta <= Math.max(1, elapsed + 0.5);
     if (
-      this.pendingHlsSeek !== undefined &&
-      this.pendingSeek === undefined &&
-      !this.audio.seeking &&
-      Math.abs(this.audio.currentTime - this.pendingHlsSeek) > 0.05
-    )
-      this.audio.currentTime = this.pendingHlsSeek;
+      plausible &&
+      (event !== 'progress' || (delta > 0.05 && !this.audio.paused))
+    ) {
+      this.pendingSeek = undefined;
+      this.log(`seek:confirmed:${event}`);
+      return true;
+    }
+    // One correction at the initial start can defeat a cached native resume.
+    // A completed seek must never be replayed on later buffering events.
+    if (event === 'playing' && !seek.corrected) {
+      seek.corrected = true;
+      this.issueNativeSeek();
+    }
+    return false;
   }
   private syncPosition() {
-    if (this.continuous.active(this.source)) {
-      if (this.pendingSeek !== undefined) return;
-      if (this.pendingHlsSeek !== undefined) {
-        if (
-          this.audio.seeking ||
-          this.state.status === 'loading' ||
-          Math.abs(this.audio.currentTime - this.pendingHlsSeek) > 1 ||
-          this.continuous.at(this.audio.currentTime)?.index !== this.state.index
-        )
-          return;
-        this.pendingHlsSeek = undefined;
+    if (this.pendingSeek) {
+      // Media events may be queued while the page is suspended. Ready native
+      // audio can already be advancing; acknowledging it must not seek again.
+      if (
+        this.pendingSeek.awaitingMetadata &&
+        this.audio.readyState >= 3 &&
+        !this.audio.paused
+      )
+        this.pendingSeek.awaitingMetadata = false;
+      this.confirmNativeSeek('progress');
+      if (this.pendingSeek) return;
+      if (!this.audio.paused && this.audio.readyState >= 2) {
+        this.clearDeadline();
+        this.endWaiting();
+        this.patch({ status: 'playing', error: null });
       }
+    }
+    if (this.continuous.active(this.source)) {
+      const removed = this.continuous.takePrune();
+      if (removed)
+        this.patch({
+          queue: this.state.queue.slice(removed),
+          index: Math.max(0, this.state.index - removed),
+        });
       const additions = this.continuous.appended(this.state.queue);
       if (
         additions.length &&
@@ -1087,11 +1140,14 @@ export class PlayerEngine {
         this.patch({ queue: [...this.state.queue, ...additions] });
       const position = this.continuous.at(this.audio.currentTime || 0);
       if (!position || !this.continuous.validQueue(this.state.queue)) return;
+      // Native discontinuities can briefly expose an older timestamp. Only
+      // an explicit selection may move to a previous song in this source.
+      if (position.index < this.state.index) return;
       if (position.index !== this.state.index) {
         if (this.state.repeat === 'one') {
           const previous = this.continuous.target(this.state.index);
           if (previous) {
-            this.audio.currentTime = previous.start;
+            this.seek(0);
             return;
           }
         }

@@ -25,7 +25,7 @@ A self-hosted music player built for everyday listening, from your desktop to yo
 - **Wrapped all year** — actual listening minutes, top tracks/artists and monthly statistics.
 - **AI playlists** — describe a moment, preview catalog-verified proposals and save a playlist; requires a server-side OpenAI API key.
 - **Resume on another device** — explicitly continue the saved account queue and position with one tap.
-- **Keep the music going** — editable queue, repeat, staged autoplay recommendations and session restoration.
+- **Keep the music going** — editable queue, repeat, adaptive infinite listening from your music taste, and session restoration.
 - **Listen on your phone** — an installable PWA, full-screen player, persistent mini-player and Media Session controls where supported.
 - **Host it yourself** — React, TypeScript and Fastify, with Docker Compose included.
 

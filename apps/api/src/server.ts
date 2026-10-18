@@ -12,6 +12,7 @@ const accountPath =
   fileURLToPath(new URL('../../../data/musicbit.sqlite', import.meta.url));
 const audioService = new AudioStreamService();
 const catalogService = new CatalogService();
+const accounts = new AccountStore(accountPath);
 const diskCache =
   accountPath === ':memory:'
     ? undefined
@@ -25,10 +26,17 @@ const app = buildApp(
   undefined,
   catalogService,
   audioService,
-  new AccountStore(accountPath),
+  accounts,
   undefined,
   diskCache,
-  diskCache ? new ContinuousAudio(diskCache, catalogService) : undefined,
+  diskCache
+    ? new ContinuousAudio(
+        diskCache,
+        catalogService,
+        undefined,
+        (user) => accounts.library(user).library,
+      )
+    : undefined,
 );
 const port = Number(process.env.API_PORT ?? 3001);
 if (!Number.isInteger(port) || port < 1 || port > 65535)

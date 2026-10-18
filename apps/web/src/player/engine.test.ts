@@ -120,6 +120,15 @@ describe('persistent player', () => {
     expect(audio.src).toBe(source);
     expect(audio.play).toHaveBeenCalledOnce();
     expect(audio.load).not.toHaveBeenCalled();
+    player.cycleRepeat();
+    player.cycleRepeat();
+    audio.currentTime = 4.9;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot().index).toBe(1);
+    expect(audio.currentTime).toBe(4.9);
+    player.cycleRepeat();
+    audio.currentTime = 5.25;
+    audio.emit('timeupdate');
     player.pause();
     player.play();
     expect(audio.currentTime).toBe(5.25);
@@ -226,7 +235,7 @@ describe('persistent player', () => {
     clock = 60;
     requested = 60;
     audio.emit('canplay');
-    expect(requested).toBe(0);
+    expect(requested).toBe(60);
     requested = 60;
     audio.emit('playing');
     expect(requested).toBe(0);
@@ -235,6 +244,89 @@ describe('persistent player', () => {
     clock = 0;
     audio.emit('playing');
     expect(player.getSnapshot()).toMatchObject({ index: 0, position: 0 });
+    requested = 99;
+    clock = 2;
+    audio.emit('waiting');
+    audio.emit('canplay');
+    audio.emit('playing');
+    expect(requested).toBe(99);
+  });
+  it('never replays an acknowledged start seek when HLS timeline metadata arrives late', async () => {
+    const { player, audio } = setup();
+    const queue = tracks.map((track, index) => ({
+      ...track,
+      id: String(index).padStart(11, '0'),
+      audioUrl: `/api/audio/${String(index).padStart(11, '0')}`,
+    }));
+    let deliver!: (response: Response) => void;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_: string, options: RequestInit) =>
+        options.method === 'POST'
+          ? new Promise<Response>((resolve) => {
+              deliver = resolve;
+            })
+          : Promise.resolve(new Response('{}')),
+      ),
+    );
+    player.setContinuousPlayback(true);
+    player.playCollection(queue);
+    audio.emit('loadedmetadata');
+    audio.emit('playing');
+    audio.currentTime = 2.5;
+    audio.emit('timeupdate');
+    audio.emit('waiting');
+    audio.emit('canplay');
+    audio.emit('playing');
+    expect(audio.currentTime).toBe(2.5);
+    deliver(
+      new Response(
+        JSON.stringify({
+          complete: true,
+          tracks: queue.map((track, index) => ({
+            index,
+            id: track.id,
+            start: index * 120,
+            duration: 120,
+          })),
+        }),
+      ),
+    );
+    await vi.waitFor(() => expect(player.getSnapshot().position).toBe(2.5));
+    audio.emit('waiting');
+    audio.emit('canplay');
+    audio.emit('playing');
+    expect(audio.currentTime).toBe(2.5);
+    expect(player.getSnapshot().index).toBe(0);
+  });
+  it('resets cached progressive positions on A to B to A and only resumes after pause', () => {
+    const { player, audio } = setup();
+    audio.readyState = 4;
+    player.select(0);
+    audio.emit('loadedmetadata');
+    audio.emit('playing');
+    audio.currentTime = 60;
+    audio.emit('timeupdate');
+    player.select(1);
+    audio.emit('loadedmetadata');
+    audio.currentTime = 60;
+    audio.emit('playing');
+    expect(audio.currentTime).toBe(0);
+    audio.emit('seeked');
+    audio.currentTime = 10;
+    audio.emit('timeupdate');
+    player.select(0);
+    audio.emit('loadedmetadata');
+    audio.currentTime = 60;
+    audio.emit('playing');
+    expect(audio.currentTime).toBe(0);
+    audio.emit('seeked');
+    audio.currentTime = 15;
+    audio.emit('timeupdate');
+    player.pause();
+    player.play();
+    audio.emit('playing');
+    expect(audio.currentTime).toBe(15);
   });
   it('cancels pending CarPlay skips synchronously and ignores stale source events and rejections', async () => {
     const handlers = new Map<string, MediaSessionActionHandler>();
@@ -710,10 +802,11 @@ describe('persistent player', () => {
   });
   it('does not stop native audio progressing while JavaScript media events were delayed', () => {
     vi.useFakeTimers();
-    const { audio, player } = setup();
+    const { audio, player, tick } = setup();
     player.play();
     audio.currentTime = 10;
     audio.readyState = 4;
+    tick(15000);
     vi.advanceTimersByTime(15000);
     expect(player.getSnapshot().error).toBeNull();
     expect(player.getSnapshot().status).toBe('playing');
@@ -721,6 +814,29 @@ describe('persistent player', () => {
     expect(player.getSnapshot().events.at(-1)?.event).toBe(
       'deadline:native-progress',
     );
+    // Actual native clock progress also proves playback began when the
+    // playing event itself was delayed; ended must still advance the queue.
+    audio.emit('ended');
+    expect(player.getSnapshot().index).toBe(1);
+    expect(player.getSnapshot().error).toBeNull();
+  });
+  it('keeps recovery armed when the native decoder rejects the initial seek', () => {
+    vi.useFakeTimers();
+    const { audio, player } = setup();
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get: () => 60,
+      set: vi.fn(),
+    });
+    player.play();
+    audio.readyState = 4;
+    audio.emit('loadedmetadata');
+    audio.emit('playing');
+    audio.emit('playing');
+    expect(player.getSnapshot().status).toBe('loading');
+    vi.advanceTimersByTime(15000);
+    expect(player.getSnapshot().status).toBe('error');
+    expect(player.getSnapshot().error).toContain('Timeout audio');
   });
   it('defers a hidden-page deadline and enforces it again when visible', () => {
     vi.useFakeTimers();
@@ -833,8 +949,10 @@ describe('persistent player', () => {
   it('restarts the current track on previous after three seconds and clamps seeking', () => {
     const { audio, player } = setup();
     player.next();
-    audio.currentTime = 10;
     audio.emit('loadedmetadata');
+    audio.emit('playing');
+    audio.currentTime = 10;
+    audio.emit('timeupdate');
     player.previous();
     expect(player.getSnapshot().index).toBe(1);
     expect(audio.currentTime).toBe(0);

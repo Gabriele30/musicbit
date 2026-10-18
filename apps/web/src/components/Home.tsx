@@ -116,6 +116,8 @@ export function Home({
   onWrapped,
   onAiPlaylist,
   onTasteProfile,
+  radioTrack,
+  onStartRadio,
 }: {
   active: boolean;
   library: LibraryModel;
@@ -131,6 +133,8 @@ export function Home({
   onWrapped?: () => void;
   onAiPlaylist?: () => void;
   onTasteProfile?: () => void;
+  radioTrack?: Track;
+  onStartRadio?: (track: Track) => void;
 }) {
   const [feed, setFeed] = useState<FeedResponse>();
   const [error, setError] = useState('');
@@ -237,6 +241,10 @@ export function Home({
   const firstFeedTrack = (
     feed?.sections.flatMap((section) => section.items) ?? []
   ).find((item) => item.kind === 'track' && item.playback.available);
+  const infiniteSeed =
+    radioTrack ??
+    picks[0] ??
+    (personal[0] ? catalogItemToTrack(personal[0].item) : undefined);
   useAudioWarmup(
     (filter === 'all' ? library.history[0]?.track.audioUrl : undefined) ??
       (firstFeedTrack
@@ -292,6 +300,29 @@ export function Home({
       {filter === 'all' && (
         <>
           <div className="experience-shortcuts">
+            {onStartRadio && (
+              <button
+                aria-label={
+                  infiniteSeed
+                    ? 'Avvia ascolto infinito'
+                    : 'Scegli un brano per l’ascolto infinito'
+                }
+                onClick={() =>
+                  infiniteSeed ? onStartRadio(infiniteSeed) : onSearch()
+                }
+              >
+                <Icon name="play" />
+                <span>
+                  <strong>Ascolto infinito</strong>
+                  <small>
+                    {infiniteSeed
+                      ? `Si parte da ${infiniteSeed.title}`
+                      : 'Scegli un brano, la musica continua con te'}
+                  </small>
+                </span>
+                <Icon name="arrow" size={18} />
+              </button>
+            )}
             <button onClick={onWrapped}>
               <Icon name="pulse" />
               <span>

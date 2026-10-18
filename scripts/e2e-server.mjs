@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, sep, extname } from 'node:path';
+import { continuousFixture } from './e2e-continuous.mjs';
 
 // Test-only host for the actual production bundle. Native WebKit media requests
 // bypass Playwright routing on Windows, so serve fixtures over real local HTTP.
@@ -36,9 +37,11 @@ const types = {
 const blockedPrefetch = new Set();
 const cachedPrefetch = new Set();
 const updatedWorkers = new Set();
+const continuous = await continuousFixture();
 const server = createServer(async (request, response) => {
   try {
     const path = new URL(request.url, 'http://127.0.0.1:4174').pathname;
+    if (await continuous.handle(request, response, path)) return;
     if (path === '/api/app-update' || path === '/api/app-update.js') {
       const file = path.endsWith('.js') ? 'app-update.js' : 'app-update.html';
       response.writeHead(200, {
@@ -207,4 +210,6 @@ const server = createServer(async (request, response) => {
 });
 server.listen(Number(process.env.MUSICBIT_E2E_PORT || 4174), '127.0.0.1');
 for (const signal of ['SIGTERM', 'SIGINT'])
-  process.on(signal, () => server.close(() => process.exit(0)));
+  process.on(signal, () =>
+    server.close(() => void continuous.close().then(() => process.exit(0))),
+  );

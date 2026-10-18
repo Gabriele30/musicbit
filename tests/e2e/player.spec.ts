@@ -331,6 +331,75 @@ test('automatically advances after the real ended event', async ({ page }) => {
   ).toBeVisible();
 });
 
+test('selecting a previously heard progressive track restarts it while pause and play preserve its clock', async ({
+  page,
+}) => {
+  await fixture(page);
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+    )
+    .toBeGreaterThan(0.1);
+  await page
+    .getByRole('slider', { name: 'Posizione nella traccia' })
+    .fill('12');
+  await page
+    .getByRole('button', { name: 'Traccia successiva', exact: true })
+    .click();
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.currentSrc),
+    )
+    .toContain('soundhelix-2.wav');
+  await page.getByRole('slider', { name: 'Posizione nella traccia' }).fill('7');
+  await openQueue(page);
+  await page
+    .getByRole('button', {
+      name: 'Riproduci posizione 1: SoundHelix Song 1',
+      exact: true,
+    })
+    .click();
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.currentSrc),
+    )
+    .toContain('soundhelix-1.wav');
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+    )
+    .toBeLessThan(1.5);
+  await openPlayer(page);
+  await page.getByRole('slider', { name: 'Posizione nella traccia' }).fill('5');
+  await page.getByRole('button', { name: 'Pausa', exact: true }).click();
+  const paused = await page
+    .locator('audio')
+    .evaluate((audio: HTMLAudioElement) => audio.currentTime);
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+    )
+    .toBeGreaterThan(paused);
+  expect(
+    await page
+      .locator('audio')
+      .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+  ).toBeLessThan(paused + 1.5);
+  await expect(page.locator('audio')).toHaveCount(1);
+});
+
 test('a signed-in user advances to a prefetched unheard song when its upstream becomes unavailable', async ({
   page,
 }, info) => {

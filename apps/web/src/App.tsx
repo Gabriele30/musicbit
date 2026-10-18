@@ -36,6 +36,8 @@ import { useListening } from './player/listening';
 import { Wrapped } from './components/Wrapped';
 import { AiPlaylist } from './components/AiPlaylist';
 import { useAudioWarmup } from './player/use-audio-warmup';
+import { useAutoplay } from './player/autoplay';
+import { InfiniteListening } from './components/InfiniteListening';
 
 type Screen =
   | 'home'
@@ -111,10 +113,11 @@ function MusicApp({
 }) {
   const state = useSyncExternalStore(player.subscribe, player.getSnapshot);
   const library = useLibrary(account.user?.id ?? 'guest');
+  useAutoplay(player, account.user?.id, library.snapshot);
   const sync = useLibrarySync(library, account.user?.id);
   const cloud = useCloudSession(player, account.user?.id);
   useServerCache(player, account.user?.id);
-  useContinuousPlayback(player, account.user?.id);
+  useContinuousPlayback(player, account.user?.id, account.continuousPlayback);
   const listeningError = useListening(player, account.user?.id);
   const { favorites, toggleFavorite, recordHistory, storageError } = library;
   const { recordOutcome } = library;
@@ -613,6 +616,13 @@ function MusicApp({
               onWrapped={() => setScreen('wrapped')}
               onAiPlaylist={() => setScreen('ai-playlist')}
               onTasteProfile={() => setScreen('profile')}
+              radioTrack={current}
+              onStartRadio={(track) => {
+                player.startRadio([track]);
+                setNotice(
+                  'Ascolto infinito avviato: si adatta ai tuoi ascolti.',
+                );
+              }}
               onOpen={openItem}
               onPlay={playTrack}
               onSearch={searchFor}
@@ -767,6 +777,11 @@ function MusicApp({
                     </button>
                   )}
                 </div>
+                <InfiniteListening
+                  enabled={state.autoplay}
+                  repeating={state.repeat !== 'off'}
+                  onToggle={() => player.toggleAutoplay()}
+                />
                 <p className="playback-label" role="status">
                   {state.status === 'loading'
                     ? 'Caricamento audio…'
@@ -883,29 +898,18 @@ function MusicApp({
               <p className="muted">
                 {state.repeat === 'off'
                   ? state.autoplay
-                    ? 'Al termine della coda continuano i brani suggeriti.'
+                    ? 'Ascolto infinito attivo: al termine della coda continuano i brani scelti per te.'
                     : 'La coda termina dopo l’ultima traccia.'
                   : state.repeat === 'one'
                     ? 'Il brano corrente si ripete.'
                     : 'La coda si ripete dopo l’ultima traccia.'}{' '}
                 Puoi riordinare o rimuovere le tracce a seguire.
               </p>
-              <div className="autoplay-setting">
-                <div>
-                  <strong>Riproduzione automatica</strong>
-                  <small>
-                    Continua con brani simili quando finisce la coda.
-                  </small>
-                </div>
-                <button
-                  role="switch"
-                  aria-label="Riproduzione automatica"
-                  aria-checked={state.autoplay}
-                  onClick={() => player.toggleAutoplay()}
-                >
-                  <span />
-                </button>
-              </div>
+              <InfiniteListening
+                enabled={state.autoplay}
+                repeating={state.repeat !== 'off'}
+                onToggle={() => player.toggleAutoplay()}
+              />
               <button
                 className="text-button shuffle-button"
                 disabled={state.queue.length - state.index - 1 < 2}
@@ -983,12 +987,14 @@ function MusicApp({
                   <h3>A seguire per te</h3>
                   <p className="muted">
                     {state.autoplayStatus === 'loading'
-                      ? 'Cerchiamo brani simili…'
+                      ? 'Prepariamo nuovi brani dai tuoi ascolti…'
                       : state.autoplayStatus === 'error'
-                        ? 'Suggerimenti non disponibili. La tua coda resta pronta.'
+                        ? 'Riproviamo a preparare nuovi brani. La tua coda resta pronta.'
                         : !state.autoplayTracks.length
-                          ? 'I suggerimenti compaiono quando scegli un brano dal catalogo.'
-                          : 'Questi brani iniziano dopo la tua selezione.'}
+                          ? player.getDelivery() === 'hls'
+                            ? 'I prossimi brani si aggiungono alla coda durante l’ascolto.'
+                            : 'Cerchiamo nuovi brani senza ripetere quelli appena ascoltati.'
+                          : 'Scelti dai tuoi ascolti e preferiti, aggiornati quando cambi brano.'}
                   </p>
                   {state.autoplayTracks.slice(0, 5).map((track) => (
                     <button

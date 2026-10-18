@@ -3,6 +3,8 @@ import {
   isLocalLibrary,
   type AccountProfile,
   type LibraryEnvelope,
+  type AccountSessionResponse,
+  type AccountLoginResponse,
 } from '@musicbit/shared';
 
 export class AccountRequestError extends Error {
@@ -76,15 +78,26 @@ export function useAccount() {
   const [user, setUser] = useState<AccountProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [registrationEnabled, setRegistrationEnabled] = useState(false);
+  const [continuousPlayback, setContinuousPlayback] = useState<boolean>();
   const [error, setError] = useState('');
   useEffect(() => {
     const controller = new AbortController();
-    void accountRequest<{
-      user: AccountProfile | null;
-      registrationEnabled: boolean;
-    }>('/api/auth/session', undefined, 'GET', controller.signal)
+    void accountRequest<AccountSessionResponse>(
+      '/api/auth/session',
+      undefined,
+      'GET',
+      controller.signal,
+    )
       .then((data) => {
+        if (controller.signal.aborted) return;
         activeAccountId = data.user?.id;
+        setContinuousPlayback(
+          data.user
+            ? typeof data.continuousPlayback === 'boolean'
+              ? data.continuousPlayback
+              : undefined
+            : false,
+        );
         setUser(data.user);
         setRegistrationEnabled(data.registrationEnabled);
         setError('');
@@ -105,9 +118,14 @@ export function useAccount() {
     password: string,
     register = false,
   ) => {
-    const data = await accountRequest<{ user: AccountProfile }>(
+    const data = await accountRequest<AccountLoginResponse>(
       `/api/auth/${register ? 'register' : 'login'}`,
       { username, password },
+    );
+    setContinuousPlayback(
+      typeof data.continuousPlayback === 'boolean'
+        ? data.continuousPlayback
+        : undefined,
     );
     setUser(data.user);
     activeAccountId = data.user.id;
@@ -116,6 +134,7 @@ export function useAccount() {
   const signOut = async () => {
     await accountRequest('/api/auth/logout', {});
     setUser(null);
+    setContinuousPlayback(false);
     activeAccountId = undefined;
   };
   const updateProfile = async (displayName: string, color: string) => {
@@ -131,6 +150,7 @@ export function useAccount() {
     loading,
     error,
     registrationEnabled,
+    continuousPlayback,
     signIn,
     signOut,
     updateProfile,

@@ -46,6 +46,16 @@ export interface AccountProfile {
   color: string;
   createdAt: number;
 }
+export interface AccountSessionResponse {
+  user: AccountProfile | null;
+  registrationEnabled: boolean;
+  /** Optional only for compatibility with servers predating auth bootstrap. */
+  continuousPlayback?: boolean;
+}
+export interface AccountLoginResponse {
+  user: AccountProfile;
+  continuousPlayback?: boolean;
+}
 export interface LibraryEnvelope {
   revision: number;
   library: LocalLibrary;

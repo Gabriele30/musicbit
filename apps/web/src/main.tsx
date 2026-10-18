@@ -1,7 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { PlayerEngine } from './player/engine';
-import { connectAutoplay } from './player/autoplay';
 import './styles.css';
 
 // Construct once, outside React. This DOM node survives every screen change.
@@ -10,12 +9,10 @@ audio.id = 'musicbit-audio';
 audio.hidden = true;
 document.body.append(audio);
 const player = new PlayerEngine(audio);
-const disconnectAutoplay = connectAutoplay(player);
 createRoot(document.getElementById('root')!).render(<App player={player} />);
 
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
-    disconnectAutoplay();
     player.destroy();
     audio.remove();
   });

@@ -61,7 +61,9 @@ export function buildApp(
   app.addHook('onClose', async () => artistDiscovery.close());
   registerCatalogRoutes(app, catalog, provider.id);
   registerSpotifyCharts(app);
-  const { requireUser } = registerAccountRoutes(app, accounts);
+  const { requireUser } = registerAccountRoutes(app, accounts, {
+    continuousPlayback: continuous?.enabled ?? false,
+  });
   app.get('/api/me/discovery/artists', async (request) => {
     const user = requireUser(request);
     return artistDiscovery.get(
@@ -71,7 +73,13 @@ export function buildApp(
       aiPlaylists,
     );
   });
-  registerContinuousRoutes(app, continuous, requireUser);
+  registerContinuousRoutes(
+    app,
+    continuous,
+    requireUser,
+    catalog,
+    (user) => accounts.library(user).library,
+  );
   app.addHook('onClose', async () => continuous?.close());
   registerAudioRoutes(app, audioService, {
     diskCache,

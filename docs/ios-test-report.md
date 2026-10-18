@@ -1,5 +1,69 @@
 # Registro prove fisiche
 
+## Ripartenze, ritorni indietro e ascolto infinito — 16 ottobre 2026, revisione v8
+
+L'utente segnala interruzioni brevi con ritorni indietro del clock, selezioni
+A → B → A che riprendono A a metà e assenza di un ascolto infinito adattivo.
+L'indagine riproduce un difetto della revisione v7 con un vero elemento audio
+e segmenti AAC/TS locali serviti via HTTP: mentre la risposta dei metadati HLS
+è ritardata, una sequenza controllata di eventi `waiting` → `canplay` → `playing` riporta
+`currentTime` da **1,579886 secondi a zero**. Il seek già eseguito restava in
+attesa della timeline e veniva riapplicato durante il buffering.
+
+La revisione `native-continuous-hls-v8` riconosce il completamento del seek
+nativo indipendentemente dalla risposta della timeline. Dopo il riconoscimento,
+gli eventi successivi di caricamento non ripetono il seek. La selezione esplicita
+parte da zero anche con sorgenti progressive già ascoltate; pausa e Play
+conservano la posizione. La radio usa l'account e il profilo musicale, riprova
+batch vuoti o errori transitori e mantiene una finestra HLS scorrevole senza
+il precedente limite di 500 brani generati. La coda visibile si compatta mentre
+il clock nativo e gli indici del programma restano assoluti.
+
+La suite mirata dopo la correzione completa **7 prove superate e 5 escluse per
+assenza del decoder HLS nativo in WebKit Windows**. I cinque casi HLS usano il
+decoder reale di Chromium, mentre il ritorno A → B → A progressivo viene
+verificato sia in Chromium sia in WebKit. I casi controllano:
+
+- recupero da buffering con metadati ritardati senza nuove assegnazioni di seek;
+- A → B → A da zero e pausa/Play dalla posizione conservata, sulla stessa sorgente;
+- passaggio di una discontinuità AAC con clock continuo e PCM decodificato non
+  nullo prima e dopo il confine (RMS maggiore di 0,001);
+- sospensione dell'esecuzione JavaScript per 2,8 secondi attraverso un confine,
+  con avanzamento del decoder e recupero dell'interfaccia senza ritorni indietro;
+- radio con brani AAC originali brevi, oltre venti confini, manifesti con
+  `MEDIA-SEQUENCE` e `DISCONTINUITY-SEQUENCE` crescenti, `queueStart` avanzato,
+  clock assoluto monotono e coda compattata, mantenendo lo stesso elemento audio.
+
+La suite browser completa del 16 ottobre sulla build `index-DuAer52U.js` supera
+**93 prove**, con **5 esclusioni esplicite** del decoder HLS non supportato in
+WebKit Windows e nessun errore (`pnpm test:e2e --workers=4`, 51,5 secondi).
+Include la navigazione mobile con il primo brano visibile, gli skip Media
+Session, il recupero PWA, la ripresa da un secondo dispositivo e i casi nativi
+descritti sopra.
+
+La sospensione controllata usa CDP e riguarda la pagina desktop. La misura
+PCM usa WebAudio esclusivamente come strumento di test; il player distribuito
+continua a usare il solo elemento audio nativo. I fixture del decoder isolano
+lo stato dell'account con risposte API controllate; autenticazione e ripresa
+fra dispositivi hanno prove separate contro l'API reale. Queste prove non costituiscono
+un test fisico di iPhone bloccato, Safari iOS, uscita sonora del dispositivo
+o CarPlay. Nessuna nuova prova fisica è stata eseguita o richiesta all'utente
+in questa sessione.
+
+### Verifica conclusiva — 18 ottobre 2026
+
+La build `index-DGiEaAqM.js` supera `pnpm check`: lint, TypeScript,
+**307 test in 51 file** e build di tutti i pacchetti. La suite completa
+`pnpm test:e2e --workers=4` supera **93 prove**, con le stesse **5 esclusioni**
+HLS di WebKit Windows, in 52,6 secondi e senza errori.
+
+Sono inclusi i controlli sull'avvio HLS prima del primo tocco dopo il login,
+le risposte della timeline fuori ordine, la ripresa dopo un seek non confermato,
+l'identità del brano durante l'avanzamento della finestra e la lettura di un
+segmento rigenerato mentre la cache prepara altri brani. Il test di cache
+mantiene aperto il file e ne verifica la lettura anche dopo la rimozione del
+pathname. Nessuna prova fisica iPhone o CarPlay viene attribuita a questi test.
+
 ## Ritorno a un brano già ascoltato — revisione v7
 
 L'utente segnala che A → B → A riprende A a metà anziché da zero. La revisione

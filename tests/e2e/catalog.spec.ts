@@ -1064,13 +1064,13 @@ test('autoplay continues with staged radio tracks using the same native audio an
     'autoplay-original',
   );
   await expect(page.locator('audio')).toHaveCount(1);
-  await page.getByRole('switch', { name: 'Riproduzione automatica' }).click();
+  await page.getByRole('switch', { name: 'Ascolto infinito' }).click();
   await expect(
-    page.getByRole('switch', { name: 'Riproduzione automatica' }),
+    page.getByRole('switch', { name: 'Ascolto infinito' }),
   ).toHaveAttribute('aria-checked', 'false');
   await page.reload();
   await expect(
-    page.getByRole('switch', { name: 'Riproduzione automatica' }),
+    page.getByRole('switch', { name: 'Ascolto infinito' }),
   ).toHaveAttribute('aria-checked', 'false');
   await page
     .getByRole('navigation', { name: 'Navigazione mobile' })

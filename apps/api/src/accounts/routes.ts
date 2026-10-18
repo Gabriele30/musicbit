@@ -29,6 +29,7 @@ const cookie = (value: string, secure: boolean, age = 30 * 86400) =>
 export function registerAccountRoutes(
   app: FastifyInstance,
   store: AccountStore,
+  options: { continuousPlayback?: boolean } = {},
 ) {
   const attempts = new Map<string, { count: number; until: number }>();
   let active = 0;
@@ -117,6 +118,7 @@ export function registerAccountRoutes(
     return {
       user: user ?? null,
       registrationEnabled: process.env.AUTH_REGISTRATION !== 'false',
+      continuousPlayback: !!user && options.continuousPlayback === true,
     };
   });
   for (const operation of ['login', 'register'] as const)
@@ -144,7 +146,10 @@ export function registerAccountRoutes(
             'Set-Cookie',
             cookie(store.createSession(user.id), secureCookie(request)),
           );
-          return { user };
+          return {
+            user,
+            continuousPlayback: options.continuousPlayback === true,
+          };
         }),
     );
   app.post('/api/auth/logout', async (request, reply) => {

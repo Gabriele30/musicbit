@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { emptyLibrary } from '@musicbit/shared';
 import { buildApp } from '../app.js';
 import { AccountStore } from './store.js';
+import type { ContinuousAudio } from '../audio/continuous.js';
 
 const apps: ReturnType<typeof buildApp>[] = [];
 const headers = { 'x-musicbit-request': '1' };
@@ -30,6 +31,59 @@ afterEach(async () => {
   vi.useRealTimers();
 });
 describe('accounts and isolated server libraries', () => {
+  it('bootstraps continuous playback in authenticated session and sign-in responses', async () => {
+    const store = new AccountStore();
+    const continuous = {
+      enabled: true,
+      close: vi.fn(),
+    } as unknown as ContinuousAudio;
+    const app = buildApp(
+      {},
+      undefined,
+      undefined,
+      undefined,
+      store,
+      undefined,
+      undefined,
+      continuous,
+    );
+    apps.push(app);
+    expect(
+      (await app.inject('/api/auth/session')).json().continuousPlayback,
+    ).toBe(false);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      headers,
+      payload: { username: 'bootstrap_listener', password: 'a-test-password' },
+    });
+    expect(created.statusCode).toBe(200);
+    expect(created.json().continuousPlayback).toBe(true);
+    const cookie = String(created.headers['set-cookie']).split(';')[0]!;
+    expect(
+      (
+        await app.inject({ url: '/api/auth/session', headers: { cookie } })
+      ).json().continuousPlayback,
+    ).toBe(true);
+    const signedIn = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      headers,
+      payload: { username: 'bootstrap_listener', password: 'a-test-password' },
+    });
+    expect(signedIn.statusCode).toBe(200);
+    expect(signedIn.json().continuousPlayback).toBe(true);
+    const disabled = setup();
+    const user = await register(disabled, 'progressive_listener');
+    expect(
+      (
+        await disabled.inject({
+          url: '/api/auth/session',
+          headers: { cookie: user.cookie },
+        })
+      ).json().continuousPlayback,
+    ).toBe(false);
+  });
   it('requires authenticated sessions and browser CSRF protection', async () => {
     const app = setup();
     expect((await app.inject('/api/me/library')).statusCode).toBe(401);
@@ -267,8 +321,12 @@ describe('accounts and isolated server libraries', () => {
     expect(renewed.headers['set-cookie']).toContain('Secure');
     vi.setSystemTime(Date.now() + 2 * 86400000);
     expect(
-      (await app.inject({ url: '/api/auth/session', headers: { cookie: account.cookie } })).json()
-        .user.username,
+      (
+        await app.inject({
+          url: '/api/auth/session',
+          headers: { cookie: account.cookie },
+        })
+      ).json().user.username,
     ).toBe('renewed_listener');
   });
 });

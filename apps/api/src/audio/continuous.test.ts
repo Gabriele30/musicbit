@@ -1,8 +1,16 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import Fastify from 'fastify';
 import {
   ContinuousAudio,
@@ -12,6 +20,7 @@ import {
 import { AudioDiskCache } from './disk-cache.js';
 import { AudioStreamService } from './stream-service.js';
 import { AccountError } from '../accounts/store.js';
+import { emptyLibrary } from '@musicbit/shared';
 const roots: string[] = [],
   services: ContinuousAudio[] = [],
   caches: AudioDiskCache[] = [];
@@ -28,6 +37,12 @@ it('rejects incomplete, nonlocal and invalid generated HLS segments', () => {
   expect(
     parseHlsTrack('#EXTM3U\n#EXTINF:2.02,\nsegment-000001.ts\n#EXT-X-ENDLIST'),
   ).toEqual([{ duration: 2.02, name: 'segment-000001.ts' }]);
+  expect(
+    parseHlsTrack(
+      '#EXTINF:0.000023,\nsegment-000001.ts\n#EXT-X-ENDLIST',
+      true,
+    )[0]?.duration,
+  ).toBe(1024 / 44100);
   expect(() =>
     parseHlsTrack(
       '#EXTINF:2,\nhttps://external.test/segment.ts\n#EXT-X-ENDLIST',
@@ -53,6 +68,8 @@ it('remuxes real AAC into a single continuous HLS playlist, prepares ahead from 
       '2.4',
       '-c:a',
       'aac',
+      '-ac',
+      '2',
       '-y',
       input,
     ],
@@ -86,7 +103,8 @@ it('remuxes real AAC into a single continuous HLS playlist, prepares ahead from 
   services.push(service);
   const id = '00000000-0000-4000-8000-000000000001';
   const ids = ['abcdefghijk', 'lmnopqrstuv', 'zyxwvutsrqp', '12345678901'];
-  service.plan('gabriele', id, ids);
+  const initialPlan = service.plan('gabriele', id, ids);
+  expect(initialPlan.revision).toBe(1);
   await vi.waitFor(
     async () =>
       expect((await service.metadata('gabriele', id))?.tracks).toHaveLength(3),
@@ -96,6 +114,7 @@ it('remuxes real AAC into a single continuous HLS playlist, prepares ahead from 
   expect(initial).toContain('#EXT-X-DISCONTINUITY');
   expect(initial).not.toContain('#EXT-X-ENDLIST');
   const timeline = (await service.metadata('gabriele', id))!;
+  expect(timeline.revision).toBeGreaterThan(initialPlan.revision!);
   expect(timeline.tracks[0]!.duration).toBeGreaterThan(2.3);
   expect(timeline.tracks[0]!.duration).toBeLessThan(2.5);
   expect(timeline.tracks[1]!.start).toBe(timeline.tracks[0]!.duration);
@@ -107,6 +126,9 @@ it('remuxes real AAC into a single continuous HLS playlist, prepares ahead from 
     { timeout: 10000 },
   );
   expect(await service.manifest('gabriele', id)).toContain('#EXT-X-ENDLIST');
+  expect((await service.metadata('gabriele', id))!.revision).toBeGreaterThan(
+    timeline.revision!,
+  );
   expect(await service.metadata('marco', id)).toBeUndefined();
   expect(
     await service.segment('marco', id, 0, 'segment-000000.ts'),
@@ -147,22 +169,72 @@ it('remuxes real AAC into a single continuous HLS playlist, prepares ahead from 
       })
     ).statusCode,
   ).toBe(400);
+  const complete = (await service.metadata('gabriele', id))!;
+  const fileManifest = (await service.manifest('gabriele', id))!.split('\n');
+  for (let index = 0; index < fileManifest.length; index++) {
+    const match = fileManifest[index]!.match(
+      /\/api\/continuous\/[^/]+\/(\d+)\/(segment-\d{6}\.ts)$/,
+    );
+    if (match)
+      fileManifest[index] = (await service.segment(
+        'gabriele',
+        id,
+        Number(match[1]),
+        match[2]!,
+      ))!.replace(/\\/g, '/');
+  }
+  const playlist = join(root, 'complete.m3u8');
+  writeFileSync(playlist, fileManifest.join('\n'));
+  const decoded = spawnSync(
+    'ffmpeg',
+    [
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-i',
+      playlist,
+      '-c:a',
+      'pcm_s16le',
+      '-ac',
+      '1',
+      '-ar',
+      '44100',
+      '-f',
+      's16le',
+      'pipe:1',
+    ],
+    { windowsHide: true },
+  );
+  expect(decoded.status, decoded.stderr.toString()).toBe(0);
+  const pcm = decoded.stdout;
+  expect(pcm.length / (44100 * 2)).toBeCloseTo(
+    complete.tracks.reduce((sum, track) => sum + track.duration, 0),
+    1,
+  );
+  // Inspect the decoded samples after every discontinuity: no one-second
+  // silent handoff is introduced by the generated playlist/segment timestamps.
+  for (const track of complete.tracks.slice(1)) {
+    const start = Math.floor((track.start + 0.05) * 44100);
+    const end = Math.floor((track.start + 0.95) * 44100);
+    let energy = 0;
+    for (let sample = start; sample < end; sample++)
+      energy += pcm.readInt16LE(sample * 2) ** 2;
+    expect(Math.sqrt(energy / (end - start))).toBeGreaterThan(100);
+  }
   service.stop('gabriele', id);
   expect(await service.metadata('gabriele', id)).toBeUndefined();
   const recommendations = vi.fn(async (seedId: string) => ({
     seedId,
-    items: ids
-      .slice(1)
-      .map((trackId) => ({
-        id: trackId,
-        kind: 'track' as const,
-        provider: 'youtube',
-        title: 'Radio fixture',
-        artist: 'Original tones',
-        audioUrl: `/api/audio/${trackId}`,
-        sourceUrl: 'https://example.com',
-        playback: { available: true },
-      })),
+    items: ids.slice(1).map((trackId) => ({
+      id: trackId,
+      kind: 'track' as const,
+      provider: 'youtube',
+      title: 'Radio fixture',
+      artist: trackId,
+      audioUrl: `/api/audio/${trackId}`,
+      sourceUrl: 'https://example.com',
+      playback: { available: true },
+    })),
     timing: { cache: 'miss' as const, elapsedMs: 0 },
   }));
   const radio = new ContinuousAudio(cache, { recommendations });
@@ -178,10 +250,334 @@ it('remuxes real AAC into a single continuous HLS playlist, prepares ahead from 
   await radio.segment('gabriele', id, 2, 'segment-000000.ts');
   await vi.waitFor(
     async () =>
-      expect((await radio.metadata('gabriele', id))?.complete).toBe(true),
+      expect((await radio.metadata('gabriele', id))?.tracks).toHaveLength(4),
     { timeout: 10000 },
   );
+  expect((await radio.metadata('gabriele', id))?.complete).toBe(false);
+  expect(await radio.manifest('gabriele', id)).not.toContain('#EXT-X-ENDLIST');
   expect(
-    (await radio.manifest('gabriele', id))?.match(/#EXT-X-DISCONTINUITY/g),
+    (await radio.manifest('gabriele', id))?.match(/#EXT-X-DISCONTINUITY\n/g),
   ).toHaveLength(3);
 }, 20000);
+
+it('keeps native radio open through provider failures, crosses the old cap and rolls a bounded absolute timeline', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'musicbit-radio-test-'));
+  roots.push(root);
+  const input = join(root, 'tone.m4a');
+  expect(
+    spawnSync(
+      'ffmpeg',
+      [
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-f',
+        'lavfi',
+        '-i',
+        'sine=frequency=440:sample_rate=44100',
+        '-t',
+        '2.4',
+        '-c:a',
+        'aac',
+        '-ac',
+        '2',
+        '-y',
+        input,
+      ],
+      { windowsHide: true },
+    ).status,
+  ).toBe(0);
+  const cache = new AudioDiskCache(
+    join(root, 'cache'),
+    new AudioStreamService(),
+  );
+  caches.push(cache);
+  vi.spyOn(cache, 'plan').mockReturnValue({
+    bytes: 0,
+    quotaBytes: 5_000_000_000,
+    tracks: 0,
+    preparing: 0,
+  });
+  vi.spyOn(cache, 'get').mockImplementation((_user, id) => ({
+    id,
+    path: input,
+    size: statSync(input).size,
+    mimeType: 'audio/mp4',
+    durationSeconds: 2.4,
+    touched: Date.now(),
+    stream: vi.fn(),
+  }));
+  const trackId = (index: number) => `track${String(index).padStart(6, '0')}`;
+  const recommendations = vi.fn(async (seedId: string) => {
+    if (recommendations.mock.calls.length === 1)
+      throw new Error('Transient outage');
+    const seed = Number(seedId.slice(5));
+    return {
+      seedId,
+      items: [1, 2, 3].map((offset) => ({
+        id: trackId(seed + offset),
+        kind: 'track' as const,
+        provider: 'youtube',
+        title: `Radio ${seed + offset}`,
+        artist: `Artist ${seed + offset}`,
+        audioUrl: `/api/audio/${trackId(seed + offset)}`,
+        sourceUrl: 'https://music.youtube.com',
+        playback: { available: true },
+      })),
+      timing: { cache: 'miss' as const, elapsedMs: 0 },
+    };
+  });
+  const profile = vi.fn(() => emptyLibrary());
+  const budget = 1.5 * 1024 * 1024;
+  const radio = new ContinuousAudio(
+    cache,
+    { recommendations },
+    undefined,
+    profile,
+    budget,
+  );
+  services.push(radio);
+  const id = '00000000-0000-4000-8000-000000000002';
+  radio.plan('gabriele', id, [trackId(0)], true, 1);
+  await vi.waitFor(
+    async () =>
+      expect((await radio.metadata('gabriele', id))?.tracks).toHaveLength(1),
+    { timeout: 10000 },
+  );
+  const duringOutage = await radio.manifest('gabriele', id);
+  const originalSegment = (await radio.segment(
+    'gabriele',
+    id,
+    0,
+    'segment-000000.ts',
+  ))!;
+  expect(duringOutage).not.toContain('#EXT-X-ENDLIST');
+  expect((await radio.metadata('gabriele', id))?.error).toBeUndefined();
+  await vi.waitFor(
+    async () =>
+      expect((await radio.metadata('gabriele', id))?.tracks).toHaveLength(3),
+    { timeout: 10000 },
+  );
+  const firstTimeline = (await radio.metadata('gabriele', id))!;
+  const first = firstTimeline.tracks[0]!;
+  for (let index = 1; index <= 25; index++) {
+    await vi.waitFor(
+      async () =>
+        expect(
+          (await radio.metadata('gabriele', id))?.tracks.some(
+            (track) => track.index === index,
+          ),
+        ).toBe(true),
+      { timeout: 10000 },
+    );
+    expect(
+      await radio.segment('gabriele', id, index, 'segment-000000.ts'),
+    ).toBeTruthy();
+  }
+  const timeline = (await radio.metadata('gabriele', id))!;
+  expect(timeline.revision).toBeGreaterThan(firstTimeline.revision!);
+  expect(timeline.queueStart).toBe(5);
+  expect(timeline.tracks[0]).toMatchObject({
+    index: 5,
+    start: first.duration * 5,
+  });
+  expect(timeline.tracks.length).toBeLessThanOrEqual(23);
+  expect(timeline.additions!.every((addition) => addition.index >= 5)).toBe(
+    true,
+  );
+  expect(timeline.additions!.length).toBeLessThanOrEqual(26);
+  expect(profile.mock.calls.length).toBeGreaterThan(5);
+  expect(
+    recommendations.mock.calls.some(([seed]) => seed === trackId(24)),
+  ).toBe(true);
+  const manifest = (await radio.manifest('gabriele', id))!;
+  expect(manifest).toContain('#EXT-X-MEDIA-SEQUENCE:10\n');
+  expect(manifest).toContain('#EXT-X-DISCONTINUITY-SEQUENCE:5\n');
+  expect(manifest).not.toContain('#EXT-X-PLAYLIST-TYPE:EVENT');
+  expect(manifest).not.toContain('#EXT-X-ENDLIST');
+  expect(existsSync(originalSegment)).toBe(false);
+  // Disk pressure may remove retired bytes, but a stale native manifest can
+  // still retrieve the same URI, remuxed from the persistent source cache.
+  const retiredSegment = await radio.segment(
+    'gabriele',
+    id,
+    0,
+    'segment-000000.ts',
+  );
+  expect(retiredSegment).toBe(originalSegment);
+  expect(readFileSync(retiredSegment!)[0]).toBe(0x47);
+  const size = (path: string): number =>
+    statSync(path).isDirectory()
+      ? readdirSync(path).reduce(
+          (total, name) => total + size(join(path, name)),
+          0,
+        )
+      : statSync(path).size;
+  expect(size(dirname(dirname(retiredSegment!)))).toBeLessThanOrEqual(budget);
+  // A late POST from a suspended tab cannot restore or remap the removed prefix.
+  const revised = radio.plan('gabriele', id, [trackId(0)], true, 1);
+  expect(revised.revision).toBeGreaterThan(timeline.revision!);
+  expect((await radio.metadata('gabriele', id))!.queueStart).toBe(5);
+  const leasedStream = (await radio.openSegment(
+    'gabriele',
+    id,
+    0,
+    'segment-000000.ts',
+  ))!;
+  for (let index = 26; index <= 28; index++) {
+    await vi.waitFor(
+      async () =>
+        expect(
+          (await radio.metadata('gabriele', id))?.tracks.some(
+            (track) => track.index === index,
+          ),
+        ).toBe(true),
+      { timeout: 10000 },
+    );
+    expect(
+      await radio.segment('gabriele', id, index, 'segment-000000.ts'),
+    ).toBeTruthy();
+  }
+  expect(existsSync(originalSegment)).toBe(false);
+  const chunks: Buffer[] = [];
+  for await (const chunk of leasedStream) chunks.push(Buffer.from(chunk));
+  expect(Buffer.concat(chunks)[0]).toBe(0x47);
+  // Path-only callers retain a lease for one event-loop turn. Expiry takes
+  // effect after that open/read opportunity has finished.
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 180000);
+  expect(
+    await radio.segment('gabriele', id, 0, 'segment-000000.ts'),
+  ).toBeUndefined();
+  expect(existsSync(originalSegment)).toBe(false);
+}, 60000);
+
+it('serves authenticated personalized radio independently of native HLS and validates exclusions', async () => {
+  const app = Fastify();
+  apps.push(app);
+  const recommendations = vi.fn(async (seedId: string) => ({
+    seedId,
+    items: [
+      {
+        id: 'related0001',
+        kind: 'track' as const,
+        provider: 'youtube',
+        title: 'Related',
+        artist: 'Related artist',
+        sourceUrl: 'https://music.youtube.com',
+        playback: { available: true },
+      },
+    ],
+    timing: { cache: 'miss' as const, elapsedMs: 0 },
+  }));
+  const profile = vi.fn(() => emptyLibrary());
+  registerContinuousRoutes(
+    app,
+    undefined,
+    (request) => {
+      if (request.headers.cookie !== 'test-session')
+        throw new AccountError(401, 'SIGN_IN_REQUIRED', 'Accedi');
+      return { id: 'gabriele' };
+    },
+    { recommendations },
+    profile,
+  );
+  app.setErrorHandler((error, _request, reply) =>
+    reply.code(error instanceof AccountError ? error.status : 400).send(),
+  );
+  expect((await app.inject('/api/me/radio/original001')).statusCode).toBe(401);
+  const response = await app.inject({
+    url: '/api/me/radio/original001',
+    headers: { cookie: 'test-session' },
+  });
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toMatchObject({
+    seedId: 'original001',
+    items: [{ id: 'related0001' }],
+    partial: false,
+    retry: false,
+  });
+  expect(profile).toHaveBeenCalledWith('gabriele');
+  const excluded = await app.inject({
+    url: '/api/me/radio/original001?exclude=related0001',
+    headers: { cookie: 'test-session' },
+  });
+  expect(excluded.json()).toMatchObject({ items: [], retry: true });
+  expect(
+    (
+      await app.inject({
+        url: '/api/me/radio/original001?exclude=invalid',
+        headers: { cookie: 'test-session' },
+      })
+    ).statusCode,
+  ).toBe(400);
+});
+
+it('converts provider Opus fallbacks to AAC-LC for native iPhone HLS', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'musicbit-opus-hls-test-'));
+  roots.push(root);
+  const input = join(root, 'tone.webm');
+  expect(
+    spawnSync(
+      'ffmpeg',
+      [
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-f',
+        'lavfi',
+        '-i',
+        'sine=frequency=440:sample_rate=48000',
+        '-t',
+        '2.4',
+        '-c:a',
+        'libopus',
+        '-y',
+        input,
+      ],
+      { windowsHide: true },
+    ).status,
+  ).toBe(0);
+  const cache = new AudioDiskCache(
+    join(root, 'cache'),
+    new AudioStreamService(),
+  );
+  caches.push(cache);
+  vi.spyOn(cache, 'plan').mockReturnValue({
+    bytes: 0,
+    quotaBytes: 5_000_000_000,
+    tracks: 0,
+    preparing: 0,
+  });
+  vi.spyOn(cache, 'get').mockImplementation((_user, id) => ({
+    id,
+    path: input,
+    size: statSync(input).size,
+    mimeType: 'audio/webm',
+    durationSeconds: 2.4,
+    touched: Date.now(),
+    stream: vi.fn(),
+  }));
+  const service = new ContinuousAudio(cache);
+  services.push(service);
+  const id = '00000000-0000-4000-8000-000000000003';
+  service.plan('gabriele', id, ['fallback001']);
+  await vi.waitFor(
+    async () =>
+      expect((await service.metadata('gabriele', id))?.complete).toBe(true),
+    { timeout: 10000 },
+  );
+  const segment = await service.segment('gabriele', id, 0, 'segment-000000.ts');
+  const probe = spawnSync(
+    'ffprobe',
+    ['-v', 'error', '-show_streams', '-of', 'json', segment!],
+    { windowsHide: true, encoding: 'utf8' },
+  );
+  expect(probe.status).toBe(0);
+  expect(JSON.parse(probe.stdout).streams[0]).toMatchObject({
+    codec_name: 'aac',
+    profile: 'LC',
+    sample_rate: '44100',
+    channels: 2,
+  });
+});
