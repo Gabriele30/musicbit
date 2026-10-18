@@ -436,14 +436,15 @@ export class ContinuousAudio {
       );
       // Do not publish a suggested track in the native program until its
       // complete source exists. One unavailable suggestion must not end radio.
+      const deadline = Date.now() + 20000;
       for (const item of response.items.slice(0, 6)) {
+        if (Date.now() >= deadline) break;
         const track = catalogItemToTrack(item);
         if (!/^\/api\/audio\/[A-Za-z0-9_-]{11}$/.test(track.audioUrl)) continue;
         this.cache.plan(session.user, `hls-${session.id}`, [
           track.id,
           ...session.ids.slice(-10),
         ]);
-        const deadline = Date.now() + 125000;
         while (
           !this.cache.get(session.user, track.id) &&
           !this.cache.failure(session.user, track.id) &&

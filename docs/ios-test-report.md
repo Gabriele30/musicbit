@@ -383,3 +383,11 @@ stream nativo è rimasto disabilitato senza permessi diretti documentati.
 Safari/PWA su iPhone, schermo bloccato, next e CarPlay M5: **non testati**.
 [Checklist da compilare](youtube-playback-ios-checklist.md),
 [evidenza HTTPS PC](performance/m5-https-smoke.json).
+
+La verifica live sulla revisione `2d6364f` decodifica quattro campioni da brani
+reali in AAC-LC 44,1 kHz stereo, inclusa la continuazione radio dalla cache.
+La sessione infinita prepara due brani e resta aperta durante la restrizione.
+Tre richieste dei segmenti pronti impiegano rispettivamente 27, 14 e 12 ms;
+sono misure HTTP interne, non tempi al suono su iPhone. La quota per account
+resta 5.000.000.000 byte. Le durate misurate differiscono dalle stime del
+catalogo di 0,586–1,267 secondi, senza il raddoppio precedentemente segnalato.

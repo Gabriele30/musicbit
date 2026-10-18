@@ -23,3 +23,5 @@ Explicit song selections restart the selected track, including A → B → A and
 A settled native `seeked` event also completes a manual selection within an already-playing HLS source, which need not emit another `playing` event. Changing the upcoming queue preserves the current track position.
 
 Diagnostics show `native-continuous-hls-v8`, the selected transport and source URL. Automated tests use real local AAC/TS over HTTP, measure decoded PCM through the native element, suspend page JavaScript across a song boundary and advance a sliding HLS window while checking the absolute clock and queue compaction. Native HLS tests run only where the browser exposes that decoder; Windows WebKit skips them and still runs the progressive playback suite. These are distinct from physical iPhone lock-screen and CarPlay behavior. See the [test record](ios-test-report.md).
+
+Source preparation during a radio refill has a twenty-second budget for the complete candidate batch before cached fallback. Metadata retrieval and conversion have separate deadlines. In-progress source downloads can still complete in the background for later refills.
