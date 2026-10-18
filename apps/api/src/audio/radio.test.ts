@@ -5,7 +5,7 @@ import {
   emptyTaste,
   type CatalogItem,
 } from '@musicbit/shared';
-import { personalRadio } from './radio.js';
+import { cachedRadio, personalRadio } from './radio.js';
 
 const item = (id: string, artist = id): CatalogItem => ({
   id,
@@ -21,6 +21,35 @@ const response = (seedId: string, items: CatalogItem[]) => ({
   seedId,
   items,
   timing: { cache: 'miss' as const, elapsedMs: 0 },
+});
+it('keeps cached radio personal, excludes blocked artists and permits a small cached library to repeat', () => {
+  const library = emptyLibrary();
+  library.history = [
+    'cached00001',
+    'cached00002',
+    'blocked0001',
+    'missing0001',
+  ].map((id) => ({
+    track: catalogItemToTrack(
+      item(id, id === 'blocked0001' ? 'Blocked' : 'Favorite'),
+    ),
+    playedAt: Date.now(),
+  }));
+  library.taste = {
+    ...emptyTaste(),
+    artistPreferences: [{ artist: 'Blocked', preference: 'blocked' }],
+  };
+  const available = (id: string) => id !== 'missing0001';
+  expect(
+    cachedRadio(library, available, ['cached00001']).map((track) => track.id),
+  ).toEqual(['cached00002']);
+  expect(
+    new Set(
+      cachedRadio(library, available, ['cached00001', 'cached00002']).map(
+        (track) => track.id,
+      ),
+    ),
+  ).toEqual(new Set(['cached00001', 'cached00002']));
 });
 it('ranks fresh listening feedback and filters repeats, blocked artists, dismissed songs and duplicate IDs', async () => {
   const library = emptyLibrary();

@@ -18,6 +18,7 @@ export class AudioResolutionError extends Error {
     public readonly code:
       | 'NOT_FOUND'
       | 'UNAVAILABLE'
+      | 'PROVIDER_RESTRICTED'
       | 'INVALID_ID'
       | 'TIMEOUT'
       | 'BUSY'

@@ -1,15 +1,47 @@
 import {
   emptyLibrary,
+  catalogItemToTrack,
   isCatalogId,
   personalRecommendations,
   type CatalogItem,
   type LocalLibrary,
   type RecommendationsResponse,
+  type Track,
 } from '@musicbit/shared';
 import type { CatalogService } from '../catalog/service.js';
 
 export type RadioCatalog = Pick<CatalogService, 'recommendations'> &
-  Partial<Pick<CatalogService, 'home'>>;
+  Partial<Pick<CatalogService, 'home' | 'details'>>;
+
+/** Cached listening history is still usable when the upstream asks for login. */
+export function cachedRadio(
+  library: LocalLibrary,
+  available: (id: string) => boolean,
+  recent: string[],
+): Track[] {
+  const unique = new Map(
+    [...library.history.map((entry) => entry.track), ...library.favorites]
+      .filter(
+        (track) =>
+          isCatalogId('track', track.id) &&
+          track.audioUrl === `/api/audio/${track.id}` &&
+          available(track.id),
+      )
+      .map((track) => [track.id, track]),
+  );
+  const items: CatalogItem[] = [...unique.values()].map((track) => ({
+    ...track,
+    kind: 'track',
+    provider: 'youtube',
+    playback: { available: true },
+  }));
+  const ranked = personalRecommendations(library, items, {
+    includeRecent: true,
+  }).map(({ item }) => catalogItemToTrack(item));
+  const fresh = ranked.filter((track) => !recent.includes(track.id));
+  // A very small offline library can legitimately exhaust its recent window.
+  return (fresh.length ? fresh : ranked).slice(0, 3);
+}
 
 /** Re-evaluate listening feedback at each refill, rather than fixing a mix at start. */
 export async function personalRadio(

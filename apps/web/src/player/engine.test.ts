@@ -76,6 +76,27 @@ afterEach(() => {
 });
 
 describe('persistent player', () => {
+  it('shows a provider restriction before waiting indefinitely for native metadata', async () => {
+    const { player, audio } = setup();
+    const queue = [
+      { ...tracks[0]!, id: 'abcdefghijk', audioUrl: '/api/audio/abcdefghijk' },
+    ];
+    const message = 'Il fornitore richiede una verifica di accesso dal server.';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ tracks: [], complete: false, error: message }),
+          ),
+      ),
+    );
+    player.setContinuousPlayback(true);
+    player.playCollection(queue);
+    await vi.waitFor(() => expect(player.getSnapshot().status).toBe('error'));
+    expect(player.getSnapshot().error).toBe(message);
+    expect(audio.pause).toHaveBeenCalled();
+  });
   it('keeps one native HLS source across track boundaries, maps local positions and preserves pause/resume and skips', async () => {
     const { player, audio } = setup();
     const queue = tracks.map((track, index) => ({

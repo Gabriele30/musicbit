@@ -20,6 +20,7 @@ export class AudioResolutionError extends Error {
     public readonly code:
       | 'NOT_FOUND'
       | 'UNAVAILABLE'
+      | 'PROVIDER_RESTRICTED'
       | 'INVALID_ID'
       | 'TIMEOUT'
       | 'BUSY'
@@ -160,9 +161,12 @@ export class ProviderAudioResolver {
     ];
 
     if (!formats.length) {
+      const restricted = info.playability_status?.status === 'LOGIN_REQUIRED';
       throw new AudioResolutionError(
-        'Nessun formato streaming disponibile per questo brano',
-        'UNAVAILABLE',
+        restricted
+          ? 'Il fornitore richiede una verifica di accesso dal server. I brani già in cache restano disponibili.'
+          : 'Nessun formato streaming disponibile per questo brano',
+        restricted ? 'PROVIDER_RESTRICTED' : 'UNAVAILABLE',
         503,
       );
     }

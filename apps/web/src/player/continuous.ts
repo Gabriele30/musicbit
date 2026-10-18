@@ -64,6 +64,12 @@ export class ContinuousPlayback {
   get source() {
     return this.session?.source;
   }
+  get error() {
+    return this.session?.timeline.error;
+  }
+  get notice() {
+    return this.session?.timeline.notice;
+  }
   active(source: string | undefined) {
     return !!source && this.session?.source === source;
   }
@@ -213,7 +219,7 @@ export class ContinuousPlayback {
       if (this.session !== session) return;
       session.retries = 0;
       this.accept(session, timeline);
-      this.poll(session);
+      if (this.session === session) this.poll(session);
     } catch {
       if (!session.controller.signal.aborted) {
         this.log('continuous:plan-error');

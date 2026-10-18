@@ -27,8 +27,11 @@ process.on('message', (message: unknown) => {
       process.send?.({
         id,
         code:
-          e && typeof e === 'object' && 'code' in e && e.code === 'NOT_FOUND'
-            ? 'NOT_FOUND'
+          e &&
+          typeof e === 'object' &&
+          'code' in e &&
+          (e.code === 'NOT_FOUND' || e.code === 'PROVIDER_RESTRICTED')
+            ? e.code
             : 'UNAVAILABLE',
       }),
     )

@@ -2,21 +2,24 @@ export function InfiniteListening({
   enabled,
   repeating,
   onToggle,
+  notice,
 }: {
   enabled: boolean;
   repeating: boolean;
   onToggle: () => void;
+  notice?: string;
 }) {
   return (
     <div className="autoplay-setting">
       <div>
         <strong>Ascolto infinito</strong>
         <small>
-          {repeating
-            ? 'Disattiva Ripeti per continuare con nuovi brani.'
-            : enabled
-              ? 'La musica continua e si adatta ad ascolti, preferiti e skip.'
-              : 'Attivalo per continuare con nuovi brani dopo la coda.'}
+          {notice ??
+            (repeating
+              ? 'Disattiva Ripeti per continuare con nuovi brani.'
+              : enabled
+                ? 'La musica continua e si adatta ad ascolti, preferiti e skip.'
+                : 'Attivalo per continuare con nuovi brani dopo la coda.')}
         </small>
       </div>
       <button

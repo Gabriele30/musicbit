@@ -18,6 +18,7 @@ export interface ContinuousTimeline {
   tracks: ContinuousTrack[];
   complete: boolean;
   error?: string;
+  notice?: string;
   additions?: { index: number; track: Track }[];
   /** First program index retained by the server. Starts stay absolute. */
   queueStart?: number;

@@ -20,7 +20,7 @@ import {
 import { AudioDiskCache } from './disk-cache.js';
 import { AudioStreamService } from './stream-service.js';
 import { AccountError } from '../accounts/store.js';
-import { emptyLibrary } from '@musicbit/shared';
+import { catalogItemToTrack, emptyLibrary } from '@musicbit/shared';
 const roots: string[] = [],
   services: ContinuousAudio[] = [],
   caches: AudioDiskCache[] = [];
@@ -50,6 +50,142 @@ it('rejects incomplete, nonlocal and invalid generated HLS segments', () => {
   ).toThrow();
   expect(() => parseHlsTrack('#EXTINF:2,\nsegment-000001.ts')).toThrow();
 });
+it.each([false, true])(
+  'keeps cached radio open during an upstream restriction and recovers (new account: %s)',
+  async (newAccount) => {
+    const root = mkdtempSync(join(tmpdir(), 'musicbit-radio-restricted-'));
+    roots.push(root);
+    const input = join(root, 'tone.m4a');
+    expect(
+      spawnSync(
+        'ffmpeg',
+        [
+          '-v',
+          'error',
+          '-f',
+          'lavfi',
+          '-i',
+          'sine=frequency=440:sample_rate=44100',
+          '-t',
+          '1',
+          '-c:a',
+          'aac',
+          '-ac',
+          '2',
+          '-y',
+          input,
+        ],
+        { windowsHide: true },
+      ).status,
+    ).toBe(0);
+    const seed = 'cached00001',
+      fallback = 'cached00002',
+      fresh = 'fresh000001';
+    const cache = new AudioDiskCache(
+      join(root, 'cache'),
+      new AudioStreamService(),
+    );
+    caches.push(cache);
+    let restricted = false,
+      recovered = false;
+    vi.spyOn(cache, 'plan').mockImplementation((_user, _device, ids) => {
+      if (ids.includes(fresh) && !recovered) restricted = true;
+      return { bytes: 0, quotaBytes: 5_000_000_000, tracks: 2, preparing: 0 };
+    });
+    vi.spyOn(cache, 'get').mockImplementation((_user, id) =>
+      [seed, fallback].includes(id) || (recovered && id === fresh)
+        ? {
+            id,
+            path: input,
+            size: statSync(input).size,
+            mimeType: 'audio/mp4',
+            durationSeconds: 1,
+            touched: Date.now(),
+            stream: vi.fn(),
+          }
+        : undefined,
+    );
+    vi.spyOn(cache, 'failure').mockImplementation((_user, id) =>
+      restricted && id === fresh ? 'PROVIDER_RESTRICTED' : undefined,
+    );
+    vi.spyOn(cache, 'providerRestricted').mockImplementation(() => restricted);
+    const item = (id: string) => ({
+      id,
+      provider: 'youtube',
+      kind: 'track' as const,
+      title: id,
+      artist: 'Artist',
+      audioUrl: `/api/audio/${id}`,
+      sourceUrl: 'https://music.youtube.com',
+      playback: { available: true },
+    });
+    const library = emptyLibrary();
+    library.history = (newAccount ? [] : [seed, fallback]).map((id) => ({
+      track: catalogItemToTrack(item(id)),
+      playedAt: Date.now(),
+    }));
+    const recommendations = vi.fn(async (seedId: string) => ({
+      seedId,
+      items: [item(fresh)],
+      timing: { cache: 'miss' as const, elapsedMs: 0 },
+    }));
+    const radio = new ContinuousAudio(
+      cache,
+      {
+        recommendations,
+        details: vi.fn(async () => ({
+          item: item(seed),
+          timing: { cache: 'hit' as const, elapsedMs: 0 },
+        })),
+      },
+      undefined,
+      () => library,
+    );
+    services.push(radio);
+    const id = '00000000-0000-4000-8000-000000000099';
+    radio.plan('listener', id, [seed], true, 1);
+    await vi.waitFor(
+      async () =>
+        expect(
+          (await radio.metadata('listener', id))?.tracks.length,
+        ).toBeGreaterThanOrEqual(3),
+      { timeout: 15000 },
+    );
+    const blocked = (await radio.metadata('listener', id))!;
+    expect(blocked.error).toBeUndefined();
+    expect(blocked.complete).toBe(false);
+    expect(blocked.notice).toContain('verifica di accesso');
+    expect(blocked.tracks[1]?.id).toBe(newAccount ? seed : fallback);
+    expect(
+      blocked.additions?.some((addition) => addition.track.id === fresh),
+    ).toBe(false);
+    expect(await radio.manifest('listener', id)).not.toContain(
+      '#EXT-X-ENDLIST',
+    );
+    expect(
+      await radio.segment('listener', id, 1, 'segment-000000.ts'),
+    ).toBeTruthy();
+    recovered = true;
+    restricted = false;
+    expect(
+      await radio.segment('listener', id, 2, 'segment-000000.ts'),
+    ).toBeTruthy();
+    await vi.waitFor(
+      async () =>
+        expect(
+          (await radio.metadata('listener', id))?.tracks.some(
+            (track) => track.id === fresh,
+          ),
+        ).toBe(true),
+      { timeout: 15000 },
+    );
+    expect((await radio.metadata('listener', id))?.notice).toBeUndefined();
+    expect(await radio.manifest('listener', id)).not.toContain(
+      '#EXT-X-ENDLIST',
+    );
+  },
+  30000,
+);
 it('remuxes real AAC into a single continuous HLS playlist, prepares ahead from native segment requests and isolates sessions', async () => {
   const root = mkdtempSync(join(tmpdir(), 'musicbit-hls-test-'));
   roots.push(root);

@@ -64,6 +64,27 @@ segmento rigenerato mentre la cache prepara altri brani. Il test di cache
 mantiene aperto il file e ne verifica la lettura anche dopo la rimozione del
 pathname. Nessuna prova fisica iPhone o CarPlay viene attribuita a questi test.
 
+### Verifica del fornitore reale — 18 ottobre 2026
+
+La prova sul server rileva un limite esterno distinto dai bug del player:
+il catalogo restituisce suggerimenti, ma le richieste audio nuove ricevono
+`LOGIN_REQUIRED` con richiesta di verifica dell'accesso. Due richieste di
+controllo non in cache restituiscono HTTP 503; i file già in cache restano
+decodificabili. Anche la verifica isolata del client conferma l'assenza di
+formati audio durante questa restrizione, senza esporre URL firmati o token.
+
+La gestione aggiunta distingue `PROVIDER_RESTRICTED`, evita di pubblicare
+suggerimenti prima che la sorgente sia pronta e mantiene aperta la radio con
+la musica personale già in cache e un avviso visibile. I test con AAC reale
+coprono sia un account con cronologia sia un account nuovo, quindi simulano
+il ripristino del fornitore e verificano l'arrivo di nuovi brani sulla stessa
+sessione. Non viene dichiarata risolta la richiesta di verifica del fornitore.
+
+La build successiva `index-Cz7YJHSB.js` supera nuovamente `pnpm check`
+con **314 test in 51 file**, lint, TypeScript e tutte le build. La suite browser
+completa termina con **93 prove superate e 5 escluse** per il decoder HLS di
+WebKit Windows (`pnpm test:e2e --workers=4`, 50,7 secondi), senza errori.
+
 ## Ritorno a un brano già ascoltato — revisione v7
 
 L'utente segnala che A → B → A riprende A a metà anziché da zero. La revisione

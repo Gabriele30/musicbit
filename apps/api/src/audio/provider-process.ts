@@ -83,8 +83,12 @@ export class ProviderProcess {
       else
         item.reject(
           new AudioResolutionError(
-            'Stream temporaneamente non disponibile. Riprova.',
-            msg.code === 'NOT_FOUND' ? 'NOT_FOUND' : 'UNAVAILABLE',
+            msg.code === 'PROVIDER_RESTRICTED'
+              ? 'Il fornitore richiede una verifica di accesso dal server. I brani già in cache restano disponibili.'
+              : 'Stream temporaneamente non disponibile. Riprova.',
+            msg.code === 'NOT_FOUND' || msg.code === 'PROVIDER_RESTRICTED'
+              ? msg.code
+              : 'UNAVAILABLE',
             msg.code === 'NOT_FOUND' ? 404 : 503,
           ),
         );

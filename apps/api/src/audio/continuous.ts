@@ -20,10 +20,16 @@ import type {
   ContinuousTrack,
   ContinuousPlan,
   LocalLibrary,
+  Track,
 } from '@musicbit/shared';
 import type { AudioDiskCache } from './disk-cache.js';
-import { catalogItemToTrack, PLAYBACK_QUEUE_LIMIT } from '@musicbit/shared';
-import { personalRadio, type RadioCatalog } from './radio.js';
+import {
+  catalogItemToTrack,
+  emptyLibrary,
+  PLAYBACK_QUEUE_LIMIT,
+} from '@musicbit/shared';
+import { cachedRadio, personalRadio, type RadioCatalog } from './radio.js';
+import { AudioResolutionError } from './stream-service.js';
 
 interface Segment {
   duration: number;
@@ -47,6 +53,7 @@ interface Session {
   controller: AbortController;
   work?: Promise<void>;
   error?: string;
+  notice?: string;
   autoplay: boolean;
   maxTracks: number;
   additions: NonNullable<ContinuousTimeline['additions']>;
@@ -217,6 +224,7 @@ export class ContinuousAudio {
         session.prepared.length === session.ids.length && !session.autoplay,
       additions: session.additions.map((addition) => ({ ...addition })),
       ...(session.error ? { error: session.error } : {}),
+      ...(session.notice ? { notice: session.notice } : {}),
     };
   }
   async find(user: string, id: string, waitMs = 5000) {
@@ -353,20 +361,7 @@ export class ContinuousAudio {
             session.autoplay = false;
             break;
           }
-          const response = await personalRadio(
-            this.catalog,
-            session.ids[session.cursor - session.queueStart] ??
-              session.ids.at(-1)!,
-            session.controller.signal,
-            this.profile?.(session.user),
-            [...session.recentIds, ...session.ids],
-          );
-          const tracks = response.items
-            .map(catalogItemToTrack)
-            .filter((track) =>
-              /^\/api\/audio\/[A-Za-z0-9_-]{11}$/.test(track.audioUrl),
-            )
-            .slice(0, 3);
+          const tracks = await this.radioTracks(session);
           if (!tracks.length) {
             // Keep the same native playlist open through transient catalog
             // outages and empty batches. No JavaScript wake-up is needed.
@@ -411,10 +406,13 @@ export class ContinuousAudio {
         session.revision++;
       }
     })()
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!session.controller.signal.aborted) {
           session.error =
-            'Preparazione del flusso continuo non riuscita. Tocca Play per riprovare.';
+            error instanceof AudioResolutionError &&
+            error.code === 'PROVIDER_RESTRICTED'
+              ? error.message
+              : 'Preparazione del flusso continuo non riuscita. Tocca Play per riprovare.';
           session.revision++;
         }
       })
@@ -424,6 +422,78 @@ export class ContinuousAudio {
       });
     session.work = work;
     this.jobs.add(work);
+  }
+  private async radioTracks(session: Session): Promise<Track[]> {
+    const library = this.profile?.(session.user) ?? emptyLibrary();
+    const tracks: Track[] = [];
+    if (!this.cache.providerRestricted(session.user)) {
+      const response = await personalRadio(
+        this.catalog!,
+        session.ids[session.cursor - session.queueStart] ?? session.ids.at(-1)!,
+        session.controller.signal,
+        library,
+        [...session.recentIds, ...session.ids],
+      );
+      // Do not publish a suggested track in the native program until its
+      // complete source exists. One unavailable suggestion must not end radio.
+      for (const item of response.items.slice(0, 6)) {
+        const track = catalogItemToTrack(item);
+        if (!/^\/api\/audio\/[A-Za-z0-9_-]{11}$/.test(track.audioUrl)) continue;
+        this.cache.plan(session.user, `hls-${session.id}`, [
+          track.id,
+          ...session.ids.slice(-10),
+        ]);
+        const deadline = Date.now() + 125000;
+        while (
+          !this.cache.get(session.user, track.id) &&
+          !this.cache.failure(session.user, track.id) &&
+          Date.now() < deadline
+        ) {
+          await delay(100, undefined, { signal: session.controller.signal });
+        }
+        if (this.cache.get(session.user, track.id)) tracks.push(track);
+        if (tracks.length >= 3 || this.cache.providerRestricted(session.user))
+          break;
+      }
+    }
+    if (tracks.length) {
+      session.notice = undefined;
+      return tracks;
+    }
+    session.notice = this.cache.providerRestricted(session.user)
+      ? 'Il fornitore richiede una verifica di accesso. Continuiamo con i tuoi ascolti già in cache.'
+      : 'Nuovi brani temporaneamente non disponibili. Continuiamo con i tuoi ascolti già in cache.';
+    session.revision++;
+    const fallback = cachedRadio(
+      library,
+      (id) => !!this.cache.get(session.user, id),
+      session.ids.slice(-3),
+    );
+    if (fallback.length || !this.catalog?.details) return fallback;
+    // A new account may have cached its first song before history was synced.
+    // Resolve only its catalog metadata; never require another audio download.
+    const seed =
+      session.ids[session.cursor - session.queueStart] ?? session.ids.at(-1)!;
+    if (!this.cache.get(session.user, seed)) return [];
+    try {
+      const { item } = await this.catalog.details(
+        'track',
+        seed,
+        session.controller.signal,
+      );
+      if (item.kind !== 'track' || item.id !== seed) return [];
+      return cachedRadio(
+        {
+          ...library,
+          favorites: [...library.favorites, catalogItemToTrack(item)],
+        },
+        (id) => !!this.cache.get(session.user, id),
+        [],
+      );
+    } catch {
+      session.controller.signal.throwIfAborted();
+      return [];
+    }
   }
   private prune(session: Session) {
     const count = Math.min(
@@ -540,6 +610,16 @@ export class ContinuousAudio {
       Date.now() < deadline &&
       !session.controller.signal.aborted
     ) {
+      if (this.cache.failure(session.user, id)) {
+        const restricted =
+          this.cache.failure(session.user, id) === 'PROVIDER_RESTRICTED';
+        throw new AudioResolutionError(
+          restricted
+            ? 'Il fornitore richiede una verifica di accesso dal server. I brani già in cache restano disponibili.'
+            : 'Audio temporaneamente non disponibile.',
+          restricted ? 'PROVIDER_RESTRICTED' : 'UNAVAILABLE',
+        );
+      }
       await delay(100, undefined, { signal: session.controller.signal });
       cached = this.cache.get(session.user, id);
     }

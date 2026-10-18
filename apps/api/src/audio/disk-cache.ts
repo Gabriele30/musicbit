@@ -17,7 +17,10 @@ import { join } from 'node:path';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { patchAudioChunk } from './mp4.js';
-import type { AudioStreamService } from './stream-service.js';
+import {
+  AudioResolutionError,
+  type AudioStreamService,
+} from './stream-service.js';
 import { AUDIO_CACHE_QUOTA_BYTES } from '@musicbit/shared';
 
 const validId = (id: string) => /^[A-Za-z0-9_-]{11}$/.test(id);
@@ -43,6 +46,7 @@ export class AudioDiskCache {
     { controller: AbortController; user: string; id: string }
   >();
   private failures = new Map<string, number>();
+  private failureCodes = new Map<string, string>();
   private closed = false;
   private pending = new Set<Promise<void>>();
   private reservations = new Map<UserCache, Map<string, number>>();
@@ -171,6 +175,20 @@ export class AudioDiskCache {
         .length,
     };
   }
+  failure(userId: string, id: string) {
+    const key = `${userId}:${id}`;
+    return (this.failures.get(key) ?? 0) > Date.now()
+      ? (this.failureCodes.get(key) ?? 'UNAVAILABLE')
+      : undefined;
+  }
+  providerRestricted(userId: string) {
+    return [...this.failureCodes].some(
+      ([key, code]) =>
+        key.startsWith(`${userId}:`) &&
+        code === 'PROVIDER_RESTRICTED' &&
+        (this.failures.get(key) ?? 0) > Date.now(),
+    );
+  }
   private pump() {
     if (this.closed) return;
     for (const [userId, user] of this.users) {
@@ -186,9 +204,16 @@ export class AudioDiskCache {
         const controller = new AbortController();
         this.jobs.set(key, { controller, user: userId, id });
         const task = this.download(user, id, controller)
-          .catch(() => {
-            if (!controller.signal.aborted)
+          .catch((error: unknown) => {
+            if (!controller.signal.aborted) {
               this.failures.set(key, Date.now() + 60000);
+              this.failureCodes.set(
+                key,
+                error instanceof AudioResolutionError
+                  ? error.code
+                  : 'UNAVAILABLE',
+              );
+            }
           })
           .finally(() => {
             this.jobs.delete(key);
@@ -204,7 +229,10 @@ export class AudioDiskCache {
       }
     }
     for (const [key, until] of this.failures)
-      if (until < Date.now()) this.failures.delete(key);
+      if (until < Date.now()) {
+        this.failures.delete(key);
+        this.failureCodes.delete(key);
+      }
   }
   private async download(
     user: UserCache,

@@ -779,6 +779,7 @@ function MusicApp({
                 </div>
                 <InfiniteListening
                   enabled={state.autoplay}
+                  notice={state.radioNotice}
                   repeating={state.repeat !== 'off'}
                   onToggle={() => player.toggleAutoplay()}
                 />
@@ -907,6 +908,7 @@ function MusicApp({
               </p>
               <InfiniteListening
                 enabled={state.autoplay}
+                notice={state.radioNotice}
                 repeating={state.repeat !== 'off'}
                 onToggle={() => player.toggleAutoplay()}
               />

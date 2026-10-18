@@ -101,6 +101,7 @@ export interface PlayerState {
   autoplay: boolean;
   autoplayTracks: Track[];
   autoplayStatus: 'idle' | 'loading' | 'ready' | 'error';
+  radioNotice?: string;
 }
 
 const mediaErrorMessages: Record<number, string> = {
@@ -151,7 +152,10 @@ export class PlayerEngine {
   private resolvedDurations = new Map<string, number>();
   private pendingNativeProgress: number | undefined;
   private continuous = new ContinuousPlayback(
-    () => this.syncPosition(),
+    () => {
+      if (this.continuous.error) this.fail(this.continuous.error);
+      else this.syncPosition();
+    },
     (event) => this.log(event),
     () => this.audio.currentTime,
   );
@@ -721,6 +725,7 @@ export class PlayerEngine {
       autoplayTracks: [],
       autoplayStatus: 'idle',
       preparation: undefined,
+      radioNotice: undefined,
       catalog: undefined,
       attempts: [],
       events: [],
@@ -1108,6 +1113,10 @@ export class PlayerEngine {
     return false;
   }
   private syncPosition() {
+    const radioNotice = this.continuous.active(this.source)
+      ? this.continuous.notice
+      : undefined;
+    if (radioNotice !== this.state.radioNotice) this.patch({ radioNotice });
     if (this.pendingSeek) {
       // Media events may be queued while the page is suspended. Ready native
       // audio can already be advancing; acknowledging it must not seek again.

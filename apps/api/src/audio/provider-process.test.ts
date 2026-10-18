@@ -24,6 +24,20 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 describe('provider process supervision', () => {
+  it('preserves a sanitized provider access restriction without leaking upstream data', async () => {
+    const { service, child } = setup();
+    const request = service.resolve('abcdefghijk');
+    child.emit('message', {
+      id: 1,
+      code: 'PROVIDER_RESTRICTED',
+      reason: 'private upstream diagnostic',
+    });
+    await expect(request).rejects.toMatchObject({
+      code: 'PROVIDER_RESTRICTED',
+      status: 503,
+    });
+    await expect(request).rejects.not.toThrow('private upstream diagnostic');
+  });
   it('does not inherit account secrets, sends only the video ID and limits process permissions', async () => {
     vi.stubEnv('MUSICBIT_DB_PATH', 'private.sqlite');
     vi.stubEnv('AUTH_SECRET', 'secret');

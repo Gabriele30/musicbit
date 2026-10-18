@@ -74,6 +74,7 @@ export function buildTasteProfile(library: LocalLibrary) {
 export function personalRecommendations(
   library: LocalLibrary,
   candidates: CatalogItem[],
+  options: { includeRecent?: boolean } = {},
 ): PersonalSuggestion[] {
   const taste = library.taste ?? emptyTaste();
   const profile = buildTasteProfile(library);
@@ -97,7 +98,7 @@ export function personalRecommendations(
         !item.playback.available ||
         blocked.has(item.artist.trim().toLocaleLowerCase()) ||
         taste.dismissed.includes(item.id) ||
-        recent.has(item.id) ||
+        (!options.includeRecent && recent.has(item.id)) ||
         seen.has(key)
       )
         return false;

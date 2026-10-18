@@ -9,7 +9,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AudioDiskCache } from './disk-cache.js';
-import { AudioStreamService } from './stream-service.js';
+import { AudioResolutionError, AudioStreamService } from './stream-service.js';
 import { buildApp } from '../app.js';
 const caches: AudioDiskCache[] = [];
 const roots: string[] = [];
@@ -46,6 +46,22 @@ afterEach(async () => {
     rmSync(root, { recursive: true, force: true });
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+it('reports an account-scoped provider restriction promptly and expires the failure backoff', async () => {
+  const { service, cache, fetcher } = setup();
+  vi.mocked(service.resolve).mockRejectedValue(
+    new AudioResolutionError('Access required', 'PROVIDER_RESTRICTED'),
+  );
+  cache.plan('gabriele', 'phone-device', [id]);
+  await vi.waitFor(() =>
+    expect(cache.failure('gabriele', id)).toBe('PROVIDER_RESTRICTED'),
+  );
+  expect(cache.providerRestricted('gabriele')).toBe(true);
+  expect(cache.providerRestricted('marco')).toBe(false);
+  expect(fetcher).not.toHaveBeenCalled();
+  vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 61000);
+  expect(cache.failure('gabriele', id)).toBeUndefined();
+  expect(cache.providerRestricted('gabriele')).toBe(false);
 });
 
 it('persists corrected AAC and duration across restart, isolates users and removes incomplete files', async () => {
