@@ -1,4 +1,7 @@
 import { EventEmitter } from 'node:events';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 const { forkMock } = vi.hoisted(() => ({ forkMock: vi.fn() }));
 vi.mock('node:child_process', () => ({ fork: forkMock }));
@@ -24,6 +27,58 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 describe('provider process supervision', () => {
+  it('evicts a rejected stream before its next resolution without interrupting another song', async () => {
+    const { service, child } = setup();
+    service.evict('aaaaaaaaaaa');
+    expect(forkMock).not.toHaveBeenCalled();
+    const other = service.resolve('bbbbbbbbbbb');
+    service.evict('aaaaaaaaaaa');
+    const retry = service.resolve('aaaaaaaaaaa');
+    expect(child.send.mock.calls.map(([message]) => message)).toEqual([
+      { id: 1, videoId: 'bbbbbbbbbbb' },
+      { evict: 'aaaaaaaaaaa' },
+      { id: 2, videoId: 'aaaaaaaaaaa' },
+    ]);
+    expect(child.kill).not.toHaveBeenCalled();
+    for (const id of [1, 2])
+      child.emit('message', {
+        id,
+        value: {
+          url: 'https://r1.googlevideo.com/fresh',
+          mimeType: 'audio/mp4',
+          expiresAt: Date.now() + 3600000,
+        },
+      });
+    await expect(other).resolves.toBeDefined();
+    await expect(retry).resolves.toBeDefined();
+    service.evict('invalid');
+    expect(child.send).toHaveBeenCalledTimes(3);
+  });
+  it('grants access only to an explicit provider file without copying its credentials into environment or IPC', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'musicbit-provider-file-'));
+    try {
+      const path = join(root, 'session.cookies');
+      writeFileSync(path, 'SAPISID=test-secret-only', { mode: 0o600 });
+      vi.stubEnv('YOUTUBE_COOKIE_FILE', path);
+      vi.stubEnv('YOUTUBE_COOKIE', 'must-not-inherit');
+      const { service, child } = setup();
+      const request = service.resolve('abcdefghijk');
+      const options = forkMock.mock.calls[0]![2];
+      expect(options.env.YOUTUBE_COOKIE_FILE).toBe(path);
+      expect(options.env.YOUTUBE_COOKIE).toBeUndefined();
+      expect(options.execArgv).toContain(`--allow-fs-read=${path}`);
+      expect(JSON.stringify(options)).not.toContain('test-secret-only');
+      expect(JSON.stringify(child.send.mock.calls)).not.toContain(
+        'test-secret-only',
+      );
+      child.emit('message', { id: 1, code: 'PROVIDER_RESTRICTED' });
+      await expect(request).rejects.toMatchObject({
+        code: 'PROVIDER_RESTRICTED',
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
   it('preserves a sanitized provider access restriction without leaking upstream data', async () => {
     const { service, child } = setup();
     const request = service.resolve('abcdefghijk');

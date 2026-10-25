@@ -15,7 +15,9 @@ export function TasteProfile({ library }: { library: LibraryModel }) {
       aria-labelledby="taste-title"
     >
       <p className="eyebrow">TU DECIDI COSA TI RAPPRESENTA</p>
-      <h2 id="taste-title">Taste Profile</h2>
+      <h2 id="taste-title" tabIndex={-1}>
+        Taste Profile
+      </h2>
       <p className="muted">
         Questi artisti emergono da preferiti, artisti seguiti, ascolti
         completati e brani saltati. Correggi i suggerimenti quando qualcosa non

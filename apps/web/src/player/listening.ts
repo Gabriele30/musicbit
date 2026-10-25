@@ -79,8 +79,13 @@ export class ListeningMeter {
     if (old && this.track && !changed && !seeking && old.status === 'playing') {
       const delta = state.position - old.position,
         elapsed = Math.max(0, (now - this.at) / 1000);
-      if (delta >= 0 && delta <= elapsed * 1.25 + 0.5 && elapsed < 21600) {
-        const heard = Math.min(delta, elapsed);
+      const rate = old.playbackRate || 1;
+      if (
+        delta >= 0 &&
+        delta <= elapsed * rate * 1.25 + 0.5 &&
+        elapsed < 21600
+      ) {
+        const heard = Math.min(delta / rate, elapsed);
         this.buffered += heard;
         this.total += heard;
       }

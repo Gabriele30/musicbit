@@ -34,6 +34,29 @@ function gateway(): MusicMetadataGateway {
 }
 
 describe('YouTube catalog provider with deterministic metadata mocks', () => {
+  it('prefers square album artwork to a larger video still', async () => {
+    const client = gateway();
+    client.details = vi.fn(async () => ({
+      ...song,
+      thumbnails: [
+        {
+          url: 'https://i.ytimg.com/vi/abcdefghijk/maxresdefault.jpg',
+          width: 1280,
+          height: 720,
+        },
+        {
+          url: 'https://lh3.googleusercontent.com/album=w600-h600',
+          width: 600,
+          height: 600,
+        },
+      ],
+    }));
+    expect(
+      await new YouTubeCatalogProvider(client).details('track', id, abort()),
+    ).toMatchObject({
+      artworkUrl: 'https://lh3.googleusercontent.com/album=w600-h600',
+    });
+  });
   it('inherits missing album-track artists while preserving explicit featured credits', async () => {
     const client = gateway();
     client.details = vi.fn(async () => ({
@@ -177,8 +200,51 @@ describe('YouTube catalog provider with deterministic metadata mocks', () => {
       artistId,
       albumId: 'MPRalbum123',
     });
-    expect(detail?.albums?.[0]?.title).toBe('Album');
+    expect(detail?.albums?.[0]).toMatchObject({
+      title: 'Album',
+      artist: 'Artist',
+      artists: ['Artist'],
+      artistId,
+    });
     expect(detail?.relatedArtists?.[0]?.title).toBe('Similar artist');
+  });
+  it('inherits missing discography credits without replacing collaborations or related artists', async () => {
+    const client = gateway();
+    client.details = vi.fn(async () => ({
+      header: { title: 'MadMan' },
+      sections: [
+        {
+          contents: [
+            { item_type: 'song', id, title: 'Solo track' },
+            {
+              ...song,
+              id: 'lmnopqrstuv',
+              artists: [{ name: 'Gemitaiz' }, { name: 'MadMan' }],
+            },
+            {
+              id: 'UCzyxwvutsrqponmlkjihgfe',
+              item_type: 'artist',
+              name: 'Gemitaiz',
+            },
+          ],
+        },
+      ],
+    }));
+    const detail = await new YouTubeCatalogProvider(client).details(
+      'artist',
+      artistId,
+      abort(),
+    );
+    expect(detail?.tracks?.[0]).toMatchObject({
+      artist: 'MadMan',
+      artists: ['MadMan'],
+      artistId,
+    });
+    expect(detail?.tracks?.[1]).toMatchObject({
+      artist: 'Gemitaiz, MadMan',
+      artists: ['Gemitaiz', 'MadMan'],
+    });
+    expect(detail?.relatedArtists?.[0]?.artist).toBe('Gemitaiz');
   });
   it('normalizes tracks, deduplicates and never returns media or playback capability', async () => {
     const provider = new YouTubeCatalogProvider(gateway());

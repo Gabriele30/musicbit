@@ -2,19 +2,22 @@ import { fork, type ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { existsSync, realpathSync } from 'node:fs';
+import { providerSessionFile } from './provider-session.js';
 import {
   AudioResolutionError,
   type ResolvedAudioStream,
 } from './stream-service.js';
 
-export function providerEnvironment(): NodeJS.ProcessEnv {
-  // No API environment, cookies, database location or host credentials cross IPC.
+export function providerEnvironment(sessionFile?: string): NodeJS.ProcessEnv {
+  // Only the explicitly configured provider file is shared. Cookie values,
+  // API environment, database location and host credentials never cross IPC.
   return {
     SystemRoot: process.env.SystemRoot,
     WINDIR: process.env.WINDIR,
     LANG: 'en_US.UTF-8',
     TZ: 'UTC',
     NODE_ENV: 'production',
+    ...(sessionFile ? { YOUTUBE_COOKIE_FILE: sessionFile } : {}),
   };
 }
 export class ProviderProcess {
@@ -47,6 +50,7 @@ export class ProviderProcess {
     ]
       .filter(existsSync)
       .map((p) => realpathSync(p));
+    const sessionFile = providerSessionFile();
     const child = fork(entry, [], {
       execArgv: [
         '--max-old-space-size=256',
@@ -54,8 +58,9 @@ export class ProviderProcess {
         '--no-addons',
         '--no-experimental-sqlite',
         ...new Set([dist, ...moduleRoots].map((p) => `--allow-fs-read=${p}`)),
+        ...(sessionFile ? [`--allow-fs-read=${sessionFile}`] : []),
       ],
-      env: providerEnvironment(),
+      env: providerEnvironment(sessionFile),
       stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
       serialization: 'json',
     });
@@ -102,6 +107,15 @@ export class ProviderProcess {
       if (this.child === child) this.fail();
     });
     return child;
+  }
+  evict(videoId: string): void {
+    if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return;
+    const child = this.child;
+    // IPC preserves ordering: the eviction reaches the resolver before the
+    // subsequent resolve. Do not restart it or cancel other songs in flight.
+    child?.send({ evict: videoId }, (error) => {
+      if (error && this.child === child) this.fail();
+    });
   }
   resolve(videoId: string, signal?: AbortSignal): Promise<ResolvedAudioStream> {
     signal?.throwIfAborted();

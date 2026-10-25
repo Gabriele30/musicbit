@@ -93,6 +93,67 @@ afterEach(() => {
 });
 
 describe('adaptive infinite listening', () => {
+  it('keeps usable songs when one legacy radio item has invalid artwork', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        response([
+          recommendation,
+          { ...second, artworkUrl: '/icons/icon-192.png' },
+        ]),
+      ),
+    );
+    const { player } = setup();
+    await vi.waitFor(() =>
+      expect(player.getSnapshot().autoplayStatus).toBe('ready'),
+    );
+    expect(
+      player.getSnapshot().autoplayTracks.map((track) => track.id),
+    ).toEqual([recommendation.id]);
+  });
+  it('uses the currently playing artist to avoid a same-artist next song even when that artist ranks highest', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => response([recommendation, second])),
+    );
+    const library = emptyLibrary();
+    library.favorites = [catalogItemToTrack(recommendation)];
+    const { player, change } = setup(library);
+    change({ queue: [{ ...catalogItemToTrack(seed), artist: 'Preferred' }] });
+    await vi.waitFor(() =>
+      expect(player.getSnapshot().autoplayStatus).toBe('ready'),
+    );
+    expect(
+      player.getSnapshot().autoplayTracks.map((track) => track.id),
+    ).toEqual([second.id, recommendation.id]);
+  });
+  it('retains the restricted-provider notice while reranking cached suggestions', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        response([recommendation], {
+          notice: 'Continuiamo con i tuoi ascolti già in cache.',
+        }),
+      ),
+    );
+    const { player, library: changeLibrary } = setup();
+    await vi.waitFor(() =>
+      expect(player.getSnapshot().autoplayStatus).toBe('ready'),
+    );
+    expect(player.setRecommendations).toHaveBeenLastCalledWith(
+      seed.id,
+      [catalogItemToTrack(recommendation)],
+      'ready',
+      'Continuiamo con i tuoi ascolti già in cache.',
+    );
+    changeLibrary(emptyLibrary());
+    expect(player.setRecommendations).toHaveBeenLastCalledWith(
+      seed.id,
+      [catalogItemToTrack(recommendation)],
+      'ready',
+      'Continuiamo con i tuoi ascolti già in cache.',
+    );
+  });
   it('uses account radio, excludes queued songs and reranks immediately when taste changes', async () => {
     const fetcher = vi
       .fn()

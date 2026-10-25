@@ -13,7 +13,10 @@ import { accountRequest } from '../account';
 import { recommendations } from '../search-api';
 import type { PlayerEngine } from './engine';
 
-type RadioResponse = RecommendationsResponse & { retry?: boolean };
+type RadioResponse = RecommendationsResponse & {
+  retry?: boolean;
+  notice?: string;
+};
 interface AutoplayOptions {
   accountId?: string;
   getLibrary?: () => LocalLibrary;
@@ -32,13 +35,14 @@ async function radioRecommendations(
     'GET',
     signal,
   );
-  if (
-    data?.seedId !== id ||
-    !Array.isArray(data.items) ||
-    !data.items.every((item) => isCatalogItem(item) && item.kind === 'track')
-  )
+  if (data?.seedId !== id || !Array.isArray(data.items))
     throw new Error('Suggerimenti radio non validi.');
-  return data;
+  const items = data.items.filter(
+    (item) => isCatalogItem(item) && item.kind === 'track',
+  );
+  if (data.items.length && !items.length)
+    throw new Error('Suggerimenti radio non validi.');
+  return { ...data, items };
 }
 
 /** Stage progressive audio ahead of time; native HLS extends its own queue on the server. */
@@ -51,9 +55,12 @@ export function connectAutoplay(
   let retry: ReturnType<typeof setTimeout> | undefined;
   let retries = 0;
   let candidates: CatalogItem[] = [];
+  let notice: string | undefined;
   let disposed = false;
   let scheduled = false;
   const rank = () => {
+    const state = player.getSnapshot();
+    const current = state.queue[state.index];
     const queued = new Set(
       player
         .getSnapshot()
@@ -63,7 +70,15 @@ export function connectAutoplay(
     return personalRecommendations(
       options.getLibrary?.() ?? emptyLibrary(),
       candidates.filter((item) => !queued.has(item.id)),
+      {
+        excludeTracks: state.queue.slice(-200),
+        previousArtist: current?.artists?.[0] ?? current?.artist,
+      },
     ).map(({ item }) => catalogItemToTrack(item));
+  };
+  const publish = (id: string) => {
+    if (notice) player.setRecommendations(id, rank(), 'ready', notice);
+    else player.setRecommendations(id, rank());
   };
   const scheduleRetry = () => {
     clearTimeout(retry);
@@ -96,7 +111,9 @@ export function connectAutoplay(
       );
       if (disposed || request.signal.aborted || id !== seed) return;
       candidates = data.items.filter((item) => item.playback.available);
-      player.setRecommendations(id, rank());
+      notice =
+        typeof data.notice === 'string' ? data.notice.slice(0, 500) : undefined;
+      publish(id);
       if (id !== seed) return;
       // Filtering out queued songs can exhaust a provider response as well.
       if (data.retry || !player.getSnapshot().autoplayTracks.length)
@@ -123,6 +140,7 @@ export function connectAutoplay(
     controller?.abort();
     clearTimeout(retry);
     candidates = [];
+    notice = undefined;
     retries = 0;
     scheduled = Boolean(next);
     if (next)
@@ -138,7 +156,7 @@ export function connectAutoplay(
   const refresh = () => {
     if (!seed || disposed) return;
     if (candidates.length) {
-      player.setRecommendations(seed, rank());
+      publish(seed);
       if (!player.getSnapshot().autoplayTracks.length) scheduleRetry();
     } else if (
       !scheduled &&

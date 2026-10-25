@@ -30,8 +30,8 @@ export default defineConfig(({ mode }) => {
           scope: '/',
           display: 'standalone',
           orientation: 'any',
-          theme_color: '#101312',
-          background_color: '#101312',
+          theme_color: '#000000',
+          background_color: '#000000',
           icons: [
             {
               src: '/icons/icon-192.png',

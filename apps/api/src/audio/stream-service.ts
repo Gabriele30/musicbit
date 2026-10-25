@@ -51,6 +51,7 @@ export class AudioStreamService {
 
   evict(videoId: string): void {
     this.cache.evict(videoId);
+    this.process.evict(videoId);
   }
 
   close(): void {

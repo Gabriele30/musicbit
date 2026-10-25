@@ -28,7 +28,12 @@ import {
   emptyLibrary,
   PLAYBACK_QUEUE_LIMIT,
 } from '@musicbit/shared';
-import { cachedRadio, personalRadio, type RadioCatalog } from './radio.js';
+import {
+  cachedRadio,
+  cachedCatalogItem,
+  personalRadio,
+  type RadioCatalog,
+} from './radio.js';
 import { AudioResolutionError } from './stream-service.js';
 
 interface Segment {
@@ -259,7 +264,9 @@ export class ContinuousAudio {
     );
     const lines = [
       '#EXTM3U',
-      '#EXT-X-VERSION:3',
+      // Protocol 6 introduced the start and discontinuity-sequence features
+      // below. Declare them consistently for native Apple playback.
+      '#EXT-X-VERSION:6',
       '#EXT-X-TARGETDURATION:3',
       `#EXT-X-MEDIA-SEQUENCE:${session.mediaSequence}`,
       `#EXT-X-DISCONTINUITY-SEQUENCE:${session.queueStart}`,
@@ -320,16 +327,22 @@ export class ContinuousAudio {
       return;
     part.leases++;
     try {
-      if (
-        index >= session.cursor &&
-        session.recentIds.at(-1) !== part.track.id
-      ) {
-        session.recentIds.push(part.track.id);
-        if (session.recentIds.length > 200) session.recentIds.shift();
+      // Native HLS probes the LAST segments to inspect a live playlist's edge.
+      // Those requests are not listening progress: counting them repeatedly
+      // extended radio and retired songs the user had not even played yet.
+      // Entering a song from its first segment is the handoff signal.
+      if (name === part.segments[0]?.name) {
+        if (
+          index >= session.cursor &&
+          session.recentIds.at(-1) !== part.track.id
+        ) {
+          session.recentIds.push(part.track.id);
+          if (session.recentIds.length > 200) session.recentIds.shift();
+        }
+        session.cursor = Math.max(session.cursor, index);
+        this.prune(session);
+        this.pump(session);
       }
-      session.cursor = Math.max(session.cursor, index);
-      this.prune(session);
-      this.pump(session);
       const path = join(part.directory, name);
       if (!existsSync(path))
         await this.convert(session, index, part.directory, part.track.id);
@@ -769,6 +782,7 @@ export function registerContinuousRoutes(
   requireUser: (request: FastifyRequest) => { id: string },
   catalog?: RadioCatalog,
   profile?: (user: string) => LocalLibrary,
+  cache?: Pick<AudioDiskCache, 'providerRestricted' | 'get'>,
 ) {
   app.get<{ Params: { id: string }; Querystring: { exclude?: string } }>(
     '/api/me/radio/:id',
@@ -798,6 +812,30 @@ export function registerContinuousRoutes(
       const user = requireUser(request);
       if (!catalog)
         return reply.code(503).send({ error: 'Radio non disponibile.' });
+      reply.header('Cache-Control', 'private, no-store');
+      if (cache?.providerRestricted(user.id)) {
+        const started = performance.now();
+        const excluded = new Set([
+          request.params.id,
+          ...(request.query.exclude?.split(',') ?? []),
+        ]);
+        const tracks = cachedRadio(
+          profile?.(user.id) ?? emptyLibrary(),
+          (id) => !!cache.get(user.id, id),
+          [...excluded],
+          false,
+        ).filter((track) => !excluded.has(track.id));
+        return {
+          seedId: request.params.id,
+          items: tracks.map(cachedCatalogItem),
+          notice: tracks.length
+            ? 'Il fornitore richiede una verifica di accesso. Continuiamo con i tuoi ascolti già in cache.'
+            : 'Il fornitore richiede una verifica di accesso. Non ci sono altri brani disponibili in cache per questa radio.',
+          partial: true,
+          retry: !tracks.length,
+          timing: { cache: 'hit', elapsedMs: performance.now() - started },
+        };
+      }
       const controller = new AbortController();
       const closed = () => {
         if (!reply.raw.writableFinished) controller.abort();

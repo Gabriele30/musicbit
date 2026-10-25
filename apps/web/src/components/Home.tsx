@@ -73,17 +73,19 @@ function TrackShelf({
   title,
   tracks,
   onPlay,
+  limit = 8,
 }: {
   title: string;
   tracks: Track[];
   onPlay: (track: Track) => void;
+  limit?: number;
 }) {
   if (!tracks.length) return null;
   return (
     <section className="feed-section">
       <h2>{title}</h2>
       <div className="quick-list">
-        {tracks.slice(0, 8).map((track) => (
+        {tracks.slice(0, limit).map((track) => (
           <button
             key={track.id}
             onClick={() => onPlay(track)}
@@ -153,6 +155,9 @@ export function Home({
     library.favorites.map((t) => t.id),
     library.followedArtists.map((a) => a.id),
     library.snapshot.taste?.artistPreferences,
+    library.snapshot.taste?.signals,
+    library.snapshot.taste?.dismissed,
+    library.snapshot.taste?.excludedFromTaste,
   ]);
   const picks = quickPicks(library.snapshot);
   const [personalCandidates, setPersonalCandidates] = useState<CatalogItem[]>(
@@ -297,9 +302,23 @@ export function Home({
           <Icon name="refresh" size={18} />
         </button>
       </div>
+      {(filter === 'all' || filter === 'track') && picks.length > 0 && (
+        <section aria-label="Le tue scelte veloci">
+          <TrackShelf
+            title="Scelte veloci"
+            tracks={picks}
+            onPlay={onPlay}
+            limit={6}
+          />
+        </section>
+      )}
       {filter === 'all' && (
         <>
-          <div className="experience-shortcuts">
+          <div
+            className="experience-shortcuts"
+            role="region"
+            aria-label="Strumenti personali"
+          >
             {onStartRadio && (
               <button
                 aria-label={
@@ -348,6 +367,42 @@ export function Home({
               <Icon name="arrow" size={18} />
             </button>
           </div>
+          {!!personal.length && (
+            <section className="feed-section personal-section">
+              <div className="section-heading">
+                <h2>Scelti per te</h2>
+                <span className="muted">Dai tuoi ascolti e preferiti</span>
+              </div>
+              <div className="personal-grid">
+                {personal.slice(0, 4).map(({ item, reason }) => (
+                  <article key={item.id} className="personal-track">
+                    <button
+                      className="personal-play"
+                      onClick={() => onPlay(catalogItemToTrack(item))}
+                      aria-label={`Riproduci ${item.title}`}
+                    >
+                      <CoverArt src={item.artworkUrl} title={item.title} />
+                      <span>
+                        <strong>{item.title}</strong>
+                        <small>{item.artist}</small>
+                        <small className="recommendation-reason">
+                          {reason}
+                        </small>
+                      </span>
+                      <Icon name="play" size={18} />
+                    </button>
+                    <button
+                      className="text-button"
+                      onClick={() => library.dismissTrack(item.id)}
+                      aria-label={`Meno come ${item.title}`}
+                    >
+                      Meno come questo
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
           {!!mixes.length && (
             <section className="feed-section automatic-mixes">
               <div className="section-heading">
@@ -401,42 +456,6 @@ export function Home({
               {mixNotice && <p role="status">{mixNotice}</p>}
             </section>
           )}
-          {!!personal.length && (
-            <section className="feed-section personal-section">
-              <div className="section-heading">
-                <h2>Scelti per te</h2>
-                <span className="muted">Dai tuoi ascolti e preferiti</span>
-              </div>
-              <div className="personal-grid">
-                {personal.slice(0, 4).map(({ item, reason }) => (
-                  <article key={item.id} className="personal-track">
-                    <button
-                      className="personal-play"
-                      onClick={() => onPlay(catalogItemToTrack(item))}
-                      aria-label={`Riproduci ${item.title}`}
-                    >
-                      <CoverArt src={item.artworkUrl} title={item.title} />
-                      <span>
-                        <strong>{item.title}</strong>
-                        <small>{item.artist}</small>
-                        <small className="recommendation-reason">
-                          {reason}
-                        </small>
-                      </span>
-                      <Icon name="play" size={18} />
-                    </button>
-                    <button
-                      className="text-button"
-                      onClick={() => library.dismissTrack(item.id)}
-                      aria-label={`Meno come ${item.title}`}
-                    >
-                      Meno come questo
-                    </button>
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
           <TrackShelf
             title="Ascoltati di recente"
             tracks={library.history.map((entry) => entry.track)}
@@ -471,16 +490,6 @@ export function Home({
             onPlay={onPlay}
           />
         </>
-      )}
-      {(filter === 'all' || filter === 'track') && (
-        <section aria-label="Le tue scelte veloci">
-          <TrackShelf title="Scelte veloci" tracks={picks} onPlay={onPlay} />
-          {!picks.length && (
-            <p className="muted">
-              Le scelte veloci si riempiono con i brani che ascolti e salvi.
-            </p>
-          )}
-        </section>
       )}
       {(filter === 'all' || filter === 'artist') &&
         hasListeningProfile &&

@@ -16,6 +16,33 @@ const track: Track = {
   durationSeconds: 120,
 };
 describe('real listening measurement', () => {
+  it.each([0.75, 1, 1.25, 1.5, 2])(
+    'counts wall-clock listening at %sx without treating it as a seek',
+    (playbackRate) => {
+      const events: ListeningEvent[] = [];
+      const player = new PlayerEngine(document.createElement('audio'));
+      const base = {
+        ...player.getSnapshot(),
+        queue: [track],
+        duration: 120,
+        status: 'playing' as const,
+        playbackRate,
+      };
+      let now = 0;
+      const meter = new ListeningMeter(
+        (event) => events.push(event),
+        () => now,
+      );
+      meter.sample(base);
+      now = 30000;
+      meter.sample({ ...base, position: 30 * playbackRate });
+      meter.flush();
+      expect(
+        events.reduce((total, event) => total + event.seconds, 0),
+      ).toBeCloseTo(30);
+      player.destroy();
+    },
+  );
   it('counts repeat-one passes separately while keeping ordinary pause/resume in the same listen', () => {
     const events: ListeningEvent[] = [],
       base = new PlayerEngine(document.createElement('audio')).getSnapshot();

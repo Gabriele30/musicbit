@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Track } from '@musicbit/shared';
 import { Icon } from './Icon';
+import { CoverArt } from './CoverArt';
 
 export function Library({
   tracks,
@@ -68,14 +69,7 @@ export function Library({
                   aria-label={`Riproduci preferito ${track.title}`}
                   onClick={() => onPlay(track)}
                 >
-                  <img
-                    src={track.artworkUrl}
-                    alt=""
-                    width="48"
-                    height="48"
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
+                  <CoverArt src={track.artworkUrl} title={track.title} />
                   <span className="track-copy">
                     <strong>{track.title}</strong>
                     <small>{track.artist}</small>

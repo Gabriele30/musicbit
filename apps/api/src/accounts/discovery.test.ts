@@ -83,6 +83,7 @@ it('verifies AI artist names, respects blocked artists and caches each account s
     details: vi.fn(async () => ({
       ...artist,
       artworkUrl: 'https://lh3.googleusercontent.com/portrait',
+      relatedArtists: [artist],
     })),
   });
   const service = new ArtistDiscoveryService();
@@ -131,6 +132,63 @@ it('does not call the AI before an account has a listening profile', async () =>
   expect(plan).not.toHaveBeenCalled();
   catalog.close();
 });
+it('does not turn unrelated popular names from the model into personal discoveries just because they exist', async () => {
+  const make = (id: string, title: string): CatalogItem => ({
+    id,
+    title,
+    artist: title,
+    kind: 'artist',
+    provider: 'youtube',
+    sourceUrl: 'https://music.youtube.com/channel/' + id,
+    playback: { available: false },
+    artworkUrl: 'https://lh3.googleusercontent.com/portrait',
+  });
+  const seed = make('UC1234567890123456789012', 'MadMan');
+  const related = make('UCabcdefghijklmnopqrstuv', 'Nitro');
+  const unrelated = make('UCzyxwvutsrqponmlkjihgfe', 'Adele');
+  const library = emptyLibrary();
+  library.followedArtists = [seed];
+  const plan = vi.fn(async () => ({
+    name: 'Discovery',
+    description: 'Names',
+    songs: [{ title: 'Song', artist: 'Adele' }],
+  }));
+  const search = vi.fn(async () => [unrelated]);
+  const catalog = new CatalogService({
+    id: 'youtube',
+    search,
+    details: async () => ({ ...seed, relatedArtists: [related] }),
+  });
+  const service = new ArtistDiscoveryService();
+  try {
+    await service.get('account', library, catalog, new AiPlaylistService(plan));
+    await vi.waitFor(async () =>
+      expect(
+        (
+          await service.get(
+            'account',
+            library,
+            catalog,
+            new AiPlaylistService(plan),
+          )
+        ).pending,
+      ).toBe(false),
+    );
+    const result = await service.get(
+      'account',
+      library,
+      catalog,
+      new AiPlaylistService(plan),
+    );
+    expect(result.artists.map((item) => item.title)).toEqual(['Nitro']);
+    expect(result.source).toBe('related');
+    expect(search).not.toHaveBeenCalled();
+    expect(plan.mock.calls[0]?.[0]).toContain('Nitro');
+  } finally {
+    service.close();
+    catalog.close();
+  }
+});
 it('returns related artists before a slow AI resolves and publishes verified AI results later', async () => {
   const artist: CatalogItem = {
     id: 'UCabcdefghijklmnopqrstuv',
@@ -164,7 +222,10 @@ it('returns related artists before a slow AI resolves and publishes verified AI 
     ],
     details: async () => ({
       ...library.followedArtists[0]!,
-      relatedArtists: [artist],
+      relatedArtists: [
+        artist,
+        { ...artist, id: 'UC9999999999999999999999', title: 'AI Artist' },
+      ],
     }),
   });
   const service = new ArtistDiscoveryService();
@@ -172,7 +233,7 @@ it('returns related artists before a slow AI resolves and publishes verified AI 
   expect(initial).toMatchObject({
     source: 'related',
     pending: true,
-    artists: [{ title: 'Related Artist' }],
+    artists: expect.arrayContaining([{ ...artist }]),
   });
   await vi.waitFor(() => expect(complete).toBeTypeOf('function'));
   complete({

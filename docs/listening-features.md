@@ -28,7 +28,33 @@ Account statistics use SQLite daily aggregates and UUID receipts for idempotent 
 
 Deleting statistics requires confirmation and records a server cutoff against delayed older chunks. Library JSON backups contain collections and taste settings, **not** Wrapped aggregates or cloud playback. Back up SQLite to preserve those records.
 
-## AI playlists via API
+## AI playlists
+
+Choose a local Ollama model or a server-side API provider. Both paths validate
+model proposals against the catalog before offering playback or saving.
+
+### Local AI with Ollama
+
+No paid API key is required for the local option. Model inference runs on the
+host's own hardware. With Docker:
+
+```sh
+docker compose -f compose.yaml -f compose.local-ai.yaml up --build -d
+docker compose -f compose.yaml -f compose.local-ai.yaml exec ollama ollama pull qwen2.5:1.5b
+```
+
+The overlay sets `AI_PROVIDER=ollama` and connects the API to the internal Ollama
+service. `OLLAMA_PLAYLIST_MODEL` selects a different installed model. Without
+Docker, run Ollama separately and configure `AI_PROVIDER=ollama`,
+`OLLAMA_BASE_URL=http://127.0.0.1:11434` and
+`OLLAMA_PLAYLIST_MODEL=qwen2.5:1.5b` in the server environment.
+
+Artist discovery limits AI selections to catalog-verified related artists from
+the listener's positive taste seeds. The model can reorder that pool, rather
+than introducing unrelated popular artists. Local model quality and speed depend
+on the selected model and host.
+
+### API provider
 
 Set these values in the server's untracked `.env`, then restart the API or recreate its container:
 
@@ -45,4 +71,7 @@ The model proposes titles and artists. MusicBit searches them in the catalog, re
 
 Generation requires an account. Limits are two concurrent generations globally, 30 seconds between requests per account and 12 requests per account per UTC day. Counters are in memory and reset with the API; use provider-side spending limits for a persistent billing cap. Browser cancellation cannot guarantee that provider processing or billing stops.
 
-Without a key, the UI shows that host configuration is needed. Tests use injected model results and mocked previews, never billed API requests. Physical iPhone background behavior and live AI generation need separate validation.
+When neither a configured local provider nor an API key is available, the UI
+shows that host configuration is needed. Tests use injected model results and
+mocked previews, never billed API requests. Physical iPhone background behavior
+and live AI generation need separate validation.

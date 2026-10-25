@@ -5,7 +5,11 @@ import type {
   TracksResponse,
   AudioCachePlan,
 } from '@musicbit/shared';
-import { isCatalogId, personalRecommendations } from '@musicbit/shared';
+import {
+  isCatalogId,
+  personalRecommendations,
+  recommendationSeeds,
+} from '@musicbit/shared';
 import { DemoMusicProvider } from './providers/demo.js';
 import { CatalogService } from './catalog/service.js';
 import { registerCatalogRoutes } from './catalog/routes.js';
@@ -79,6 +83,7 @@ export function buildApp(
     requireUser,
     catalog,
     (user) => accounts.library(user).library,
+    diskCache,
   );
   app.addHook('onClose', async () => continuous?.close());
   registerAudioRoutes(app, audioService, {
@@ -138,28 +143,27 @@ export function buildApp(
     };
     reply.raw.once('close', closed);
     try {
-      const seeds = [
-        ...new Set(
-          [...library.favorites, ...library.history.map((h) => h.track)].map(
-            (t) => t.id,
-          ),
-        ),
-      ]
+      const seeds = [...new Set(recommendationSeeds(library).map((t) => t.id))]
         .filter((id) => isCatalogId('track', id))
         .slice(0, 3);
+      const feedRequest = catalog.home(controller.signal).then(
+        (feed) => ({ feed, failed: false }),
+        () => ({ feed: undefined, failed: true }),
+      );
       const outcomes = await Promise.allSettled(
         seeds.map((id) => catalog.recommendations(id, controller.signal)),
       );
-      const feed = await catalog.home(controller.signal);
+      const { feed, failed } = await feedRequest;
+      controller.signal.throwIfAborted();
       const items = [
         ...outcomes.flatMap((r) =>
           r.status === 'fulfilled' ? r.value.items : [],
         ),
-        ...feed.sections.flatMap((s) => s.items),
+        ...(feed?.sections.flatMap((s) => s.items) ?? []),
       ];
       return {
         items: personalRecommendations(library, items),
-        partial: outcomes.some((r) => r.status === 'rejected'),
+        partial: failed || outcomes.some((r) => r.status === 'rejected'),
       };
     } finally {
       reply.raw.off('close', closed);

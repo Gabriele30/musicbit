@@ -1,0 +1,10 @@
+# Optional: use only after an operator explicitly connects their YouTube account.
+services:
+  api:
+    environment:
+      YOUTUBE_COOKIE_FILE: /run/secrets/musicbit-youtube.cookies
+    volumes:
+      - type: bind
+        source: ${MUSICBIT_YOUTUBE_SESSION_FILE:?Set the private absolute session file path}
+        target: /run/secrets/musicbit-youtube.cookies
+        read_only: true

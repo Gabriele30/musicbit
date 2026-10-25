@@ -9,6 +9,11 @@ test-results
 playwright-report
 artifacts
 data
+.secrets
+**/youtube.cookies
+**/*.cookies
+**/cookies.txt
+**/youtube-session.json
 **/*.sqlite
 **/*.sqlite-wal
 **/*.sqlite-shm

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ProviderProcess } from './provider-process.js';
 import {
   AudioStreamService,
   type ResolvedAudioStream,
@@ -26,9 +27,34 @@ function setup(options?: ConstructorParameters<typeof AudioStreamService>[0]) {
 afterEach(() => {
   services.splice(0).forEach((service) => service.close());
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('audio resolution resource bounds', () => {
+  it('invalidates both descriptor caches so a rejected stream is actually resolved again', async () => {
+    const evict = vi.spyOn(ProviderProcess.prototype, 'evict');
+    const service = setup();
+    service.load
+      .mockResolvedValueOnce({
+        ...stream(),
+        url: 'https://r1.googlevideo.com/old',
+      })
+      .mockResolvedValueOnce({
+        ...stream(),
+        url: 'https://r1.googlevideo.com/fresh',
+      });
+    await expect(service.resolve('abcdefghijk')).resolves.toHaveProperty(
+      'url',
+      'https://r1.googlevideo.com/old',
+    );
+    service.evict('abcdefghijk');
+    await expect(service.resolve('abcdefghijk')).resolves.toHaveProperty(
+      'url',
+      'https://r1.googlevideo.com/fresh',
+    );
+    expect(evict).toHaveBeenCalledWith('abcdefghijk');
+    expect(service.load).toHaveBeenCalledTimes(2);
+  });
   it('shares resolution while cancelling each listener independently', async () => {
     const service = setup();
     let finish!: (stream: ResolvedAudioStream) => void;

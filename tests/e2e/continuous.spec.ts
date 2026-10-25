@@ -4,7 +4,12 @@ import { openDiagnostics, openPlayer, openQueue } from './navigation';
 
 test.use({ serviceWorkers: 'block' });
 
-async function fixture(page: Page, metadataDelayMs = 0, rolling = false) {
+async function fixture(
+  page: Page,
+  metadataDelayMs = 0,
+  rolling = false,
+  longLive = false,
+) {
   await page.goto('/api/app-update');
   const supported = await page.evaluate(() =>
     document
@@ -57,7 +62,14 @@ async function fixture(page: Page, metadataDelayMs = 0, rolling = false) {
     const response = await route.fetch({
       url: request.url().replace('/api/me/continuous/', '/__test_continuous/'),
       ...(request.method() === 'POST'
-        ? { postData: { ...request.postDataJSON(), metadataDelayMs, rolling } }
+        ? {
+            postData: {
+              ...request.postDataJSON(),
+              metadataDelayMs,
+              rolling,
+              longLive,
+            },
+          }
         : {}),
     });
     await route.fulfill({ response });
@@ -70,11 +82,13 @@ async function fixture(page: Page, metadataDelayMs = 0, rolling = false) {
         track: { id: string; audioUrl: string; durationSeconds: number },
         index: number,
       ) => {
-        track.id = rolling
-          ? `rolltone${String(index).padStart(3, '0')}`
-          : `hlstone000${index + 1}`;
+        track.id = longLive
+          ? `longtone${String(index + 1).padStart(3, '0')}`
+          : rolling
+            ? `rolltone${String(index).padStart(3, '0')}`
+            : `hlstone000${index + 1}`;
         track.audioUrl = `/api/audio/${track.id}`;
-        track.durationSeconds = rolling ? 0.522 : 8;
+        track.durationSeconds = longLive ? 45 : rolling ? 0.522 : 8;
       },
     );
     await route.fulfill({ response, json: data });
@@ -448,5 +462,145 @@ test('native infinite HLS keeps its absolute clock and compacts the queue when t
     'data-instance',
     'native-hls-owner',
   );
+  await expect(page.locator('audio')).toHaveCount(1);
+});
+
+test('native AAC HLS keeps its source and clock through rate changes and rapid skips', async ({
+  page,
+}) => {
+  const source = await fixture(page);
+  const owner = await page.locator('audio').elementHandle();
+  const speed = page.getByLabel('Velocità di riproduzione', { exact: true });
+  await speed.selectOption('2');
+  await page.getByRole('slider', { name: 'Posizione nella traccia' }).fill('2');
+  await expect
+    .poll(() =>
+      page
+        .getByRole('slider', { name: 'Posizione nella traccia' })
+        .inputValue()
+        .then(Number),
+    )
+    .toBeGreaterThan(2.2);
+  await page
+    .getByRole('button', { name: 'Traccia successiva', exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: 'Traccia successiva', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'SoundHelix Song 3', exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .getByRole('slider', { name: 'Posizione nella traccia' })
+        .inputValue()
+        .then(Number),
+    )
+    .toBeGreaterThan(0.2);
+  expect(
+    await page
+      .locator('audio')
+      .evaluate((audio: HTMLAudioElement) => audio.playbackRate),
+  ).toBe(2);
+  expect(
+    await page
+      .locator('audio')
+      .evaluate((audio: HTMLAudioElement) => audio.currentSrc),
+  ).toBe(source);
+  await speed.selectOption('0.75');
+  const start = Number(
+    await page
+      .getByRole('slider', { name: 'Posizione nella traccia' })
+      .inputValue(),
+  );
+  await expect
+    .poll(() =>
+      page
+        .getByRole('slider', { name: 'Posizione nella traccia' })
+        .inputValue()
+        .then(Number),
+    )
+    .toBeGreaterThan(start + 0.25);
+  expect(
+    await owner!.evaluate((audio) => audio === document.querySelector('audio')),
+  ).toBe(true);
+  await expect(page.locator('audio')).toHaveCount(1);
+});
+
+test('long live HLS without a seek range recovers to real AAC samples and usable controls', async ({
+  page,
+}) => {
+  await fixture(page, 0, false, true);
+  const owner = await page.locator('audio').elementHandle();
+  await expect
+    .poll(
+      () =>
+        page
+          .locator('audio')
+          .evaluate((a: HTMLAudioElement) => new URL(a.currentSrc).pathname),
+      { timeout: 10000 },
+    )
+    .toBe('/api/audio/longtone001');
+  await expect
+    .poll(() =>
+      page.locator('audio').evaluate((a: HTMLAudioElement) => a.currentTime),
+    )
+    .toBeGreaterThan(0.25);
+  const signal = await page
+    .locator('audio')
+    .evaluate(async (audio: HTMLAudioElement) => {
+      const context = new AudioContext(),
+        analyser = context.createAnalyser();
+      analyser.fftSize = 2048;
+      context.createMediaElementSource(audio).connect(analyser);
+      analyser.connect(context.destination);
+      await context.resume();
+      let peak = 0;
+      for (let i = 0; i < 5; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        const samples = new Float32Array(analyser.fftSize);
+        analyser.getFloatTimeDomainData(samples);
+        peak = Math.max(
+          peak,
+          Math.sqrt(
+            samples.reduce((sum, value) => sum + value * value, 0) /
+              samples.length,
+          ),
+        );
+      }
+      // Keep the context alive until this page closes; closing it would mute its source.
+      Object.defineProperty(window, '__liveRegressionContext', {
+        value: context,
+      });
+      return peak;
+    });
+  expect(signal).toBeGreaterThan(0.001);
+  await page
+    .getByRole('slider', { name: 'Posizione nella traccia' })
+    .fill('20');
+  await expect
+    .poll(() =>
+      page.locator('audio').evaluate((a: HTMLAudioElement) => a.currentTime),
+    )
+    .toBeGreaterThan(20.2);
+  await page
+    .getByRole('button', { name: 'Traccia successiva', exact: true })
+    .click();
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((a: HTMLAudioElement) => new URL(a.currentSrc).pathname),
+    )
+    .toBe('/api/audio/longtone002');
+  await expect
+    .poll(() =>
+      page.locator('audio').evaluate((a: HTMLAudioElement) => a.currentTime),
+    )
+    .toBeGreaterThan(0.25);
+  expect(
+    await owner!.evaluate((a) => a === document.querySelector('audio')),
+  ).toBe(true);
   await expect(page.locator('audio')).toHaveCount(1);
 });

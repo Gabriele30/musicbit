@@ -4,8 +4,9 @@ import {
   emptyLibrary,
   emptyTaste,
   type CatalogItem,
+  isCatalogItem,
 } from '@musicbit/shared';
-import { cachedRadio, personalRadio } from './radio.js';
+import { cachedRadio, cachedCatalogItem, personalRadio } from './radio.js';
 
 const item = (id: string, artist = id): CatalogItem => ({
   id,
@@ -21,6 +22,35 @@ const response = (seedId: string, items: CatalogItem[]) => ({
   seedId,
   items,
   timing: { cache: 'miss' as const, elapsedMs: 0 },
+});
+it('converts a saved track with a local placeholder into a valid network catalog item', () => {
+  const track = {
+    ...catalogItemToTrack(item('cached00001', 'Toni Zeno')),
+    artworkUrl: '/icons/icon-192.png',
+    artistId: 'old-unknown-id',
+    durationSeconds: 0,
+  };
+  const value = cachedCatalogItem(track);
+  expect(isCatalogItem(value)).toBe(true);
+  expect(value.artworkUrl).toBeUndefined();
+  expect(value.artistId).toBeUndefined();
+  expect(value.durationSeconds).toBeUndefined();
+  expect(isCatalogItem(cachedCatalogItem(catalogItemToTrack(value)))).toBe(
+    true,
+  );
+});
+it('excludes queued songs before applying the ranking limit so cached radio can refill beyond its first twelve', () => {
+  const library = emptyLibrary();
+  library.history = Array.from({ length: 20 }, (_, i) => ({
+    track: catalogItemToTrack(
+      item(`cached${String(i).padStart(5, '0')}`, `Artist ${i}`),
+    ),
+    playedAt: Date.now() - i,
+  }));
+  const queued = library.history.slice(0, 12).map((entry) => entry.track.id);
+  const tracks = cachedRadio(library, () => true, queued, false);
+  expect(tracks).toHaveLength(3);
+  expect(tracks.every((track) => !queued.includes(track.id))).toBe(true);
 });
 it('keeps cached radio personal, excludes blocked artists and permits a small cached library to repeat', () => {
   const library = emptyLibrary();

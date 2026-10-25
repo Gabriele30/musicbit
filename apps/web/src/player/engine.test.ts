@@ -76,6 +76,348 @@ afterEach(() => {
 });
 
 describe('persistent player', () => {
+  it.each(['seeked', 'timeupdate'])(
+    'does not acknowledge STUPIDO at metadata-only readiness on an early %s event',
+    async (event) => {
+      const { player, audio } = setup();
+      const track = {
+        ...tracks[0]!,
+        id: 'zpRJGjYGtE0',
+        title: 'STUPIDO',
+        audioUrl: '/api/audio/zpRJGjYGtE0',
+        durationSeconds: 188,
+      };
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          async (url: string) =>
+            new Response(
+              JSON.stringify(
+                url.endsWith('/info')
+                  ? { durationSeconds: 188 }
+                  : {
+                      tracks: [
+                        {
+                          index: 0,
+                          id: track.id,
+                          start: 0,
+                          duration: 187.431474,
+                        },
+                      ],
+                      complete: false,
+                    },
+              ),
+            ),
+        ),
+      );
+      player.setContinuousPlayback(true);
+      player.playCollection([track]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      audio.readyState = 1;
+      audio.emit('loadedmetadata');
+      audio.currentTime = event === 'timeupdate' ? 0.2 : 0;
+      audio.emit(event);
+      // Safari can restore its old native song clock after metadata/seek events,
+      // before the selected media has playable data. The start seek must survive.
+      audio.currentTime = 184;
+      audio.readyState = 4;
+      audio.emit('playing');
+      expect(audio.currentTime).toBe(0);
+      audio.emit('seeked');
+      audio.emit('playing');
+      expect(player.getSnapshot()).toMatchObject({
+        index: 0,
+        position: 0,
+        status: 'playing',
+      });
+    },
+  );
+  it('keeps prepared native audio usable when preparing a later queued song fails', async () => {
+    const { player, audio } = setup();
+    const queue = tracks.slice(0, 2).map((track, index) => ({
+      ...track,
+      id: String(index).padStart(11, '0'),
+      audioUrl: `/api/audio/${String(index).padStart(11, '0')}`,
+    }));
+    const message = 'Il fornitore richiede una verifica di accesso dal server.';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async (url: string) =>
+          new Response(
+            JSON.stringify(
+              url.endsWith('/info')
+                ? { durationSeconds: 120 }
+                : {
+                    tracks: [
+                      { index: 0, id: queue[0]!.id, start: 0, duration: 120 },
+                    ],
+                    complete: false,
+                    error: message,
+                  },
+            ),
+          ),
+      ),
+    );
+    player.setContinuousPlayback(true);
+    player.playCollection(queue);
+    await vi.waitFor(() =>
+      expect(player.getSnapshot().radioNotice).toBe(message),
+    );
+    expect(player.getSnapshot().status).not.toBe('error');
+    expect(audio.paused).toBe(false);
+    audio.emit('loadedmetadata');
+    audio.emit('playing');
+    audio.currentTime = 10;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot().status).toBe('playing');
+    expect(player.getSnapshot().position).toBe(10);
+    expect(player.getDelivery()).toBe('hls');
+  });
+  it.each([3, 4])(
+    'recovers a rejected native HLS source (code %s) at the requested resume position',
+    (code) => {
+      const { player, audio } = setup();
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          async () =>
+            new Response(JSON.stringify({ tracks: [], complete: false })),
+        ),
+      );
+      const track = {
+        ...tracks[0]!,
+        id: 'abcdefghijk',
+        audioUrl: '/api/audio/abcdefghijk',
+      };
+      player.resetSession();
+      player.setContinuousPlayback(true);
+      player.restoreSession({
+        queue: [track],
+        index: 0,
+        position: 12,
+        repeat: 'off',
+        autoplay: false,
+      });
+      player.play();
+      expect(audio.src).toContain('/api/continuous/');
+      audio.paused = true;
+      audio.error = { code };
+      audio.emit('error');
+      expect(player.audio).toBe(audio);
+      expect(audio.src).toBe(track.audioUrl);
+      expect(audio.paused).toBe(false);
+      expect(player.getDelivery()).toBe('progressive');
+      audio.error = null;
+      audio.emit('loadedmetadata');
+      audio.emit('playing');
+      expect(audio.currentTime).toBe(12);
+      // A failed AAC must surface normally, rather than starting an endless retry.
+      audio.error = { code };
+      audio.emit('error');
+      expect(player.getSnapshot().status).toBe('error');
+    },
+  );
+  it('recovers a native HLS NotSupportedError before the media error event arrives', async () => {
+    const { player, audio } = setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ tracks: [], complete: false })),
+      ),
+    );
+    audio.play.mockRejectedValueOnce(
+      new DOMException('Unsupported HLS', 'NotSupportedError'),
+    );
+    player.setContinuousPlayback(true);
+    player.playCollection([
+      { ...tracks[0]!, id: 'abcdefghijk', audioUrl: '/api/audio/abcdefghijk' },
+    ]);
+    await vi.waitFor(() => expect(audio.src).toBe('/api/audio/abcdefghijk'));
+    expect(player.getDelivery()).toBe('progressive');
+    expect(audio.play).toHaveBeenCalledTimes(2);
+    expect(player.getSnapshot().status).not.toBe('error');
+  });
+  it('looks up the provider failure for a native HLS source too', async () => {
+    const { player, audio } = setup();
+    const fetcher = vi.fn(
+      async (url: string) =>
+        new Response(
+          JSON.stringify(
+            url.endsWith('/info')
+              ? { code: 'PROVIDER_RESTRICTED' }
+              : { complete: false, tracks: [] },
+          ),
+          { status: url.endsWith('/info') ? 503 : 200 },
+        ),
+    );
+    vi.stubGlobal('fetch', fetcher);
+    player.setContinuousPlayback(true);
+    player.playCollection([
+      { ...tracks[0]!, id: 'abcdefghijk', audioUrl: '/api/audio/abcdefghijk' },
+    ]);
+    expect(audio.src).toContain('/api/continuous/');
+    await vi.waitFor(() =>
+      expect(
+        fetcher.mock.calls.some(
+          ([url]) => url === '/api/audio/abcdefghijk/info',
+        ),
+      ).toBe(true),
+    );
+    audio.error = { code: 2 };
+    audio.emit('error');
+    await vi.waitFor(() =>
+      expect(player.getSnapshot().error).toContain(
+        'verifica di accesso dal server',
+      ),
+    );
+  });
+  it('keeps the progressive radio notice through native progress and clears it when radio is disabled', () => {
+    const { player, audio } = setup();
+    player.playCollection(tracks);
+    player.setRecommendations(
+      tracks[0]!.id,
+      [],
+      'ready',
+      'Ascolti già in cache',
+    );
+    audio.currentTime = 3;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot().radioNotice).toBe('Ascolti già in cache');
+    player.toggleAutoplay();
+    expect(player.getSnapshot().radioNotice).toBeUndefined();
+  });
+  it('explains a provider restriction even when the native error arrives first, without leaking it to the next track', async () => {
+    const { player, audio } = setup();
+    const queue = tracks.map((track, index) => ({
+      ...track,
+      id: String(index).padStart(11, '0'),
+      audioUrl: `/api/audio/${String(index).padStart(11, '0')}`,
+    }));
+    let finish!: (response: Response) => void;
+    const pending = new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) =>
+        url === `${queue[0]!.audioUrl}/info`
+          ? pending
+          : Promise.resolve(
+              new Response(JSON.stringify({ durationSeconds: 120 })),
+            ),
+      ),
+    );
+    player.playCollection(queue);
+    audio.error = { code: 2 };
+    audio.emit('error');
+    finish(
+      new Response(JSON.stringify({ code: 'PROVIDER_RESTRICTED' }), {
+        status: 503,
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(player.getSnapshot().error).toContain(
+        'Questo brano non è in cache',
+      ),
+    );
+    expect(player.getSnapshot().attempts[0]?.error).toContain(
+      'verifica di accesso',
+    );
+    audio.error = null;
+    player.next();
+    audio.error = { code: 2 };
+    audio.emit('error');
+    expect(player.getSnapshot().error).not.toContain('verifica di accesso');
+  });
+  it('does not interrupt progressing audio when the optional metadata lookup is restricted', async () => {
+    const { player, audio } = setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ code: 'PROVIDER_RESTRICTED' }), {
+            status: 503,
+          }),
+      ),
+    );
+    player.playCollection([
+      { ...tracks[0]!, id: 'abcdefghijk', audioUrl: '/api/audio/abcdefghijk' },
+    ]);
+    audio.emit('playing');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(player.getSnapshot().status).toBe('playing');
+    expect(player.getSnapshot().error).toBeNull();
+    expect(audio.paused).toBe(false);
+    audio.error = { code: 2 };
+    audio.emit('error');
+    expect(player.getSnapshot().error).toContain('verifica di accesso');
+  });
+  it('recovers from a long unseekable native live source using the same audio and AAC position', async () => {
+    vi.useFakeTimers();
+    const { player, audio } = setup();
+    const queue = tracks.map((track, index) => ({
+      ...track,
+      id: String(index).padStart(11, '0'),
+      audioUrl: `/api/audio/${String(index).padStart(11, '0')}`,
+    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              complete: false,
+              tracks: queue.map((track, index) => ({
+                index,
+                id: track.id,
+                start: index * 120,
+                duration: 120,
+              })),
+            }),
+            { headers: { 'Content-Type': 'application/json' } },
+          ),
+      ),
+    );
+    Object.defineProperty(audio, 'seekable', {
+      value: { length: 0 },
+      configurable: true,
+    });
+    audio.duration = Infinity;
+    audio.readyState = 4;
+    player.setContinuousPlayback(true);
+    player.playCollection(queue);
+    await vi.advanceTimersByTimeAsync(0);
+    audio.emit('loadedmetadata');
+    audio.emit('playing');
+    audio.currentTime = 2;
+    audio.emit('timeupdate');
+    await vi.advanceTimersByTimeAsync(2500);
+    expect(player.audio).toBe(audio);
+    expect(audio.src).toBe(queue[0]!.audioUrl);
+    expect(player.getDelivery()).toBe('progressive');
+    audio.duration = 120;
+    audio.emit('loadedmetadata');
+    audio.emit('playing');
+    expect(audio.currentTime).toBe(2);
+    player.setContinuousPlayback(true);
+    player.next();
+    expect(audio.src).toBe(queue[1]!.audioUrl);
+    expect(player.getSnapshot().status).not.toBe('error');
+  });
+  it('changes native speed without reloading audio and resets it between accounts', () => {
+    const { player, audio } = setup();
+    player.setPlaybackRate(1.5);
+    expect(audio.playbackRate).toBe(1.5);
+    expect(player.getSnapshot().playbackRate).toBe(1.5);
+    const loads = audio.load.mock.calls.length;
+    for (const rate of [NaN, Infinity, -1, 0, 3]) player.setPlaybackRate(rate);
+    expect(audio.playbackRate).toBe(1.5);
+    expect(audio.load).toHaveBeenCalledTimes(loads);
+    player.resetSession();
+    expect(audio.playbackRate).toBe(1);
+  });
   it('shows a provider restriction before waiting indefinitely for native metadata', async () => {
     const { player, audio } = setup();
     const queue = [

@@ -22,3 +22,23 @@ it('prefers exact song title and word prefixes, deduplicating identities while p
     weak,
   ]);
 });
+it('puts the searched performer ahead of songs that only mention them as a guest', () => {
+  const guest = item(
+    'guest',
+    'Deserto feat. Toni Zeno',
+    'track',
+    'Aleaka, Brattini',
+  );
+  const own = item('own', 'DISISA', 'track', 'Toni Zeno');
+  const collaboration = item(
+    'collab',
+    'Primo Stadio',
+    'track',
+    'Toni Zeno, Aleaka',
+  );
+  expect(rankSearchResults([guest, collaboration, own], 'Toni Zeno')).toEqual([
+    own,
+    collaboration,
+    guest,
+  ]);
+});

@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "MusicBit · collega YouTube",
+  "version": "1.0.2",
+  "incognito": "split",
+  "description": "Esporta solo su clic la sessione YouTube per il proprio server MusicBit.",
+  "permissions": ["cookies"],
+  "host_permissions": ["https://*.youtube.com/*"],
+  "action": {
+    "default_title": "Collega YouTube a MusicBit",
+    "default_popup": "popup.html"
+  }
+}

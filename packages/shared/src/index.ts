@@ -10,6 +10,8 @@ export interface Track {
   id: string;
   title: string;
   artist: string;
+  /** Individual provider credits; artist remains the display label. */
+  artists?: string[];
   album: string;
   audioUrl: string;
   artworkUrl: string;
@@ -48,6 +50,7 @@ export interface CatalogItem {
   kind: CatalogKind;
   title: string;
   artist: string;
+  artists?: string[];
   artworkUrl?: string;
   sourceUrl: string;
   album?: string;
@@ -131,6 +134,7 @@ export function catalogItemToTrack(item: CatalogItem): Track {
     id: item.id,
     title: item.title,
     artist: item.artist,
+    ...(item.artists ? { artists: [...item.artists] } : {}),
     album: item.album || 'Singolo',
     audioUrl: item.audioUrl || `/api/audio/${encodeURIComponent(item.id)}`,
     artworkUrl: item.artworkUrl || '/icons/icon-192.png',
@@ -167,6 +171,7 @@ export function isCatalogItem(value: unknown): value is CatalogItem {
     typeof item.title === 'string' &&
     item.title.length > 0 &&
     typeof item.artist === 'string' &&
+    validArtists(item.artists) &&
     (item.artistId === undefined ||
       (typeof item.artistId === 'string' &&
         isCatalogId('artist', item.artistId))) &&
@@ -232,6 +237,7 @@ export function isTracksResponse(value: unknown): value is TracksResponse {
           (field) => typeof item[field] === 'string' && item[field].length > 0,
         ) &&
         typeof item.mimeType === 'string' &&
+        validArtists(item.artists) &&
         item.mimeType.startsWith('audio/') &&
         (item.durationSeconds === undefined ||
           (typeof item.durationSeconds === 'number' &&
@@ -259,3 +265,18 @@ export * from './library.js';
 export * from './recommendations.js';
 export * from './experience.js';
 export * from './charts.js';
+
+function validArtists(value: unknown): value is string[] | undefined {
+  return (
+    value === undefined ||
+    (Array.isArray(value) &&
+      value.length > 0 &&
+      value.length <= 30 &&
+      value.every(
+        (name) =>
+          typeof name === 'string' &&
+          name.trim().length > 0 &&
+          name.length <= 200,
+      ))
+  );
+}

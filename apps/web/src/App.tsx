@@ -95,7 +95,7 @@ export function App({ player }: { player: PlayerEngine }) {
     setConnectedScope(scope);
     return disconnect;
   }, [player, scope, account.loading]);
-  if (!account.loading && connectedScope !== scope)
+  if (account.loading || connectedScope !== scope)
     return (
       <p className="banner" role="status">
         Apriamo il tuo spazio musicale…
@@ -159,6 +159,7 @@ function MusicApp({
   );
   const scrollPositions = useRef<Partial<Record<Screen, number>>>({});
   const main = useRef<HTMLElement>(null);
+  const focusTasteProfile = useRef(false);
   const demoMode = new URLSearchParams(location.search).get('demo') === '1';
   const needsDemoCatalog = demoMode;
   const setScreen = (value: Screen) => {
@@ -186,7 +187,22 @@ function MusicApp({
       behavior: 'instant',
     });
     main.current?.focus({ preventScroll: true });
+    if (screen === 'profile' && focusTasteProfile.current) {
+      focusTasteProfile.current = false;
+      const heading = document.getElementById('taste-title');
+      heading?.scrollIntoView({ block: 'start', behavior: 'instant' });
+      heading?.focus({ preventScroll: true });
+    }
   }, [screen]);
+  useLayoutEffect(() => {
+    if (screen === 'queue' && state.index > 0)
+      document
+        .querySelector('.playback-queue .current-track')
+        ?.scrollIntoView?.({
+          block: 'start',
+          behavior: 'instant',
+        });
+  }, [screen, state.index]);
   useEffect(() => {
     const previous = history.scrollRestoration;
     history.scrollRestoration = 'manual';
@@ -471,6 +487,7 @@ function MusicApp({
         </header>
         <main id="main" ref={main} tabIndex={-1}>
           {screen !== 'player' &&
+            screen !== 'queue' &&
             !(screen === 'search' && catalogDetailOpen) && (
               <div
                 className={`page-heading ${screen === 'search' ? 'search-page-heading' : ''}`}
@@ -483,15 +500,13 @@ function MusicApp({
                         ? 'Cerca'
                         : screen === 'library'
                           ? 'Libreria'
-                          : screen === 'queue'
-                            ? 'A seguire'
-                            : screen === 'wrapped'
-                              ? 'Il tuo anno in musica'
-                              : screen === 'ai-playlist'
-                                ? 'Playlist AI'
-                                : screen === 'profile'
-                                  ? 'Profilo'
-                                  : 'Diagnostica audio'}
+                          : screen === 'wrapped'
+                            ? 'Il tuo anno in musica'
+                            : screen === 'ai-playlist'
+                              ? 'Playlist AI'
+                              : screen === 'profile'
+                                ? 'Profilo'
+                                : 'Diagnostica audio'}
                   </h1>
                 </div>
               </div>
@@ -615,7 +630,10 @@ function MusicApp({
               onPlayAll={playAlbum}
               onWrapped={() => setScreen('wrapped')}
               onAiPlaylist={() => setScreen('ai-playlist')}
-              onTasteProfile={() => setScreen('profile')}
+              onTasteProfile={() => {
+                focusTasteProfile.current = true;
+                setScreen('profile');
+              }}
               radioTrack={current}
               onStartRadio={(track) => {
                 player.startRadio([track]);
@@ -740,6 +758,21 @@ function MusicApp({
                   </button>
                 </div>
                 <div className="session-controls">
+                  <label className="rate-control">
+                    <select
+                      aria-label="Velocità di riproduzione"
+                      value={state.playbackRate}
+                      onChange={(event) =>
+                        player.setPlaybackRate(Number(event.target.value))
+                      }
+                    >
+                      {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                        <option key={rate} value={rate}>
+                          {rate}×
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   {current && (
                     <button
                       className="text-button favorite-button"
@@ -888,24 +921,14 @@ function MusicApp({
             </div>
           )}
           {screen === 'queue' && (
-            <section className="queue-section">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">LA SESSIONE</p>
-                  <h2>Coda di riproduzione</h2>
-                </div>
+            <section
+              className="queue-section playback-queue"
+              aria-labelledby="playback-queue-title"
+            >
+              <div className="queue-toolbar">
+                <h1 id="playback-queue-title">Coda di riproduzione</h1>
                 <span className="small-label">{state.queue.length} tracce</span>
               </div>
-              <p className="muted">
-                {state.repeat === 'off'
-                  ? state.autoplay
-                    ? 'Ascolto infinito attivo: al termine della coda continuano i brani scelti per te.'
-                    : 'La coda termina dopo l’ultima traccia.'
-                  : state.repeat === 'one'
-                    ? 'Il brano corrente si ripete.'
-                    : 'La coda si ripete dopo l’ultima traccia.'}{' '}
-                Puoi riordinare o rimuovere le tracce a seguire.
-              </p>
               <InfiniteListening
                 enabled={state.autoplay}
                 notice={state.radioNotice}
@@ -936,12 +959,7 @@ function MusicApp({
                       <span className="track-number">
                         {String(index + 1).padStart(2, '0')}
                       </span>
-                      <img
-                        src={track.artworkUrl}
-                        alt=""
-                        width="48"
-                        height="48"
-                      />
+                      <CoverArt src={track.artworkUrl} title={track.title} />
                       <span className="track-copy">
                         <strong>{track.title}</strong>
                         <small>
@@ -955,31 +973,36 @@ function MusicApp({
                       </span>
                     </button>
                     {index > state.index && (
-                      <div className="queue-actions">
-                        <button
-                          className="icon-button"
-                          aria-label={`Sposta su posizione ${index + 1}`}
-                          disabled={index === state.index + 1}
-                          onClick={() => player.moveUpcoming(index, -1)}
-                        >
-                          <Icon name="up" size={18} />
-                        </button>
-                        <button
-                          className="icon-button"
-                          aria-label={`Sposta giù posizione ${index + 1}`}
-                          disabled={index === state.queue.length - 1}
-                          onClick={() => player.moveUpcoming(index, 1)}
-                        >
-                          <Icon name="down" size={18} />
-                        </button>
-                        <button
-                          className="icon-button"
-                          aria-label={`Rimuovi posizione ${index + 1}`}
-                          onClick={() => player.removeUpcoming(index)}
-                        >
-                          <Icon name="close" size={18} />
-                        </button>
-                      </div>
+                      <ActionMenu
+                        label={`Opzioni posizione ${index + 1}: ${track.title}`}
+                        title={track.title}
+                        actions={[
+                          ...(index > state.index + 1
+                            ? [
+                                {
+                                  label: `Sposta su posizione ${index + 1}`,
+                                  icon: 'up' as const,
+                                  onSelect: () =>
+                                    player.moveUpcoming(index, -1),
+                                },
+                              ]
+                            : []),
+                          ...(index < state.queue.length - 1
+                            ? [
+                                {
+                                  label: `Sposta giù posizione ${index + 1}`,
+                                  icon: 'down' as const,
+                                  onSelect: () => player.moveUpcoming(index, 1),
+                                },
+                              ]
+                            : []),
+                          {
+                            label: `Rimuovi posizione ${index + 1}`,
+                            icon: 'close',
+                            onSelect: () => player.removeUpcoming(index),
+                          },
+                        ]}
+                      />
                     )}
                   </li>
                 ))}
@@ -1004,12 +1027,7 @@ function MusicApp({
                       className="suggested-track"
                       onClick={() => playTrack(track)}
                     >
-                      <img
-                        src={track.artworkUrl}
-                        alt=""
-                        width="40"
-                        height="40"
-                      />
+                      <CoverArt src={track.artworkUrl} title={track.title} />
                       <span>
                         <strong>{track.title}</strong>
                         <small>{track.artist}</small>

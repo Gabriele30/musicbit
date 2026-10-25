@@ -1,6 +1,38 @@
-import type { CSSProperties } from 'react';
+import { useState } from 'react';
 import { Icon } from './Icon';
 
+function displaySource(src: string) {
+  try {
+    const url = new URL(src);
+    if (
+      url.protocol === 'https:' &&
+      /(^|\.)googleusercontent\.com$/.test(url.hostname)
+    )
+      return src.replace(/=w\d+-h\d+/, '=w600-h600');
+  } catch {
+    /* Local artwork keeps its original path. */
+  }
+  return src;
+}
+function ArtworkImage({ src, eager }: { src: string; eager: boolean }) {
+  const [source, setSource] = useState(() => displaySource(src));
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <img
+      src={source}
+      alt=""
+      loading={eager ? 'eager' : 'lazy'}
+      fetchPriority={eager ? 'high' : 'auto'}
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={() => {
+        if (source !== src) setSource(src);
+        else setFailed(true);
+      }}
+    />
+  );
+}
 export function CoverArt({
   src,
   title,
@@ -14,29 +46,14 @@ export function CoverArt({
   className?: string;
   eager?: boolean;
 }) {
-  const hue =
-    [...title].reduce((sum, character) => sum + character.charCodeAt(0), 0) %
-    360;
   return (
     <span
       className={`cover-art ${artist ? 'artist-cover' : ''} ${className}`}
-      style={{ '--cover-hue': hue } as CSSProperties}
       aria-hidden="true"
+      data-cover-title={title}
     >
-      <Icon name={artist ? 'music' : 'library'} size={32} />
-      {src && (
-        <img
-          key={src}
-          src={src}
-          alt=""
-          loading={eager ? 'eager' : 'lazy'}
-          decoding="async"
-          referrerPolicy="no-referrer"
-          onError={(event) => {
-            event.currentTarget.hidden = true;
-          }}
-        />
-      )}
+      <Icon name={artist ? 'user' : 'music'} size={32} />
+      {src && <ArtworkImage key={src} src={src} eager={eager} />}
     </span>
   );
 }

@@ -140,7 +140,18 @@ function artwork(node: Record<string, unknown>): string | undefined {
     .filter(
       (item) => typeof item.url === 'string' && isCatalogArtwork(item.url),
     )
-    .sort((a, b) => Number(b.width ?? 0) - Number(a.width ?? 0))
+    .sort((a, b) => {
+      const square = (image: Record<string, unknown>) => {
+        const width = Number(image.width),
+          height = Number(image.height);
+        return width > 0 && height > 0 && Math.abs(width / height - 1) < 0.1
+          ? 1
+          : 0;
+      };
+      return (
+        square(b) - square(a) || Number(b.width ?? 0) - Number(a.width ?? 0)
+      );
+    })
     .map((item) => String(item.url))[0];
 }
 
@@ -155,7 +166,7 @@ function normalize(
   const title = text(node.title ?? node.name);
   if (!isCatalogId(kind, id) || !title) return undefined;
   const names = array(node.artists ?? node.authors)
-    .map((item) => text(object(item).name))
+    .map((item) => text(object(item).name, 200))
     .filter(Boolean);
   const artist =
     kind === 'artist'
@@ -177,6 +188,7 @@ function normalize(
     kind,
     title,
     artist,
+    ...(names.length ? { artists: [...new Set(names)].slice(0, 30) } : {}),
     artworkUrl: artwork(node),
     sourceUrl: `https://music.youtube.com/${kind === 'track' ? `watch?v=${id}` : kind === 'artist' ? `channel/${id}` : `browse/${id}`}`,
     album: text(object(node.album).name) || undefined,
@@ -374,6 +386,15 @@ export class YouTubeCatalogProvider implements MusicProvider, CatalogProvider {
             array(response.sections).flatMap((shelf) =>
               array(object(shelf).contents),
             ),
+          ).map((entry) =>
+            entry.kind !== 'artist' && entry.artist === UNKNOWN_ARTIST
+              ? {
+                  ...entry,
+                  artist: item.artist,
+                  artists: [item.artist],
+                  artistId: entry.artistId ?? item.id,
+                }
+              : entry,
           )
         : [];
     return {

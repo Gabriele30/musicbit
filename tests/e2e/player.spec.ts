@@ -302,6 +302,7 @@ test('native audio survives screens and supports controls, seeking and queue cha
     'original',
   );
   await openQueue(page);
+  await page.getByRole('button', { name: /Opzioni posizione 3:/ }).click();
   await page.getByRole('button', { name: 'Rimuovi posizione 3' }).click();
   await expect(page.locator('.queue-list li')).toHaveCount(2);
   await openPlayer(page);
@@ -493,6 +494,50 @@ test('shows a failed source and recovers by selecting another track', async ({
   await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
+test.describe('restricted source recovery', () => {
+  test.use({ serviceWorkers: 'block' });
+  test('explains a restricted uncached song and recovers with the same audio on the next selection', async ({
+    page,
+  }) => {
+    await page.route('**/api/tracks', async (route) => {
+      const data = await (await route.fetch()).json();
+      data.tracks[0].id = 'restricted1';
+      data.tracks[0].audioUrl = '/api/audio/restricted1';
+      await route.fulfill({ json: data });
+    });
+    await page.route(/\/api\/audio\/restricted1(?:\/info)?$/, (route) =>
+      route.fulfill({ status: 503, json: { code: 'PROVIDER_RESTRICTED' } }),
+    );
+    await fixture(page);
+    await page.locator('audio').evaluate((audio) => {
+      audio.dataset.owner = 'restriction-test';
+    });
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect(page.getByRole('alert')).toContainText(
+      'verifica di accesso dal server',
+    );
+    await page
+      .getByRole('button', { name: 'Traccia successiva', exact: true })
+      .click();
+    await expect
+      .poll(() =>
+        page
+          .locator('audio')
+          .evaluate(
+            (audio: HTMLAudioElement) =>
+              !audio.paused && audio.currentTime > 0.2,
+          ),
+      )
+      .toBe(true);
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await expect(page.locator('audio')).toHaveAttribute(
+      'data-owner',
+      'restriction-test',
+    );
+    await expect(page.locator('audio')).toHaveCount(1);
+  });
+});
+
 test('production PWA has install metadata and an offline shell without cached media', async ({
   page,
   context,
@@ -558,6 +603,7 @@ test('reload restores queue order, repeat and position without autoplay', async 
     .getByRole('button', { name: 'Ripetizione: disattivata', exact: true })
     .click();
   await openQueue(page);
+  await page.getByRole('button', { name: /Opzioni posizione 3:/ }).click();
   await page.getByRole('button', { name: 'Rimuovi posizione 3' }).click();
   await page.reload();
   await expect(

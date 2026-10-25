@@ -1,5 +1,20 @@
 # Validation and historical test reports
 
+## Current validation — 25 October 2026
+
+- `pnpm check`: lint, type checks, **370 tests in 56 files**, and production builds passed.
+- `pnpm test:e2e`: **109 passed**, with seven native HLS tests explicitly skipped on Windows WebKit where decoder support is unavailable.
+- Real-provider checks exercised eighteen fresh upstream resolutions without disk-cache fallback, real audio ranges, and ten consecutive PWA radio transitions. Stress writes were isolated from the account's taste profile.
+- A reported late start on STUPIDO has deterministic before/after engine regressions. Real-file trials started near zero from Home after previous positions of 180 and 60 seconds. Physical iPhone event ordering was not captured by these Windows tests.
+- Operator-authorized session imports, nested stream-cache invalidation, catalog-safe radio refills, related-artist AI selection and mobile artwork/search behavior have additional regression coverage.
+
+Detailed evidence and limits: [listening audit](deep-account-audit.md),
+[provider session](provider-session-fix.md), [STUPIDO start](stupido-start-audit.md),
+[mobile usability](mobile-usability-audit.md), and [black UI](black-ui-audio-audit.md).
+
+The reports below are historical snapshots; their older counts and limitations
+describe the version tested at that time.
+
 ## Esperienza personale, ascolto e AI playlist — 11 ottobre 2026
 
 - `pnpm check`: lint, typecheck, **230 test unitari** in 32 file e build di produzione riusciti.
@@ -8,6 +23,7 @@
 - Le statistiche registrano tempo di ascolto effettivo, con deduplicazione degli eventi offline; la cancellazione delle statistiche impedisce la reiniezione di eventi precedenti alla cancellazione.
 - Il server conserva la chiave AI esclusivamente nell’ambiente (`OPENAI_API_KEY`). Senza chiave la pagina spiega la configurazione e non invia richieste a servizi esterni. La suite usa un servizio AI controllato e non espone credenziali nel browser.
 - Entrambi i file Compose sono validi con `docker compose config --quiet`. Le prove fisiche iPhone, lock screen, Bluetooth e CarPlay restano necessarie prima della distribuzione pubblica.
+
 ## Accounts, profiles and personal libraries — 11 October 2026
 
 - `pnpm check`: lint, type checks, **212 unit tests** across 26 files and production builds passed.

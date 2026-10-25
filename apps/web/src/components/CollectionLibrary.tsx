@@ -422,13 +422,11 @@ export function CollectionLibrary({
             <div className="playlist-shortcuts">
               {library.playlists.map((list) => (
                 <button key={list.id} onClick={() => onSelectPlaylist(list.id)}>
-                  <span className="playlist-cover">
-                    {list.tracks[0] ? (
-                      <img src={list.tracks[0].artworkUrl} alt="" />
-                    ) : (
-                      <Icon name="music" />
-                    )}
-                  </span>
+                  <CoverArt
+                    className="playlist-cover"
+                    src={list.tracks[0]?.artworkUrl}
+                    title={list.name}
+                  />
                   <strong>{list.name}</strong>
                   <small>{list.tracks.length} brani</small>
                 </button>

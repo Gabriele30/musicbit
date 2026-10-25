@@ -35,6 +35,24 @@ const types = {
   '.webmanifest': 'application/manifest+json',
 };
 const blockedPrefetch = new Set();
+const stressAudio = new Map();
+function stressWave(index) {
+  if (stressAudio.has(index)) return stressAudio.get(index);
+  const count = 8000 * (12 + ((index - 1) % 4) * 3);
+  const buffer = Buffer.alloc(44 + count * 2);
+  wav.copy(buffer, 0, 0, 44);
+  buffer.writeUInt32LE(buffer.length - 8, 4);
+  buffer.writeUInt32LE(count * 2, 40);
+  for (let i = 0; i < count; i++)
+    buffer.writeInt16LE(
+      Math.round(
+        Math.sin((i * 2 * Math.PI * (180 + index * 37)) / 8000) * 1600,
+      ),
+      44 + i * 2,
+    );
+  stressAudio.set(index, buffer);
+  return buffer;
+}
 const cachedPrefetch = new Set();
 const updatedWorkers = new Set();
 const continuous = await continuousFixture();
@@ -153,25 +171,29 @@ const server = createServer(async (request, response) => {
       }
       if (
         !prefetched &&
-        !/^\/__test_media\/soundhelix-[123]\.wav$/.test(path)
+        !/^\/__test_media\/(soundhelix-[123]|stress-([1-9]|1[0-2]))\.wav$/.test(
+          path,
+        )
       ) {
         response.writeHead(404);
         response.end();
         return;
       }
+      const stress = path.match(/\/stress-(\d+)\.wav$/);
+      const media = stress ? stressWave(Number(stress[1])) : wav;
       const range = request.headers.range?.match(/^bytes=(\d+)-(\d*)$/);
       const start = Number(range?.[1] ?? 0);
       const end = Math.min(
-        Number(range?.[2] || wav.length - 1),
-        wav.length - 1,
+        Number(range?.[2] || media.length - 1),
+        media.length - 1,
       );
       if (start > end) {
         response.writeHead(416);
         response.end();
         return;
       }
-      const body = wav.subarray(start, end + 1);
-      if (prefetched && start === 0 && end === wav.length - 1)
+      const body = media.subarray(start, end + 1);
+      if (prefetched && start === 0 && end === media.length - 1)
         cachedPrefetch.add(prefetched[1]);
       response.writeHead(range ? 206 : 200, {
         'Content-Type': 'audio/wav',
@@ -182,7 +204,7 @@ const server = createServer(async (request, response) => {
           ? { 'X-MusicBit-Audio-Cache': 'hit' }
           : {}),
         ...(range
-          ? { 'Content-Range': `bytes ${start}-${end}/${wav.length}` }
+          ? { 'Content-Range': `bytes ${start}-${end}/${media.length}` }
           : {}),
       });
       response.end(body);

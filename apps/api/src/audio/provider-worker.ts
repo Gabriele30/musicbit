@@ -6,6 +6,14 @@ let active = 0;
 const controllers = new Map<number, AbortController>();
 process.on('message', (message: unknown) => {
   if (!message || typeof message !== 'object') return;
+  if ('evict' in message) {
+    if (
+      typeof message.evict === 'string' &&
+      /^[A-Za-z0-9_-]{11}$/.test(message.evict)
+    )
+      resolver.evict(message.evict);
+    return;
+  }
   if ('cancel' in message && typeof message.cancel === 'number') {
     controllers.get(message.cancel)?.abort();
     return;

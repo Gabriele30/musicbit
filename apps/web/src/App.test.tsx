@@ -41,7 +41,12 @@ describe('application', () => {
     );
     const { player, audio } = setup();
     const user = userEvent.setup();
-    await screen.findByRole('button', { name: 'Riproduci Demo 1' });
+    // This checks audio ownership, not catalog latency under parallel test load.
+    await screen.findByRole(
+      'button',
+      { name: 'Riproduci Demo 1' },
+      { timeout: 5000 },
+    );
     await user.click(screen.getByRole('button', { name: 'Play', exact: true }));
     await user.click(screen.getByRole('button', { name: 'Impostazioni' }));
     await user.click(
@@ -56,6 +61,9 @@ describe('application', () => {
       screen.getByRole('button', { name: 'Apri player: Demo 1' }),
     );
     await user.click(screen.getByRole('button', { name: 'Coda', exact: true }));
+    await user.click(
+      screen.getByRole('button', { name: /Opzioni posizione 2:/ }),
+    );
     await user.click(
       screen.getByRole('button', { name: 'Rimuovi posizione 2' }),
     );

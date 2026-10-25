@@ -23,7 +23,7 @@ A self-hosted music player built for everyday listening, from your desktop to yo
 - **Personal discovery** — suggestions informed by favorites and listening, with variety controls and dismissible recommendations.
 - **Personal mixes and Taste Profile** — automatic playlists and visible artist affinity that you can correct.
 - **Wrapped all year** — actual listening minutes, top tracks/artists and monthly statistics.
-- **AI playlists** — describe a moment, preview catalog-verified proposals and save a playlist; requires a server-side OpenAI API key.
+- **AI playlists** — describe a moment, preview catalog-verified proposals and save a playlist; use a local Ollama model or a server-side API provider.
 - **Resume on another device** — explicitly continue the saved account queue and position with one tap.
 - **Keep the music going** — editable queue, repeat, adaptive infinite listening from your music taste, and session restoration.
 - **Listen on your phone** — an installable PWA, full-screen player, persistent mini-player and Media Session controls where supported.
@@ -85,6 +85,8 @@ For access from another device, use a trusted HTTPS connection. The HTTPS overla
 ## Project status
 
 MusicBit is in active development. Catalog and playback use an **unofficial YouTube Music integration** and can be affected by upstream changes or availability. MusicBit is independent of YouTube, Google and Spotify.
+
+Some deployments require an operator-authorized YouTube session. The [session setup guide](docs/youtube-session.md) covers the dedicated private-browser export and server-side audio verification. Session files stay outside the repository and Docker images.
 
 Accounts synchronize libraries and save a separate listening session for explicit resumption on another device; guest libraries remain local. Export/import provides library recovery, and concurrent edits require an explicit choice between versions. The [persistent server audio cache](docs/server-audio-cache.md) prepares the next ten songs and holds up to 5 GB per account, reducing repeat playback and queue transition latency. There are currently **no offline audio downloads, lyrics, crossfade or remote speaker control**. The PWA caches the app shell; cached server audio still requires a connection. Playback stays paused after a reload until you press Play. See [listening features and AI setup](docs/listening-features.md) for behavior, data handling and limits.
 

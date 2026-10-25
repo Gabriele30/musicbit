@@ -13,6 +13,7 @@ export async function continuousFixture() {
     duration: 8,
   }));
   definitions.push({ id: 'rolltone000', frequency: 550, duration: 0.5 });
+  definitions.push({ id: 'longtone001', frequency: 660, duration: 45 });
   for (const { id, frequency, duration } of definitions) {
     const directory = resolve(root, id);
     await mkdir(directory);
@@ -70,9 +71,38 @@ export async function continuousFixture() {
       segments,
       duration: segments.reduce((sum, item) => sum + item.duration, 0),
     });
+    if (id === 'longtone001') {
+      await new Promise((done, reject) => {
+        const child = spawn(
+          process.env.FFMPEG_PATH ?? 'ffmpeg',
+          [
+            '-v',
+            'error',
+            '-nostdin',
+            '-y',
+            '-i',
+            resolve(directory, 'track.m3u8'),
+            '-c:a',
+            'copy',
+            '-movflags',
+            '+faststart',
+            resolve(directory, 'full.m4a'),
+          ],
+          { windowsHide: true, stdio: 'ignore' },
+        );
+        child.on('error', reject);
+        child.on('close', (code) =>
+          code === 0 ? done() : reject(new Error('Long AAC fixture failed')),
+        );
+      });
+    }
   }
   const tone = (id) =>
-    /^rolltone\d{3}$/.test(id) ? tones.get('rolltone000') : tones.get(id);
+    /^rolltone\d{3}$/.test(id)
+      ? tones.get('rolltone000')
+      : /^longtone\d{3}$/.test(id)
+        ? tones.get('longtone001')
+        : tones.get(id);
   const rollingTrack = (index) => ({
     id: `rolltone${String(index).padStart(3, '0')}`,
     title:
@@ -119,7 +149,7 @@ export async function continuousFixture() {
     }
     let start = 0;
     return {
-      complete: true,
+      complete: !session.longLive,
       tracks:
         Date.now() < session.metadataAt
           ? []
@@ -133,6 +163,36 @@ export async function continuousFixture() {
   };
   return {
     async handle(request, response, path) {
+      const longAudio = path.match(/^\/api\/audio\/(longtone\d{3})(\/info)?$/);
+      if (longAudio) {
+        const track = tone(longAudio[1]);
+        if (longAudio[2]) {
+          json(response, { durationSeconds: track.duration });
+          return true;
+        }
+        const buffer = await readFile(resolve(track.directory, 'full.m4a'));
+        const range = request.headers.range?.match(/^bytes=(\d+)-(\d*)$/);
+        const start = Number(range?.[1] ?? 0),
+          end = Math.min(
+            Number(range?.[2] || buffer.length - 1),
+            buffer.length - 1,
+          );
+        if (start > end) {
+          response.writeHead(416).end();
+          return true;
+        }
+        const body = buffer.subarray(start, end + 1);
+        response.writeHead(range ? 206 : 200, {
+          'Content-Type': 'audio/mp4',
+          'Content-Length': body.length,
+          'Accept-Ranges': 'bytes',
+          ...(range
+            ? { 'Content-Range': `bytes ${start}-${end}/${buffer.length}` }
+            : {}),
+        });
+        response.end(body);
+        return true;
+      }
       const control = path.match(
         /^\/__test_continuous\/([a-f0-9-]{36})(?:\/(stats))?$/,
       );
@@ -151,6 +211,7 @@ export async function continuousFixture() {
             manifests: 0,
             segments: [],
             rolling: plan.rolling === true,
+            longLive: plan.longLive === true,
             createdAt: Date.now(),
             available: 3,
             queueStart: 0,
@@ -207,7 +268,7 @@ export async function continuousFixture() {
         session.manifestStarts.push(session.queueStart);
         const lines = [
           '#EXTM3U',
-          '#EXT-X-VERSION:3',
+          '#EXT-X-VERSION:6',
           `#EXT-X-TARGETDURATION:${session.rolling ? 1 : 3}`,
           `#EXT-X-MEDIA-SEQUENCE:${session.queueStart}`,
           `#EXT-X-DISCONTINUITY-SEQUENCE:${session.queueStart}`,
@@ -227,7 +288,7 @@ export async function continuousFixture() {
               `${index}/${item.name}`,
             );
         });
-        if (!session.rolling) lines.push('#EXT-X-ENDLIST');
+        if (!session.rolling && !session.longLive) lines.push('#EXT-X-ENDLIST');
         lines.push('');
         response.writeHead(200, {
           'Content-Type': 'application/vnd.apple.mpegurl',

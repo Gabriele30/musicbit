@@ -68,6 +68,7 @@ export interface PlayerState {
   status: PlaybackStatus;
   position: number;
   duration: number;
+  playbackRate: number;
   error: string | null;
   attempts: PlaybackAttempt[];
   events: {
@@ -119,6 +120,7 @@ export class PlayerEngine {
     status: 'idle',
     position: 0,
     duration: 0,
+    playbackRate: 1,
     error: null,
     attempts: [],
     events: [],
@@ -149,22 +151,71 @@ export class PlayerEngine {
     corrected?: boolean;
   };
   private durationRequest: AbortController | undefined;
+  private resolutionFailure?: { id: string; message: string };
   private resolvedDurations = new Map<string, number>();
   private pendingNativeProgress: number | undefined;
+  private continuousUnavailable = false;
+  private continuousCheck?: ReturnType<typeof setTimeout>;
   private continuous = new ContinuousPlayback(
     () => {
-      if (this.continuous.error) this.fail(this.continuous.error);
+      if (this.continuous.error && !this.continuous.target(this.state.index))
+        this.fail(this.continuous.error);
       else this.syncPosition();
     },
     (event) => this.log(event),
     () => this.audio.currentTime,
   );
   setContinuousPlayback(enabled: boolean) {
-    this.continuous.configure(enabled);
+    this.continuous.configure(enabled && !this.continuousUnavailable);
     this.log(`continuous:${enabled ? 'enabled' : 'disabled'}`);
   }
   getDelivery() {
     return this.continuous.active(this.source) ? 'hls' : 'progressive';
+  }
+  private unseekableContinuous() {
+    // A tiny live window can legitimately lack a seek range. A fully prepared
+    // music track cannot support our controls without one: canPlayType alone
+    // is insufficient on native implementations that accept HLS but stall seeks.
+    return (
+      this.continuous.active(this.source) &&
+      this.audio.readyState >= 2 &&
+      !Number.isFinite(this.audio.duration) &&
+      this.state.duration >= 30 &&
+      this.audio.seekable?.length === 0
+    );
+  }
+  private useProgressive(
+    position: number,
+    autoplay = !this.audio.paused,
+    reason = 'unseekable-live',
+  ) {
+    clearTimeout(this.continuousCheck);
+    this.continuousCheck = undefined;
+    this.continuousUnavailable = true;
+    this.continuous.configure(false);
+    this.source = undefined;
+    this.log(`continuous:${reason}-fallback`);
+    this.resumePosition = position;
+    if (autoplay) this.select(this.state.index, 'tap', true);
+    else {
+      this.prepare();
+      this.resumePosition = position;
+      this.pendingSeek = { target: position, awaitingMetadata: true };
+      this.patch({ position, status: 'paused' });
+    }
+  }
+  private checkContinuous() {
+    if (this.continuousCheck || !this.continuous.active(this.source)) return;
+    const source = this.source;
+    this.continuousCheck = setTimeout(() => {
+      this.continuousCheck = undefined;
+      if (
+        source === this.source &&
+        !this.audio.paused &&
+        this.unseekableContinuous()
+      )
+        this.useProgressive(this.state.position);
+    }, 2500);
   }
   private upcomingAudio = new UpcomingAudio((event) =>
     this.log(`upcoming:${event}`),
@@ -236,6 +287,7 @@ export class PlayerEngine {
 
   private resolveDuration(track: Track) {
     this.durationRequest?.abort();
+    this.resolutionFailure = undefined;
     if (!/^\/api\/audio\/[A-Za-z0-9_-]{11}$/.test(track.audioUrl)) return;
     const controller = new AbortController();
     this.durationRequest = controller;
@@ -246,7 +298,25 @@ export class PlayerEngine {
       signal: controller.signal,
     })
       .then(async (response) => {
-        if (!response.ok) return;
+        if (!response.ok) {
+          const data = (await response.json()) as { code?: string };
+          if (
+            controller.signal.aborted ||
+            this.state.queue[this.state.index]?.id !== track.id ||
+            data.code !== 'PROVIDER_RESTRICTED'
+          )
+            return;
+          const message =
+            'Il fornitore richiede una verifica di accesso dal server. Questo brano non è in cache: scegli un brano già scaricato.';
+          this.resolutionFailure = { id: track.id, message };
+          // The native media error can arrive before the metadata response.
+          // Explain that failure without interrupting a healthy audio stream.
+          if (this.state.status === 'error') {
+            this.patch({ error: message });
+            this.updateAttempt((attempt) => ({ ...attempt, error: message }));
+          }
+          return;
+        }
         const data = (await response.json()) as { durationSeconds?: number };
         if (
           controller.signal.aborted ||
@@ -337,11 +407,17 @@ export class PlayerEngine {
     on('loadedmetadata', () => {
       if (this.pendingSeek?.awaitingMetadata) this.issueNativeSeek();
       this.syncPosition();
+      this.checkContinuous();
     });
     on('durationchange', () => this.syncPosition());
+    on('ratechange', () => {
+      this.patch({ playbackRate: this.audio.playbackRate });
+      this.syncPosition();
+    });
     on('timeupdate', () => this.syncPosition());
     on('playing', () => {
       if (audio.paused) return;
+      this.checkContinuous();
       if (this.pendingSeek?.awaitingMetadata) this.issueNativeSeek();
       this.confirmNativeSeek('playing');
       if (this.pendingSeek) {
@@ -384,9 +460,22 @@ export class PlayerEngine {
     });
     on('error', () => {
       if (!audio.error) return;
+      if (
+        [3, 4].includes(audio.error.code) &&
+        this.continuous.active(this.source) &&
+        ['loading', 'playing'].includes(this.state.status)
+      ) {
+        // Native rejection also pauses the element. Preserve the requested play
+        // intent and track-relative clock when falling back to the cached AAC.
+        this.useProgressive(this.state.position, true, 'unsupported');
+        return;
+      }
+      const failure = this.resolutionFailure;
       this.fail(
-        mediaErrorMessages[audio.error?.code ?? 0] ??
-          'Errore audio. Tocca Riprova.',
+        failure && failure.id === this.state.queue[this.state.index]?.id
+          ? failure.message
+          : (mediaErrorMessages[audio.error?.code ?? 0] ??
+              'Errore audio. Tocca Riprova.'),
       );
     });
     on('ended', () => {
@@ -640,6 +729,8 @@ export class PlayerEngine {
     this.log(`prepare:${outcome}`);
   }
   private releaseSource() {
+    clearTimeout(this.continuousCheck);
+    this.continuousCheck = undefined;
     this.pendingSeek = undefined;
     this.continuous.clear();
     this.audio.pause();
@@ -713,12 +804,15 @@ export class PlayerEngine {
     this.resumePosition = 0;
     this.pendingSeek = undefined;
     this.releaseSource();
+    this.audio.defaultPlaybackRate = 1;
+    this.audio.playbackRate = 1;
     this.playbackSession.release();
     this.patch({
       queue: [],
       index: 0,
       position: 0,
       duration: 0,
+      playbackRate: 1,
       status: 'idle',
       repeat: 'off',
       autoplay: true,
@@ -748,6 +842,7 @@ export class PlayerEngine {
       ...(!this.state.autoplay ? { repeat: 'off' as const } : {}),
       autoplayTracks: [],
       autoplayStatus: 'idle',
+      radioNotice: undefined,
     });
     this.prepareUpcoming();
   }
@@ -755,6 +850,7 @@ export class PlayerEngine {
     seedId: string,
     tracks: Track[],
     status: PlayerState['autoplayStatus'] = 'ready',
+    notice?: string,
   ) {
     if (
       !this.state.autoplay ||
@@ -772,6 +868,7 @@ export class PlayerEngine {
     this.patch({
       autoplayTracks: [...unique.values()],
       autoplayStatus: status,
+      radioNotice: notice,
     });
     this.prepareUpcoming();
     if (status === 'ready' && this.state.status === 'ended' && unique.size)
@@ -972,6 +1069,13 @@ export class PlayerEngine {
             error && typeof error === 'object' && 'name' in error
               ? error.name
               : '';
+          if (
+            name === 'NotSupportedError' &&
+            this.continuous.active(this.source)
+          ) {
+            this.useProgressive(this.state.position, true, 'unsupported');
+            return;
+          }
           this.fail(
             name === 'NotAllowedError'
               ? 'Il browser richiede un tocco sul pulsante Play per avviare l’audio.'
@@ -985,10 +1089,17 @@ export class PlayerEngine {
     if (this.state.status === 'loading') this.armDeadline();
     if (this.continuous.active(this.source)) void this.continuous.submit();
     // play() above must stay synchronous in the gesture; metadata follows it.
-    if (load && !hlsSource) this.resolveDuration(track);
+    if (load) this.resolveDuration(track);
   }
   play(trigger: Trigger = 'tap') {
     this.select(this.state.index, trigger, true);
+  }
+  setPlaybackRate(rate: number) {
+    if (!Number.isFinite(rate) || rate < 0.5 || rate > 2) return;
+    this.audio.defaultPlaybackRate = rate;
+    this.audio.playbackRate = rate;
+    this.patch({ playbackRate: rate });
+    this.syncPosition();
   }
   pause() {
     this.clearDeadline();
@@ -1020,6 +1131,10 @@ export class PlayerEngine {
   seek(seconds: number) {
     if (!Number.isFinite(seconds) || this.state.duration <= 0) return;
     const position = Math.max(0, Math.min(seconds, this.state.duration));
+    if (this.unseekableContinuous()) {
+      this.useProgressive(position);
+      return;
+    }
     const target =
       (this.continuous.active(this.source)
         ? (this.continuous.target(this.state.index)?.start ?? 0)
@@ -1032,6 +1147,11 @@ export class PlayerEngine {
     this.syncPosition();
   }
   private fail(message: string) {
+    if (
+      this.resolutionFailure &&
+      this.resolutionFailure.id === this.state.queue[this.state.index]?.id
+    )
+      message = this.resolutionFailure.message;
     this.clearDeadline();
     this.endWaiting();
     ++this.command;
@@ -1090,12 +1210,18 @@ export class PlayerEngine {
   private confirmNativeSeek(event: 'playing' | 'seeked' | 'progress') {
     const seek = this.pendingSeek;
     if (!seek || seek.awaitingMetadata || this.audio.seeking) return false;
+    // Metadata-only seek/time events can precede Safari restoring its cached
+    // clock. They do not prove that the selected media reached our target.
+    // Retain the start seek until playable data or a native playing event.
+    if (event !== 'playing' && this.audio.readyState < 2) return false;
     const delta = this.audio.currentTime - seek.target;
     const elapsed = Math.max(
       0,
       (this.now() - (seek.issuedAt ?? this.now())) / 1000,
     );
-    const plausible = delta >= -0.01 && delta <= Math.max(1, elapsed + 0.5);
+    const plausible =
+      delta >= -0.01 &&
+      delta <= Math.max(1, elapsed * this.audio.playbackRate + 0.5);
     if (
       plausible &&
       (event !== 'progress' || (delta > 0.05 && !this.audio.paused))
@@ -1113,10 +1239,11 @@ export class PlayerEngine {
     return false;
   }
   private syncPosition() {
-    const radioNotice = this.continuous.active(this.source)
-      ? this.continuous.notice
-      : undefined;
-    if (radioNotice !== this.state.radioNotice) this.patch({ radioNotice });
+    if (this.continuous.active(this.source)) {
+      // A failed preparation ahead must not stop the current prepared song.
+      const radioNotice = this.continuous.notice ?? this.continuous.error;
+      if (radioNotice !== this.state.radioNotice) this.patch({ radioNotice });
+    }
     if (this.pendingSeek) {
       // Media events may be queued while the page is suspended. Ready native
       // audio can already be advancing; acknowledging it must not seek again.
@@ -1373,6 +1500,7 @@ export class PlayerEngine {
   }
   /** For tests / explicit application teardown only, never on navigation. */
   destroy() {
+    clearTimeout(this.continuousCheck);
     this.continuous.clear();
     this.durationRequest?.abort();
     this.clearDeadline();

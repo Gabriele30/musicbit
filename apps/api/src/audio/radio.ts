@@ -2,7 +2,9 @@ import {
   emptyLibrary,
   catalogItemToTrack,
   isCatalogId,
+  isCatalogArtwork,
   personalRecommendations,
+  recommendationSeeds,
   type CatalogItem,
   type LocalLibrary,
   type RecommendationsResponse,
@@ -13,11 +15,32 @@ import type { CatalogService } from '../catalog/service.js';
 export type RadioCatalog = Pick<CatalogService, 'recommendations'> &
   Partial<Pick<CatalogService, 'home' | 'details'>>;
 
+/** A saved Track can use a local placeholder; a network CatalogItem cannot. */
+export function cachedCatalogItem(track: Track): CatalogItem {
+  const { artworkUrl, artistId, albumId, durationSeconds, ...rest } = track;
+  return {
+    ...rest,
+    kind: 'track',
+    provider: 'youtube',
+    sourceUrl: `https://music.youtube.com/watch?v=${track.id}`,
+    ...(isCatalogArtwork(artworkUrl) ? { artworkUrl } : {}),
+    ...(artistId && isCatalogId('artist', artistId) ? { artistId } : {}),
+    ...(albumId && isCatalogId('album', albumId) ? { albumId } : {}),
+    ...(durationSeconds &&
+    Number.isFinite(durationSeconds) &&
+    durationSeconds > 0
+      ? { durationSeconds }
+      : {}),
+    playback: { available: true },
+  };
+}
+
 /** Cached listening history is still usable when the upstream asks for login. */
 export function cachedRadio(
   library: LocalLibrary,
   available: (id: string) => boolean,
   recent: string[],
+  allowRepeat = true,
 ): Track[] {
   const unique = new Map(
     [...library.history.map((entry) => entry.track), ...library.favorites]
@@ -29,18 +52,24 @@ export function cachedRadio(
       )
       .map((track) => [track.id, track]),
   );
-  const items: CatalogItem[] = [...unique.values()].map((track) => ({
-    ...track,
-    kind: 'track',
-    provider: 'youtube',
-    playback: { available: true },
-  }));
-  const ranked = personalRecommendations(library, items, {
-    includeRecent: true,
-  }).map(({ item }) => catalogItemToTrack(item));
-  const fresh = ranked.filter((track) => !recent.includes(track.id));
+  const items: CatalogItem[] = [...unique.values()].map(cachedCatalogItem);
+  const excluded = new Set(recent);
+  const excludedTracks = [...unique.values()].filter((track) =>
+    excluded.has(track.id),
+  );
+  const fresh = personalRecommendations(
+    library,
+    items.filter((item) => !excluded.has(item.id)),
+    {
+      includeRecent: true,
+      excludeTracks: excludedTracks,
+    },
+  ).map(({ item }) => catalogItemToTrack(item));
+  if (fresh.length || !allowRepeat) return fresh.slice(0, 3);
   // A very small offline library can legitimately exhaust its recent window.
-  return (fresh.length ? fresh : ranked).slice(0, 3);
+  return personalRecommendations(library, items, { includeRecent: true })
+    .map(({ item }) => catalogItemToTrack(item))
+    .slice(0, 3);
 }
 
 /** Re-evaluate listening feedback at each refill, rather than fixing a mix at start. */
@@ -53,16 +82,10 @@ export async function personalRadio(
 ): Promise<RecommendationsResponse & { partial: boolean; retry: boolean }> {
   signal.throwIfAborted();
   const started = performance.now();
-  const ignored = new Set(library.taste?.excludedFromTaste ?? []);
   const seeds = [
     ...new Set([
       seedId,
-      ...library.history
-        .filter((entry) => !ignored.has(entry.track.id))
-        .map((entry) => entry.track.id),
-      ...library.favorites
-        .filter((track) => !ignored.has(track.id))
-        .map((track) => track.id),
+      ...recommendationSeeds(library).map((track) => track.id),
     ]),
   ]
     .filter((id) => isCatalogId('track', id))
@@ -88,17 +111,25 @@ export async function personalRadio(
   for (const outcome of outcomes)
     if (outcome.status === 'fulfilled') add(outcome.value.items);
   let partial = outcomes.some((outcome) => outcome.status === 'rejected');
-  let items = personalRecommendations(library, [...unique.values()]).map(
-    (suggestion) => suggestion.item,
-  );
+  const current = library.history.find(
+    (entry) => entry.track.id === seedId,
+  )?.track;
+  const context = { previousArtist: current?.artists?.[0] ?? current?.artist };
+  let items = personalRecommendations(
+    library,
+    [...unique.values()],
+    context,
+  ).map((suggestion) => suggestion.item);
   // A single unavailable/empty radio must not silently terminate infinite play.
   if (!items.length && catalog.home) {
     try {
       const feed = await catalog.home(signal);
       add(feed.sections.flatMap((section) => section.items));
-      items = personalRecommendations(library, [...unique.values()]).map(
-        (suggestion) => suggestion.item,
-      );
+      items = personalRecommendations(
+        library,
+        [...unique.values()],
+        context,
+      ).map((suggestion) => suggestion.item);
     } catch {
       partial = true;
     }

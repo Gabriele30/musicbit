@@ -196,8 +196,34 @@ export function Search({
     localItems,
     result?.items ?? [],
   );
-  const showSuggestions =
-    focused && suggestions.length > 0 && (!result || suggestionIndex >= 0);
+  const showSuggestions = focused && suggestions.length > 0;
+  const searchForm = useRef<HTMLFormElement>(null);
+  useLayoutEffect(() => {
+    if (!focused) return;
+    const fitSuggestions = () => {
+      const form = searchForm.current;
+      if (!form || !window.matchMedia?.('(max-width: 760px)').matches) return;
+      if (form.getBoundingClientRect().top > 100)
+        form.scrollIntoView({ block: 'start', behavior: 'instant' });
+      const input = form.querySelector('.catalog-input');
+      const viewport = window.visualViewport;
+      const bottom =
+        (viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight);
+      const available =
+        bottom - (input?.getBoundingClientRect().bottom ?? 160) - 88;
+      form.style.setProperty(
+        '--suggestions-height',
+        `${Math.max(100, available)}px`,
+      );
+    };
+    fitSuggestions();
+    window.addEventListener('resize', fitSuggestions);
+    window.visualViewport?.addEventListener('resize', fitSuggestions);
+    return () => {
+      window.removeEventListener('resize', fitSuggestions);
+      window.visualViewport?.removeEventListener('resize', fitSuggestions);
+    };
+  }, [focused]);
   const chooseSuggestion = (suggestion: SearchSuggestion) => {
     setFocused(false);
     setSuggestionIndex(-1);
@@ -605,6 +631,7 @@ export function Search({
             </p>
           )}
           <form
+            ref={searchForm}
             className="catalog-search"
             role="search"
             onSubmit={(event) => {
@@ -684,38 +711,49 @@ export function Search({
               )}
             </div>
             {showSuggestions && (
-              <ul
-                id="search-suggestions"
-                className="search-suggestions"
-                role="listbox"
-                aria-label="Suggerimenti di ricerca"
-              >
-                {suggestions.map((suggestion, i) => (
-                  <li key={suggestion.id} role="presentation">
-                    <button
-                      id={`search-suggestion-${i}`}
-                      type="button"
-                      role="option"
-                      aria-selected={i === suggestionIndex}
-                      onPointerDown={(e) => e.preventDefault()}
-                      onClick={() => chooseSuggestion(suggestion)}
-                    >
-                      <Icon
-                        name={
-                          suggestion.track || suggestion.item?.kind === 'track'
-                            ? 'play'
-                            : 'search'
-                        }
-                        size={18}
-                      />
-                      <span>
-                        <strong>{suggestion.label}</strong>
-                        <small>{suggestion.subtitle}</small>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <div className="search-suggestions">
+                <ul
+                  id="search-suggestions"
+                  className="search-suggestions-list"
+                  role="listbox"
+                  aria-label="Suggerimenti di ricerca"
+                >
+                  {suggestions.map((suggestion, i) => (
+                    <li key={suggestion.id} role="presentation">
+                      <button
+                        id={`search-suggestion-${i}`}
+                        type="button"
+                        role="option"
+                        aria-selected={i === suggestionIndex}
+                        onPointerDown={(e) => e.preventDefault()}
+                        onClick={() => chooseSuggestion(suggestion)}
+                      >
+                        <Icon
+                          name={
+                            suggestion.track ||
+                            suggestion.item?.kind === 'track'
+                              ? 'play'
+                              : 'search'
+                          }
+                          size={18}
+                        />
+                        <span>
+                          <strong>{suggestion.label}</strong>
+                          <small>{suggestion.subtitle}</small>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="submit"
+                  className="search-all-results"
+                  onPointerDown={(event) => event.preventDefault()}
+                >
+                  Mostra tutti i risultati
+                  <Icon name="arrow" size={18} />
+                </button>
+              </div>
             )}
             <div
               className="catalog-filters"

@@ -19,7 +19,7 @@ export function rankSearchResults(items: CatalogItem[], query: string) {
           : title.includes(q)
             ? 40
             : 0) +
-      (artist === q ? 15 : 0) +
+      (artist === q ? 65 : artist.startsWith(`${q} `) ? 55 : 0) +
       (item.kind === 'artist' && title === q ? 5 : 0)
     );
   };

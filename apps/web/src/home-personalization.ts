@@ -1,4 +1,8 @@
-import { buildTasteProfile, type LocalLibrary } from '@musicbit/shared';
+import {
+  buildTasteProfile,
+  hasArtist,
+  type LocalLibrary,
+} from '@musicbit/shared';
 
 export function quickPicks(library: LocalLibrary) {
   const blocked = new Set(
@@ -20,7 +24,7 @@ export function quickPicks(library: LocalLibrary) {
   return tracks
     .filter(
       (t) =>
-        !ignored.has(t.id) && !blocked.has(t.artist.trim().toLocaleLowerCase()),
+        !ignored.has(t.id) && ![...blocked].some((name) => hasArtist(t, name)),
     )
     .map((track) => {
       const recent = library.history.findIndex((h) => h.track.id === track.id);

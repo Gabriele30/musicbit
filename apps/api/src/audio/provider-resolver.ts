@@ -3,6 +3,10 @@ import { PoTokenService } from './potoken.js';
 import { MetadataCache } from '../catalog/cache.js';
 import { CatalogError } from '../catalog/errors.js';
 import { fetchMetadata } from './network.js';
+import {
+  readProviderSession,
+  fetchSessionMetadata,
+} from './provider-session.js';
 import { fragmentedAacPatches, type AudioBytePatch } from './mp4.js';
 
 export interface ResolvedAudioStream {
@@ -61,12 +65,13 @@ export class ProviderAudioResolver {
       };
 
       this.clientPromise = Innertube.create({
+        cookie: readProviderSession(),
         lang: 'en',
         location: 'IT',
         generate_session_locally: true,
         retrieve_player: true,
         enable_session_cache: true,
-        fetch: fetchMetadata,
+        fetch: fetchSessionMetadata,
       }).catch((err) => {
         this.clientPromise = undefined;
         throw err;
@@ -142,15 +147,32 @@ export class ProviderAudioResolver {
       // First try YouTube Music API (WEB_REMIX client)
       info = await client.music.getInfo(videoId);
     } catch {
+      // Some catalog entries do not have a usable Music player response.
+    }
+    let restricted = info?.playability_status?.status === 'LOGIN_REQUIRED';
+    if (
+      !info?.streaming_data?.adaptive_formats?.length &&
+      !info?.streaming_data?.formats?.length
+    ) {
+      signal?.throwIfAborted();
       try {
-        // Fallback to general YouTube client
-        info = await client.getInfo(videoId);
+        // An empty/restricted response is still a response, not an exception.
+        // Try the ordinary WEB player too; getBasicInfo avoids an unused /next.
+        const fallback = await client.getBasicInfo(videoId, { client: 'WEB' });
+        restricted ||= fallback.playability_status?.status === 'LOGIN_REQUIRED';
+        if (
+          fallback.streaming_data?.adaptive_formats?.length ||
+          fallback.streaming_data?.formats?.length ||
+          !info
+        )
+          info = fallback;
       } catch {
-        throw new AudioResolutionError(
-          'Impossibile trovare la traccia. Riprova tra poco.',
-          'NOT_FOUND',
-          404,
-        );
+        if (!info)
+          throw new AudioResolutionError(
+            'Impossibile trovare la traccia. Riprova tra poco.',
+            'NOT_FOUND',
+            404,
+          );
       }
     }
 
@@ -161,7 +183,6 @@ export class ProviderAudioResolver {
     ];
 
     if (!formats.length) {
-      const restricted = info.playability_status?.status === 'LOGIN_REQUIRED';
       throw new AudioResolutionError(
         restricted
           ? 'Il fornitore richiede una verifica di accesso dal server. I brani già in cache restano disponibili.'

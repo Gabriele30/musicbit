@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="it">
+  <meta charset="utf-8" /><title>Collega YouTube</title
+  ><style>
+    body {
+      width: 330px;
+      margin: 0;
+      padding: 22px;
+      background: #080808;
+      color: #f5f5f5;
+      font: 15px system-ui;
+    }
+    h1 {
+      font-size: 22px;
+    }
+    p {
+      line-height: 1.5;
+      color: #c9c9c9;
+    }
+    button {
+      border: 0;
+      border-radius: 24px;
+      background: #dafa91;
+      color: #101010;
+      padding: 13px 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #status {
+      white-space: pre-wrap;
+    }
+  </style>
+  <h1>YouTube → MusicBit</h1>
+  <p>
+    Accedi a YouTube in una finestra in incognito dedicata a MusicBit, con
+    l’estensione consentita in incognito. Dopo l’esportazione chiudi tutte le
+    finestre in incognito senza effettuare il logout da YouTube.
+  </p>
+  <button id="export">Esporta per il mio server</button>
+  <p id="status" role="status">
+    Il file è privato: importalo nella pagina locale MusicBit. Non inviarlo in
+    chat. Dopo l’importazione puoi eliminarlo.
+  </p>
+  <script type="module" src="popup.mjs"></script>
+</html>

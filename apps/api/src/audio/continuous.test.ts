@@ -247,6 +247,8 @@ it('remuxes real AAC into a single continuous HLS playlist, prepares ahead from 
     { timeout: 10000 },
   );
   const initial = await service.manifest('gabriele', id);
+  expect(initial).toContain('#EXT-X-VERSION:6');
+  expect(initial).toContain('#EXT-X-START:TIME-OFFSET=0,PRECISE=YES');
   expect(initial).toContain('#EXT-X-DISCONTINUITY');
   expect(initial).not.toContain('#EXT-X-ENDLIST');
   const timeline = (await service.metadata('gabriele', id))!;
@@ -495,6 +497,18 @@ it('keeps native radio open through provider failures, crosses the old cap and r
     { timeout: 10000 },
   );
   const firstTimeline = (await radio.metadata('gabriele', id))!;
+  const edge = (await radio.manifest('gabriele', id))!
+    .split('\n')
+    .filter((line) => line.includes(`/${id}/2/segment-`))
+    .at(-1)!;
+  const edgeName = edge.split('/').at(-1)!;
+  expect(edgeName).not.toBe('segment-000000.ts');
+  // A native live-edge probe must not turn preloading into listened history.
+  for (let probe = 0; probe < 4; probe++)
+    expect(await radio.segment('gabriele', id, 2, edgeName)).toBeTruthy();
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  expect((await radio.metadata('gabriele', id))!.tracks).toHaveLength(3);
+  expect((await radio.metadata('gabriele', id))!.queueStart).toBe(0);
   const first = firstTimeline.tracks[0]!;
   for (let index = 1; index <= 25; index++) {
     await vi.waitFor(
@@ -647,6 +661,86 @@ it('serves authenticated personalized radio independently of native HLS and vali
       })
     ).statusCode,
   ).toBe(400);
+});
+
+it('progressive radio uses only personal cached audio during provider restrictions and respects exclusions', async () => {
+  const app = Fastify();
+  apps.push(app);
+  const library = emptyLibrary();
+  library.history = ['original001', 'cached00001', 'missing0001'].map((id) => ({
+    track: catalogItemToTrack({
+      id,
+      kind: 'track',
+      provider: 'youtube',
+      title: id,
+      artist: id,
+      sourceUrl: 'https://music.youtube.com',
+      playback: { available: true },
+    }),
+    playedAt: Date.now(),
+  }));
+  const recommendations = vi.fn();
+  const cache = {
+    providerRestricted: vi.fn(() => true),
+    get: vi.fn((_user: string, id: string) =>
+      id === 'cached00001'
+        ? {
+            id,
+            path: '/cached-test-audio',
+            size: 10,
+            mimeType: 'audio/mp4',
+            touched: Date.now(),
+            stream: vi.fn(),
+          }
+        : undefined,
+    ),
+  };
+  registerContinuousRoutes(
+    app,
+    undefined,
+    () => ({ id: 'gabriele' }),
+    { recommendations },
+    () => library,
+    cache,
+  );
+  const response = await app.inject('/api/me/radio/original001');
+  expect(response.statusCode).toBe(200);
+  expect(response.headers['cache-control']).toBe('private, no-store');
+  expect(response.json()).toMatchObject({
+    seedId: 'original001',
+    items: [{ id: 'cached00001', playback: { available: true } }],
+    partial: true,
+    retry: false,
+  });
+  expect(response.json().notice).toContain('già in cache');
+  expect(recommendations).not.toHaveBeenCalled();
+  expect(cache.get).toHaveBeenCalledWith('gabriele', 'cached00001');
+  const exhausted = await app.inject(
+    '/api/me/radio/original001?exclude=cached00001',
+  );
+  expect(exhausted.json()).toMatchObject({ items: [], retry: true });
+  cache.providerRestricted.mockReturnValue(false);
+  recommendations.mockResolvedValue({
+    seedId: 'original001',
+    items: [
+      {
+        id: 'fresh000001',
+        kind: 'track',
+        provider: 'youtube',
+        title: 'Fresh song',
+        artist: 'Fresh artist',
+        sourceUrl: 'https://music.youtube.com',
+        playback: { available: true },
+      },
+    ],
+    timing: { cache: 'miss', elapsedMs: 0 },
+  });
+  const recovered = await app.inject('/api/me/radio/original001');
+  expect(recovered.json()).toMatchObject({
+    items: [{ id: 'fresh000001' }],
+    retry: false,
+  });
+  expect(recommendations).toHaveBeenCalled();
 });
 
 it('converts provider Opus fallbacks to AAC-LC for native iPhone HLS', async () => {

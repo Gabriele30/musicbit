@@ -1,5 +1,6 @@
 import {
   buildTasteProfile,
+  hasArtist,
   type CatalogItem,
   type LocalLibrary,
 } from '@musicbit/shared';
@@ -119,28 +120,50 @@ export class ArtistDiscoveryService {
     ]);
     const norm = (s: string) => s.trim().toLocaleLowerCase();
     const excluded = new Set(known);
-    const artists = new Map<string, CatalogItem>();
+    const pool = new Map<string, CatalogItem>();
     const accept = (item: CatalogItem) => {
       if (item.kind === 'artist' && !excluded.has(norm(item.title)))
-        artists.set(item.id, item);
+        pool.set(norm(item.title), item);
     };
+    // Existence in the catalog does not establish musical relevance. Build a
+    // related-artist pool first; the model can reorder it, never expand it with
+    // unrelated popular names when a small local model ignores the prompt.
+    const references = seeds
+      .map(
+        (seed) =>
+          library.followedArtists.find((a) => norm(a.title) === norm(seed))
+            ?.id ??
+          library.history.find(
+            (h) => h.track.artistId && hasArtist(h.track, seed),
+          )?.track.artistId ??
+          library.favorites.find((t) => t.artistId && hasArtist(t, seed))
+            ?.artistId,
+      )
+      .filter((id): id is string => !!id);
+    const relatedSignal = AbortSignal.any([signal, AbortSignal.timeout(15000)]);
+    const related = await Promise.allSettled(
+      [...new Set(references)]
+        .slice(0, 3)
+        .map((id) => catalog.details('artist', id, relatedSignal)),
+    );
+    for (const result of related)
+      if (result.status === 'fulfilled')
+        for (const artist of result.value.item.relatedArtists ?? [])
+          accept(artist);
+    const artists = new Map<string, CatalogItem>();
     let source: ArtistDiscovery['source'] = 'related';
     try {
-      if (useAi && ai.available()) {
-        const names = await ai.discoveryArtists(seeds, signal);
+      if (useAi && ai.available() && pool.size) {
+        const names = await ai.discoveryArtists(
+          seeds,
+          signal,
+          [...pool.values()].map((item) => item.title),
+        );
         for (const name of names.filter((n) => !excluded.has(norm(n)))) {
-          try {
-            const found = await catalog.search(
-              { q: name, type: 'artist', limit: 3 },
-              signal,
-            );
-            const item = found.items.find((i) => norm(i.title) === norm(name));
-            if (item) {
-              accept(item);
-              source = 'ai';
-            }
-          } catch {
-            /* Only catalog-confirmed artists are shown. */
+          const item = pool.get(norm(name));
+          if (item) {
+            artists.set(item.id, item);
+            source = 'ai';
           }
         }
       }
@@ -149,22 +172,8 @@ export class ArtistDiscoveryService {
     }
     if (background?.aborted)
       return { artists: [], basedOn: seeds, source: 'empty' };
-    if (artists.size < 5) {
-      const fallbackSignal = AbortSignal.timeout(15000);
-      const references = [
-        ...library.followedArtists.map((a) => a.id),
-        ...library.history.map((h) => h.track.artistId),
-        ...library.favorites.map((t) => t.artistId),
-      ].filter((id): id is string => !!id);
-      for (const id of [...new Set(references)].slice(0, 2)) {
-        try {
-          const detail = await catalog.details('artist', id, fallbackSignal);
-          for (const artist of detail.item.relatedArtists ?? []) accept(artist);
-        } catch {
-          /* One unavailable artist page must not discard other results. */
-        }
-      }
-    }
+    for (const item of pool.values())
+      if (!artists.has(item.id)) artists.set(item.id, item);
     const hydration = AbortSignal.timeout(15000);
     const selected = [...artists.values()].slice(0, 8);
     await Promise.allSettled(
