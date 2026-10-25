@@ -6,21 +6,9 @@ import {
   type PlaybackSnapshot,
 } from '@musicbit/shared';
 import { accountRequest, AccountRequestError } from '../account';
-import { createClientId } from '../client-id';
+import { playbackDeviceId } from './device-id';
 import type { PlayerEngine } from './engine';
 
-const DEVICE_KEY = 'musicbit.device.v1';
-function deviceId() {
-  try {
-    const old = sessionStorage.getItem(DEVICE_KEY);
-    if (old && /^[a-zA-Z0-9_-]{8,100}$/.test(old)) return old;
-    const id = createClientId();
-    sessionStorage.setItem(DEVICE_KEY, id);
-    return id;
-  } catch {
-    return createClientId();
-  }
-}
 const snapshot = (player: PlayerEngine): PlaybackSnapshot => {
   const { queue, index, position, repeat, autoplay } = player.getSnapshot();
   return {
@@ -37,7 +25,7 @@ export function useCloudSession(player: PlayerEngine, accountId?: string) {
   const resumeRef = useRef<() => void>(() => {});
   useEffect(() => {
     if (!accountId) return;
-    const device = deviceId(),
+    const device = playbackDeviceId(),
       controller = new AbortController();
     let revision: number | undefined,
       latest: PlaybackEnvelope | undefined,

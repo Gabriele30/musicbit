@@ -8,6 +8,9 @@ describe('hosted access controls', () => {
     const accounts = new AccountStore();
     registerTrafficControls(app, accounts);
     app.get('/api/tracks', async () => ({ tracks: [] }));
+    const segment =
+      '/api/continuous/00000000-0000-4000-8000-000000000001/0/segment-000001.ts';
+    app.get(segment, async () => 'aac-segment');
     app.setErrorHandler((error, _req, reply) =>
       reply
         .code(error instanceof AccountError ? error.status : 500)
@@ -16,6 +19,7 @@ describe('hosted access controls', () => {
     try {
       vi.stubEnv('MUSICBIT_REQUIRE_ACCOUNT', 'true');
       expect((await app.inject('/api/tracks')).statusCode).toBe(401);
+      expect((await app.inject(segment)).statusCode).toBe(401);
       const user = await accounts.createUser(
         'listener',
         'traffic-test-password',
@@ -29,6 +33,15 @@ describe('hosted access controls', () => {
       const limited = await app.inject({ url: '/api/tracks', headers });
       expect(limited.statusCode).toBe(429);
       expect(limited.headers['retry-after']).toBe('60');
+      // A real iPhone fetched >240 media segments in its first minute. Search
+      // exhaustion must not prevent its decoder from completing the preload.
+      for (let n = 0; n < 1200; n++)
+        expect((await app.inject({ url: segment, headers })).statusCode).toBe(
+          200,
+        );
+      expect((await app.inject({ url: segment, headers })).statusCode).toBe(
+        429,
+      );
     } finally {
       await app.close();
       accounts.close();

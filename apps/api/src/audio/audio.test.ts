@@ -21,6 +21,39 @@ const resolved: ResolvedAudioStream = {
 };
 
 describe('Audio routes and streaming', () => {
+  it.each([false, true])(
+    'retries a transport failure once before headers, then stops (persistent: %s)',
+    async (persistent) => {
+      const service = new AudioStreamService();
+      vi.spyOn(service, 'resolve').mockResolvedValue(resolved);
+      const evict = vi.spyOn(service, 'evict');
+      const fetcher = vi
+        .fn()
+        .mockRejectedValueOnce(new TypeError('fetch failed'));
+      if (persistent) fetcher.mockRejectedValue(new TypeError('fetch failed'));
+      else
+        fetcher.mockResolvedValue(
+          new Response(new Uint8Array([1, 2]), {
+            status: 206,
+            headers: { 'content-range': 'bytes 0-1/10', 'content-length': '2' },
+          }),
+        );
+      vi.stubGlobal('fetch', fetcher);
+      const app = buildApp({}, undefined, undefined, service);
+      try {
+        const r = await app.inject({
+          url: '/api/audio/abcdefghijk',
+          headers: { range: 'bytes=0-1' },
+        });
+        expect(r.statusCode).toBe(persistent ? 502 : 206);
+        expect(fetcher).toHaveBeenCalledTimes(2);
+        expect(evict).toHaveBeenCalledOnce();
+        if (!persistent) expect([...r.rawPayload]).toEqual([1, 2]);
+      } finally {
+        await app.close();
+      }
+    },
+  );
   it('serves canonical cached bytes and Range/HEAD without resolving or contacting an unavailable upstream again', async () => {
     const service = new AudioStreamService();
     const resolve = vi

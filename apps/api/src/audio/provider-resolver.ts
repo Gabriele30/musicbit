@@ -209,7 +209,13 @@ export class ProviderAudioResolver {
     }
 
     let streamUrl: string | undefined;
-    if (format.signature_cipher || format.cipher) {
+    // Direct URLs can still carry the player's encrypted n parameter. Sending
+    // those unchanged can produce a permanent 403 despite a valid login.
+    const needsPlayer =
+      format.signature_cipher ||
+      format.cipher ||
+      (format.url && new URL(format.url).searchParams.has('n'));
+    if (needsPlayer) {
       if (!client.session.player) {
         throw new AudioResolutionError(
           'Player script non inizializzato',

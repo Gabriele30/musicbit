@@ -159,7 +159,16 @@ export function registerAudioRoutes(
             signal: controller.signal,
           });
         };
-        upstream = await fetchStream();
+        try {
+          upstream = await fetchStream();
+        } catch (error) {
+          if (controller.signal.aborted) throw error;
+          // A cached descriptor may point at an edge that just stopped answering.
+          // Retry once before headers, with a freshly resolved descriptor.
+          service.evict(id);
+          resolved = await service.resolve(id, controller.signal);
+          upstream = await fetchStream();
+        }
         if (upstream.status === 403 || upstream.status === 410) {
           // Release the rejected response before opening another connection.
           await upstream.body?.cancel();

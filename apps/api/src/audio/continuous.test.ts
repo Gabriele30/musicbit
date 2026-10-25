@@ -35,6 +35,12 @@ afterEach(async () => {
 });
 it('rejects incomplete, nonlocal and invalid generated HLS segments', () => {
   expect(
+    parseHlsTrack(
+      '#EXTM3U\n#EXTINF:2.020144,\nsegment-000000.ts\n#EXT-X-ENDLIST',
+      true,
+    )[0]?.duration,
+  ).toBe((87 * 1024) / 44100);
+  expect(
     parseHlsTrack('#EXTM3U\n#EXTINF:2.02,\nsegment-000001.ts\n#EXT-X-ENDLIST'),
   ).toEqual([{ duration: 2.02, name: 'segment-000001.ts' }]);
   expect(
@@ -49,6 +55,42 @@ it('rejects incomplete, nonlocal and invalid generated HLS segments', () => {
     ),
   ).toThrow();
   expect(() => parseHlsTrack('#EXTINF:2,\nsegment-000001.ts')).toThrow();
+});
+it('replaces abandoned sessions after reload without stopping another device or account', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'musicbit-reload-session-'));
+  roots.push(root);
+  const cache = new AudioDiskCache(
+    join(root, 'cache'),
+    new AudioStreamService(),
+  );
+  caches.push(cache);
+  vi.spyOn(cache, 'plan').mockReturnValue({
+    bytes: 0,
+    quotaBytes: 5_000_000_000,
+    tracks: 0,
+    preparing: 0,
+  });
+  vi.spyOn(cache, 'get').mockReturnValue(undefined);
+  const service = new ContinuousAudio(cache);
+  services.push(service);
+  const ids = Array.from(
+    { length: 6 },
+    (_, index) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+  );
+  const plan = (user: string, id: string, device: string) =>
+    service.plan(user, id, ['abcdefghijk'], false, 100, 0, device);
+  plan('gabriele', ids[0]!, 'iphone-window');
+  plan('gabriele', ids[1]!, 'desktop-window');
+  plan('marco', ids[2]!, 'iphone-window');
+  for (const id of ids.slice(3)) plan('gabriele', id, 'iphone-window');
+  expect(await service.metadata('gabriele', ids[0]!)).toBeUndefined();
+  expect(await service.metadata('gabriele', ids[4]!)).toBeUndefined();
+  expect(await service.metadata('gabriele', ids[5]!)).toBeDefined();
+  expect(await service.metadata('gabriele', ids[1]!)).toBeDefined();
+  expect(await service.metadata('marco', ids[2]!)).toBeDefined();
+  expect(() => plan('gabriele', crypto.randomUUID(), 'third-window')).toThrow(
+    'Too many',
+  );
 });
 it.each([false, true])(
   'keeps cached radio open during an upstream restriction and recovers (new account: %s)',
@@ -105,8 +147,13 @@ it.each([false, true])(
           }
         : undefined,
     );
+    const failed = Array.from({ length: 6 }, (_, i) => `failed0000${i}`);
     vi.spyOn(cache, 'failure').mockImplementation((_user, id) =>
-      restricted && id === fresh ? 'PROVIDER_RESTRICTED' : undefined,
+      failed.includes(id)
+        ? 'UNAVAILABLE'
+        : restricted && id === fresh
+          ? 'PROVIDER_RESTRICTED'
+          : undefined,
     );
     vi.spyOn(cache, 'providerRestricted').mockImplementation(() => restricted);
     const item = (id: string) => ({
@@ -126,7 +173,10 @@ it.each([false, true])(
     }));
     const recommendations = vi.fn(async (seedId: string) => ({
       seedId,
-      items: [item(fresh)],
+      items: [
+        ...failed.map((id) => ({ ...item(id), artist: id })),
+        item(fresh),
+      ],
       timing: { cache: 'miss' as const, elapsedMs: 0 },
     }));
     const radio = new ContinuousAudio(
@@ -537,8 +587,13 @@ it('keeps native radio open through provider failures, crosses the old cap and r
   );
   expect(timeline.additions!.length).toBeLessThanOrEqual(26);
   expect(profile.mock.calls.length).toBeGreaterThan(5);
+  const lateProgram = new Set(
+    timeline.tracks
+      .filter((track) => track.index >= 20)
+      .map((track) => track.id),
+  );
   expect(
-    recommendations.mock.calls.some(([seed]) => seed === trackId(24)),
+    recommendations.mock.calls.some(([seed]) => lateProgram.has(seed)),
   ).toBe(true);
   const manifest = (await radio.manifest('gabriele', id))!;
   expect(manifest).toContain('#EXT-X-MEDIA-SEQUENCE:10\n');

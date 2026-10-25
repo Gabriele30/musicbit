@@ -1444,6 +1444,12 @@ main {
 .home-filters {
   margin: -4px 0 0;
   flex-wrap: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.home-filters > button {
+  flex-shrink: 0;
 }
 .catalog-filters {
   display: flex;

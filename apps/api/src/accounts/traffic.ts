@@ -29,11 +29,21 @@ export function registerTrafficControls(
         'Accedi per usare il catalogo e ascoltare musica.',
       );
     const key = user?.id ?? request.ip;
+    const media =
+      /^\/api\/continuous\/[^/]+\/(?:index\.m3u8|\d+\/segment-\d{6}\.ts)(?:\?|$)/.test(
+        request.url,
+      );
+    // Native Safari can prefetch several complete songs in a short burst.
+    // Those small segments must not consume the catalog/search allowance.
+    const requestKey = `${media ? 'media' : 'api'}:${key}`;
     const now = Date.now();
     for (const [id, entry] of requests)
       if (entry.until <= now) requests.delete(id);
-    const entry = requests.get(key) ?? { count: 0, until: now + 60000 };
-    if (entry.count >= 240 || (!requests.has(key) && requests.size >= 1000)) {
+    const entry = requests.get(requestKey) ?? { count: 0, until: now + 60000 };
+    if (
+      entry.count >= (media ? 1200 : 240) ||
+      (!requests.has(requestKey) && requests.size >= 2000)
+    ) {
       reply.header('Retry-After', '60');
       throw new AccountError(
         429,
@@ -42,8 +52,11 @@ export function registerTrafficControls(
       );
     }
     entry.count++;
-    requests.set(key, entry);
-    if (!request.url.startsWith('/api/audio/') || request.method === 'HEAD')
+    requests.set(requestKey, entry);
+    if (
+      (!media && !request.url.startsWith('/api/audio/')) ||
+      request.method === 'HEAD'
+    )
       return;
     if (total >= 64 || (streams.get(key) ?? 0) >= 8) {
       reply.header('Retry-After', '5');

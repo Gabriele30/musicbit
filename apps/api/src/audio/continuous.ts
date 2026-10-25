@@ -49,6 +49,7 @@ interface Prepared {
 }
 interface Session {
   user: string;
+  deviceId?: string;
   id: string;
   ids: string[];
   directory: string;
@@ -93,7 +94,9 @@ export function parseHlsTrack(text: string, alignAacFrames = false): Segment[] {
       // MP4 can trim the last packet's declared duration, but MPEG-TS renders
       // the whole AAC frame. Keep the shared timeline aligned with the audio.
       duration: alignAacFrames
-        ? Math.max(1, Math.ceil(duration / AAC_FRAME_SECONDS - 0.0001)) *
+        ? // MPEG-TS timestamps have 90 kHz precision; tiny EXTINF rounding above
+          // an exact frame must not add another AAC frame at every segment.
+          Math.max(1, Math.ceil(duration / AAC_FRAME_SECONDS - 0.001)) *
           AAC_FRAME_SECONDS
         : duration,
       name,
@@ -155,6 +158,7 @@ export class ContinuousAudio {
     autoplay = false,
     maxTracks = PLAYBACK_QUEUE_LIMIT,
     queueStart = 0,
+    deviceId?: string,
   ) {
     if (!this.enabled || !SESSION_ID.test(id))
       throw new Error('Continuous playback unavailable');
@@ -189,16 +193,23 @@ export class ContinuousAudio {
       this.pump(session);
       return this.timeline(session);
     }
+    if (queueStart !== 0)
+      throw new Error('New continuous queues start at zero');
+    // A reload cannot reliably await DELETE during page teardown. Retire only
+    // this authenticated window's old stream; other devices keep playing.
+    if (deviceId)
+      for (const previous of [...this.sessions.values()])
+        if (previous.user === user && previous.deviceId === deviceId)
+          this.stop(user, previous.id);
     if (
       this.sessions.size >= 4 ||
       [...this.sessions.values()].filter((s) => s.user === user).length >= 2
     )
       throw new Error('Too many continuous sessions');
-    if (queueStart !== 0)
-      throw new Error('New continuous queues start at zero');
     const directory = mkdtempSync(join(this.root, 'session-'));
     session = {
       user,
+      deviceId,
       id,
       ids: [...ids],
       directory,
@@ -450,7 +461,9 @@ export class ContinuousAudio {
       // Do not publish a suggested track in the native program until its
       // complete source exists. One unavailable suggestion must not end radio.
       const deadline = Date.now() + 20000;
-      for (const item of response.items.slice(0, 6)) {
+      for (const item of response.items
+        .filter((item) => !this.cache.failure(session.user, item.id))
+        .slice(0, 6)) {
         if (Date.now() >= deadline) break;
         const track = catalogItemToTrack(item);
         if (!/^\/api\/audio\/[A-Za-z0-9_-]{11}$/.test(track.audioUrl)) continue;
@@ -481,7 +494,7 @@ export class ContinuousAudio {
     const fallback = cachedRadio(
       library,
       (id) => !!this.cache.get(session.user, id),
-      session.ids.slice(-3),
+      [...new Set([...session.recentIds, ...session.ids])],
     );
     if (fallback.length || !this.catalog?.details) return fallback;
     // A new account may have cached its first song before history was synced.
@@ -874,6 +887,7 @@ export function registerContinuousRoutes(
           required: ['ids'],
           properties: {
             autoplay: { type: 'boolean' },
+            deviceId: { type: 'string', pattern: '^[a-zA-Z0-9_-]{8,100}$' },
             maxTracks: {
               type: 'integer',
               minimum: 1,
@@ -908,6 +922,7 @@ export function registerContinuousRoutes(
           request.body.autoplay,
           request.body.maxTracks,
           request.body.queueStart,
+          request.body.deviceId,
         );
       } catch {
         return reply.code(409).send({

@@ -528,11 +528,12 @@ test('native AAC HLS keeps its source and clock through rate changes and rapid s
   await expect(page.locator('audio')).toHaveCount(1);
 });
 
-test('long live HLS without a seek range recovers to real AAC samples and usable controls', async ({
+test('healthy live HLS remains native until an unsupported manual seek needs AAC recovery', async ({
   page,
 }) => {
   await fixture(page, 0, false, true);
   const owner = await page.locator('audio').elementHandle();
+  await page.waitForTimeout(3200);
   await expect
     .poll(
       () =>
@@ -541,7 +542,7 @@ test('long live HLS without a seek range recovers to real AAC samples and usable
           .evaluate((a: HTMLAudioElement) => new URL(a.currentSrc).pathname),
       { timeout: 10000 },
     )
-    .toBe('/api/audio/longtone001');
+    .toMatch(/^\/api\/continuous\/[a-f0-9-]+\/index\.m3u8$/);
   await expect
     .poll(() =>
       page.locator('audio').evaluate((a: HTMLAudioElement) => a.currentTime),
@@ -579,6 +580,13 @@ test('long live HLS without a seek range recovers to real AAC samples and usable
   await page
     .getByRole('slider', { name: 'Posizione nella traccia' })
     .fill('20');
+  await expect
+    .poll(() =>
+      page
+        .locator('audio')
+        .evaluate((a: HTMLAudioElement) => new URL(a.currentSrc).pathname),
+    )
+    .toBe('/api/audio/longtone001');
   await expect
     .poll(() =>
       page.locator('audio').evaluate((a: HTMLAudioElement) => a.currentTime),

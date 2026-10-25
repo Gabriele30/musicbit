@@ -39,6 +39,76 @@ it('converts a saved track with a local placeholder into a valid network catalog
     true,
   );
 });
+it('exhausts a cached listening pool before repeating the oldest program entries', () => {
+  const library = emptyLibrary();
+  library.history = Array.from({ length: 24 }, (_, i) => ({
+    track: catalogItemToTrack(
+      item(`cached${String(i).padStart(5, '0')}`, `Artist ${i}`),
+    ),
+    playedAt: Date.now() - i,
+  }));
+  const program = library.history.slice(0, 12).map((e) => e.track.id);
+  for (let i = 0; i < 4; i++) {
+    const next = cachedRadio(library, () => true, program);
+    expect(next).toHaveLength(3);
+    expect(next.every((t) => !program.includes(t.id))).toBe(true);
+    program.push(...next.map((t) => t.id));
+  }
+  expect(new Set(program).size).toBe(24);
+  expect(cachedRadio(library, () => true, program).map((t) => t.id)).toEqual(
+    program.slice(0, 3),
+  );
+});
+it('varies equally relevant radio choices while moving its profile seeds beyond the queued songs', async () => {
+  const library = emptyLibrary();
+  library.history = [
+    'anchor00001',
+    'anchor00002',
+    'anchor00003',
+    'anchor00004',
+  ].map((id, i) => ({
+    track: catalogItemToTrack(item(id, `Artist ${i}`)),
+    playedAt: Date.now() - i,
+  }));
+  const candidates = Array.from({ length: 8 }, (_, i) =>
+    item(`radio${String(i).padStart(6, '0')}`, `New artist ${i}`),
+  );
+  const catalog = {
+    recommendations: vi.fn(async (seed: string) => response(seed, candidates)),
+  };
+  const random = vi.spyOn(Math, 'random');
+  try {
+    let draw = 0;
+    random.mockImplementation(() => ++draw / 10);
+    const a = await personalRadio(
+      catalog,
+      'original001',
+      new AbortController().signal,
+      library,
+      ['anchor00001', 'anchor00002'],
+    );
+    expect(catalog.recommendations.mock.calls.map(([id]) => id)).toEqual([
+      'original001',
+      'anchor00003',
+      'anchor00004',
+    ]);
+    draw = 9;
+    random.mockImplementation(() => --draw / 10);
+    const b = await personalRadio(
+      catalog,
+      'original001',
+      new AbortController().signal,
+      library,
+      ['anchor00001', 'anchor00002'],
+    );
+    expect(a.items.map((t) => t.id)).not.toEqual(b.items.map((t) => t.id));
+    expect(new Set(a.items.map((t) => t.id))).toEqual(
+      new Set(b.items.map((t) => t.id)),
+    );
+  } finally {
+    random.mockRestore();
+  }
+});
 it('excludes queued songs before applying the ranking limit so cached radio can refill beyond its first twelve', () => {
   const library = emptyLibrary();
   library.history = Array.from({ length: 20 }, (_, i) => ({

@@ -21,6 +21,40 @@ vi.mock('./potoken.js', () => ({
 }));
 import { ProviderAudioResolver } from './provider-resolver.js';
 const roots: string[] = [];
+it('transforms the n parameter even when AAC has a direct URL without a signature cipher', async () => {
+  vi.stubEnv('YOUTUBE_COOKIE_FILE', '');
+  const player = {};
+  create.mockResolvedValue({
+    music: { getInfo: music },
+    getBasicInfo: general,
+    session: { player },
+  });
+  const decipher = vi
+    .fn()
+    .mockResolvedValue('https://r1.googlevideo.com/aac?n=transformed');
+  music.mockResolvedValue({
+    streaming_data: {
+      adaptive_formats: [
+        {
+          itag: 140,
+          mime_type: 'audio/mp4',
+          url: 'https://r1.googlevideo.com/aac?n=encrypted',
+          decipher,
+        },
+      ],
+    },
+    basic_info: { duration: 189 },
+  });
+  const resolver = new ProviderAudioResolver();
+  try {
+    expect((await resolver.resolve('abcdefghijk')).url).toBe(
+      'https://r1.googlevideo.com/aac?n=transformed',
+    );
+    expect(decipher).toHaveBeenCalledWith(player);
+  } finally {
+    resolver.close();
+  }
+});
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetAllMocks();

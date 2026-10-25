@@ -212,6 +212,7 @@ export class PlayerEngine {
       if (
         source === this.source &&
         !this.audio.paused &&
+        this.pendingSeek !== undefined &&
         this.unseekableContinuous()
       )
         this.useProgressive(this.state.position);
@@ -1088,6 +1089,9 @@ export class PlayerEngine {
     }
     if (this.state.status === 'loading') this.armDeadline();
     if (this.continuous.active(this.source)) void this.continuous.submit();
+    // A source with no seek range can still play/advance perfectly well.
+    // Only a start/resume/selection that cannot settle needs AAC recovery.
+    this.checkContinuous();
     // play() above must stay synchronous in the gesture; metadata follows it.
     if (load) this.resolveDuration(track);
   }

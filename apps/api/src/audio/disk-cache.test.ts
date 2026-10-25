@@ -47,6 +47,16 @@ afterEach(async () => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+it('recovers a prefetch transport failure once using a fresh descriptor', async () => {
+  const { service, cache, fetcher } = setup();
+  const evict = vi.spyOn(service, 'evict');
+  fetcher.mockRejectedValueOnce(new TypeError('fetch failed'));
+  cache.plan('gabriele', 'phone-device', [id]);
+  await vi.waitFor(() => expect(cache.get('gabriele', id)).toBeDefined());
+  expect(evict).toHaveBeenCalledWith(id);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(cache.failure('gabriele', id)).toBeUndefined();
+});
 it('reports an account-scoped provider restriction promptly and expires the failure backoff', async () => {
   const { service, cache, fetcher } = setup();
   vi.mocked(service.resolve).mockRejectedValue(

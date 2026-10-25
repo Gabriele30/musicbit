@@ -76,6 +76,72 @@ afterEach(() => {
 });
 
 describe('persistent player', () => {
+  it.each([0, 60])(
+    'still recovers a native start/resume stuck away from %s seconds',
+    async (position) => {
+      vi.useFakeTimers();
+      const { player, audio } = setup();
+      player.resetSession();
+      const track = {
+        ...tracks[0]!,
+        id: 'abcdefghijk',
+        audioUrl: '/api/audio/abcdefghijk',
+        durationSeconds: 120,
+      };
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          async (url: string) =>
+            new Response(
+              JSON.stringify(
+                url.endsWith('/info')
+                  ? { durationSeconds: 120 }
+                  : {
+                      tracks: [
+                        { index: 0, id: track.id, start: 0, duration: 120 },
+                      ],
+                      complete: false,
+                    },
+              ),
+            ),
+        ),
+      );
+      let clock = 119;
+      Object.defineProperty(audio, 'currentTime', {
+        get: () => clock,
+        set: (value: number) => {
+          if (audio.src === track.audioUrl) clock = value;
+        },
+        configurable: true,
+      });
+      Object.defineProperty(audio, 'seekable', {
+        value: { length: 0 },
+        configurable: true,
+      });
+      audio.duration = Infinity;
+      audio.readyState = 4;
+      player.restoreSession({
+        queue: [track],
+        index: 0,
+        position,
+        repeat: 'off',
+      });
+      player.setContinuousPlayback(true);
+      player.play();
+      await vi.advanceTimersByTimeAsync(0);
+      audio.emit('loadedmetadata');
+      audio.emit('playing');
+      expect(player.getDelivery()).toBe('hls');
+      await vi.advanceTimersByTimeAsync(2500);
+      expect(audio.src).toBe(track.audioUrl);
+      audio.duration = 120;
+      audio.emit('loadedmetadata');
+      audio.emit('playing');
+      expect(clock).toBe(position);
+      audio.emit('seeked');
+      expect(player.getSnapshot().status).toBe('playing');
+    },
+  );
   it.each(['seeked', 'timeupdate'])(
     'does not acknowledge STUPIDO at metadata-only readiness on an early %s event',
     async (event) => {
@@ -354,7 +420,7 @@ describe('persistent player', () => {
     audio.emit('error');
     expect(player.getSnapshot().error).toContain('verifica di accesso');
   });
-  it('recovers from a long unseekable native live source using the same audio and AAC position', async () => {
+  it('keeps healthy native live playback until an unsupported explicit seek needs AAC recovery', async () => {
     vi.useFakeTimers();
     const { player, audio } = setup();
     const queue = tracks.map((track, index) => ({
@@ -395,15 +461,25 @@ describe('persistent player', () => {
     audio.emit('timeupdate');
     await vi.advanceTimersByTimeAsync(2500);
     expect(player.audio).toBe(audio);
-    expect(audio.src).toBe(queue[0]!.audioUrl);
+    expect(player.getDelivery()).toBe('hls');
+    expect(audio.src).toContain('/api/continuous/');
+    audio.currentTime = 128;
+    audio.emit('timeupdate');
+    expect(player.getSnapshot()).toMatchObject({
+      index: 1,
+      position: 8,
+      status: 'playing',
+    });
+    player.seek(20);
+    expect(audio.src).toBe(queue[1]!.audioUrl);
     expect(player.getDelivery()).toBe('progressive');
     audio.duration = 120;
     audio.emit('loadedmetadata');
     audio.emit('playing');
-    expect(audio.currentTime).toBe(2);
+    expect(audio.currentTime).toBe(20);
     player.setContinuousPlayback(true);
     player.next();
-    expect(audio.src).toBe(queue[1]!.audioUrl);
+    expect(audio.src).toBe(queue[2]!.audioUrl);
     expect(player.getSnapshot().status).not.toBe('error');
   });
   it('changes native speed without reloading audio and resets it between accounts', () => {

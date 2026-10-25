@@ -105,6 +105,8 @@ export function personalRecommendations(
     includeRecent?: boolean;
     excludeTracks?: Track[];
     previousArtist?: string;
+    /** Radio-only variation; ordinary home and library rankings stay stable. */
+    random?: () => number;
   } = {},
 ): PersonalSuggestion[] {
   const taste = library.taste ?? emptyTaste();
@@ -171,6 +173,7 @@ export function personalRecommendations(
         item,
         index,
         score:
+          (options.random ? options.random() * 4 : 0) +
           (taste.novelty === 'discovery' ? Math.min(3, weight) : weight) +
           (known
             ? taste.novelty === 'familiar'

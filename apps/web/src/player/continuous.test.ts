@@ -35,6 +35,26 @@ afterEach(() => {
 });
 
 describe('native rolling queue', () => {
+  it('keeps the same device identity when a window reloads and creates a new stream', async () => {
+    vi.useFakeTimers();
+    request.mockResolvedValue(timeline(0, 1));
+    const first = new ContinuousPlayback(vi.fn(), vi.fn());
+    first.configure(true);
+    first.start([track(0)], 0);
+    await first.submit();
+    const firstPlan = request.mock.calls.find(
+      (call) => call[2] === 'POST',
+    )![1] as { deviceId: string };
+    const second = new ContinuousPlayback(vi.fn(), vi.fn());
+    second.configure(true);
+    second.start([track(0)], 0);
+    await second.submit();
+    const plans = request.mock.calls.filter((call) => call[2] === 'POST');
+    expect(firstPlan.deviceId).toMatch(/^[a-zA-Z0-9_-]{8,100}$/);
+    expect(plans.at(-1)![1]).toMatchObject({ deviceId: firstPlan.deviceId });
+    first.clear();
+    second.clear();
+  });
   it('preserves a paused or backward-seeked retired track until native audio reaches the new window', async () => {
     vi.useFakeTimers();
     let nativeTime = 21;

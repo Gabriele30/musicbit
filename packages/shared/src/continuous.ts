@@ -3,6 +3,8 @@ export interface ContinuousPlan {
   ids: string[];
   autoplay?: boolean;
   maxTracks?: number;
+  /** Replaces an abandoned native session from the same browser window. */
+  deviceId?: string;
   /** Absolute index of ids[0] after the retained radio window advances. */
   queueStart?: number;
 }

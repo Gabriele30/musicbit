@@ -254,7 +254,15 @@ export class AudioDiskCache {
             Range: `bytes=0-${MAX_FILE - 1}`,
           },
         });
-      let response = await request();
+      let response: Response;
+      try {
+        response = await request();
+      } catch (error) {
+        if (controller.signal.aborted) throw error;
+        this.service.evict(id);
+        resolved = await this.service.resolve(id, controller.signal);
+        response = await request();
+      }
       if ([403, 410].includes(response.status)) {
         await response.body?.cancel();
         this.service.evict(id);

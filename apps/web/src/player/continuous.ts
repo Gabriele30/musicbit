@@ -5,6 +5,7 @@ import type {
 } from '@musicbit/shared';
 import { PLAYBACK_QUEUE_LIMIT } from '@musicbit/shared';
 import { accountRequest } from '../account';
+import { playbackDeviceId } from './device-id';
 
 /** Controls a single native HLS source, with track-relative UI positions. */
 export class ContinuousPlayback {
@@ -212,7 +213,13 @@ export class ContinuousPlayback {
     try {
       const timeline = await accountRequest<ContinuousTimeline>(
         `/api/me/continuous/${session.id}`,
-        { ids, autoplay, maxTracks: PLAYBACK_QUEUE_LIMIT, queueStart },
+        {
+          ids,
+          autoplay,
+          maxTracks: PLAYBACK_QUEUE_LIMIT,
+          queueStart,
+          deviceId: playbackDeviceId(),
+        },
         'POST',
         session.controller.signal,
       );

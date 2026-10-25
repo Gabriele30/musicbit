@@ -63,12 +63,17 @@ export function cachedRadio(
     {
       includeRecent: true,
       excludeTracks: excludedTracks,
+      random: Math.random,
     },
   ).map(({ item }) => catalogItemToTrack(item));
   if (fresh.length || !allowRepeat) return fresh.slice(0, 3);
   // A very small offline library can legitimately exhaust its recent window.
+  const oldestFirst = new Map(recent.map((id, index) => [id, index]));
   return personalRecommendations(library, items, { includeRecent: true })
     .map(({ item }) => catalogItemToTrack(item))
+    .sort(
+      (a, b) => (oldestFirst.get(a.id) ?? -1) - (oldestFirst.get(b.id) ?? -1),
+    )
     .slice(0, 3);
 }
 
@@ -82,10 +87,19 @@ export async function personalRadio(
 ): Promise<RecommendationsResponse & { partial: boolean; retry: boolean }> {
   signal.throwIfAborted();
   const started = performance.now();
+  const excluded = new Set(excludedIds);
+  excluded.add(seedId);
+  const freshSeeds = recommendationSeeds({
+    ...library,
+    history: library.history.filter((entry) => !excluded.has(entry.track.id)),
+    favorites: library.favorites.filter((track) => !excluded.has(track.id)),
+  });
   const seeds = [
     ...new Set([
       seedId,
-      ...recommendationSeeds(library).map((track) => track.id),
+      ...(freshSeeds.length ? freshSeeds : recommendationSeeds(library)).map(
+        (track) => track.id,
+      ),
     ]),
   ]
     .filter((id) => isCatalogId('track', id))
@@ -94,8 +108,6 @@ export async function personalRadio(
     seeds.map((id) => catalog.recommendations(id, signal)),
   );
   signal.throwIfAborted();
-  const excluded = new Set(excludedIds);
-  excluded.add(seedId);
   const unique = new Map<string, CatalogItem>();
   const add = (items: CatalogItem[]) => {
     for (const item of items)
@@ -114,7 +126,10 @@ export async function personalRadio(
   const current = library.history.find(
     (entry) => entry.track.id === seedId,
   )?.track;
-  const context = { previousArtist: current?.artists?.[0] ?? current?.artist };
+  const context = {
+    previousArtist: current?.artists?.[0] ?? current?.artist,
+    random: Math.random,
+  };
   let items = personalRecommendations(
     library,
     [...unique.values()],

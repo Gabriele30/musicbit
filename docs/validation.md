@@ -2,14 +2,19 @@
 
 ## Current validation — 25 October 2026
 
-- `pnpm check`: lint, type checks, **370 tests in 56 files**, and production builds passed.
+- `pnpm check`: lint, type checks, **380 tests in 56 files**, and production builds passed.
 - `pnpm test:e2e`: **109 passed**, with seven native HLS tests explicitly skipped on Windows WebKit where decoder support is unavailable.
 - Real-provider checks exercised eighteen fresh upstream resolutions without disk-cache fallback, real audio ranges, and ten consecutive PWA radio transitions. Stress writes were isolated from the account's taste profile.
 - A reported late start on STUPIDO has deterministic before/after engine regressions. Real-file trials started near zero from Home after previous positions of 180 and 60 seconds. Physical iPhone event ordering was not captured by these Windows tests.
+- Healthy native HLS now survives the unseekable-live watchdog; stalled start/resume recovery remains covered. AAC-frame timeline rounding was verified against the actual Nato Per Questo recording.
+- Reloaded windows replace their abandoned native stream without occupying another session slot or stopping another device's audio.
+- iPhone-session logs exposed HLS prefetch rate limiting and an untransformed direct audio URL. Media delivery now has a separate bounded allowance, encrypted `n` URLs are transformed, transport recovery is bounded, and radio refills use a wider repeat window with varied relevant choices.
 - Operator-authorized session imports, nested stream-cache invalidation, catalog-safe radio refills, related-artist AI selection and mobile artwork/search behavior have additional regression coverage.
 
 Detailed evidence and limits: [listening audit](deep-account-audit.md),
 [provider session](provider-session-fix.md), [STUPIDO start](stupido-start-audit.md),
+[continuous playback recovery](nato-playback-audit.md),
+[iPhone session and radio](iphone-session-audit.md),
 [mobile usability](mobile-usability-audit.md), and [black UI](black-ui-audio-audit.md).
 
 The reports below are historical snapshots; their older counts and limitations
