@@ -35,11 +35,41 @@ test('black mobile surfaces, square artwork and taste feedback remain usable acr
         () => getComputedStyle(document.body).backgroundColor,
       ),
     ).toBe('rgb(0, 0, 0)');
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth,
-      ),
-    ).toBe(true);
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => ({
+            fits: document.documentElement.scrollWidth <= innerWidth,
+            viewport: innerWidth,
+            documentWidth: document.documentElement.scrollWidth,
+          })),
+        { message: `Layout must settle without overflow at ${width}px` },
+      )
+      .toMatchObject({ fits: true })
+      .catch(async (error) => {
+        await info.attach(`overflow-${width}`, {
+          contentType: 'application/json',
+          body: JSON.stringify(
+            await page.evaluate(() => ({
+              viewport: innerWidth,
+              documentWidth: document.documentElement.scrollWidth,
+              elements: [...document.querySelectorAll('body *')]
+                .map((element) => {
+                  const rect = element.getBoundingClientRect();
+                  return {
+                    tag: element.tagName,
+                    className: element.className,
+                    right: rect.right,
+                    width: rect.width,
+                  };
+                })
+                .filter((rect) => rect.right > innerWidth + 1 && rect.width > 0)
+                .slice(0, 100),
+            })),
+          ),
+        });
+        throw error;
+      });
     const size = await quick.locator('.cover-art').first().boundingBox();
     expect(Math.abs(size!.width - size!.height)).toBeLessThan(1);
   }

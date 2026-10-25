@@ -63,3 +63,15 @@ builds. The complete browser suite and post-deployment recording checks are
 recorded in the current validation report. Private logs, account snapshots,
 media files and browser evidence stay under the ignored
 `artifacts/current-session-audit/` directory.
+
+Post-deployment checks returned 206 and 65,536 audio bytes in two fresh
+resolutions of each failed recording. A real-account Playwright trial then
+passed eight alternating selections of these tracks, seek/reselection and
+0.75–1.5x playback-rate changes, retaining one audio element. Six requests for
+radio from the same seed produced six different leading orders. The real
+account library remained unchanged at revision 187.
+
+The Windows native HLS decoder received a finite two-track playlist only after
+both recordings were prepared; this controlled trial does not establish live
+radio or physical iPhone lock-screen behavior. The complete local browser suite
+passed 109 tests with seven unsupported native WebKit HLS cases skipped.
