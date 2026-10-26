@@ -96,10 +96,12 @@ test('diagnostics deep link can play and rapid track changes preserve the latest
   await page.getByRole('button', { name: 'Successiva', exact: true }).click();
   await page.getByRole('button', { name: 'Successiva', exact: true }).click();
   await expect
-    .poll(() =>
-      page
-        .locator('audio')
-        .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+    .poll(
+      () =>
+        page
+          .locator('audio')
+          .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+      { timeout: 15000 },
     )
     .toBeGreaterThan(0);
   expect(

@@ -75,3 +75,14 @@ The Windows native HLS decoder received a finite two-track playlist only after
 both recordings were prepared; this controlled trial does not establish live
 radio or physical iPhone lock-screen behavior. The complete local browser suite
 passed 109 tests with seven unsupported native WebKit HLS cases skipped.
+
+## WebKit Linux layout follow-up — 26 October 2026
+
+The CI layout failure at 320px was reproduced directly with WebKit 27.2 on
+Linux. The document measured 322px because the genre grid's `1fr` tracks retained
+their content minimum, particularly for the Elettronica label. Waiting for layout
+did not resolve this actual overflow. The grid now uses `minmax(0, 1fr)`, and its
+buttons can shrink and wrap their labels while retaining the arrow icons. The
+same Linux browser measured 320px after the change. The original responsive test
+then passed at all four widths, including taste feedback and cover-art checks.
+No page-level clipping or relaxed width tolerance was introduced.
