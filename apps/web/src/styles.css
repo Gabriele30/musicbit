@@ -3694,3 +3694,54 @@ main:focus {
   color: var(--accent, #1ed760);
   font-size: 0.85rem;
 }
+
+/* Honest playback state: a ring marks loading, never a playing animation. */
+.play-button.is-loading,
+.mini-player .icon-button.is-loading {
+  position: relative;
+}
+.play-button.is-loading::after,
+.mini-player .icon-button.is-loading::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--accent);
+  animation: loading-spin 0.9s linear infinite;
+  pointer-events: none;
+}
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .play-button.is-loading::after,
+  .mini-player .icon-button.is-loading::after {
+    animation: none;
+    border-color: var(--accent);
+    opacity: 0.5;
+  }
+}
+.mini-player.is-error .mini-title small {
+  color: #ffb4a1;
+}
+/* Fixed bars sit over scrolling content: keep them opaque so text below never
+   reads through, independently of backdrop-filter support. */
+.mini-player {
+  background: #161616;
+  backdrop-filter: none;
+}
+@media (max-width: 900px) {
+  .mobile-nav {
+    background: #0a0a0a;
+    backdrop-filter: none;
+  }
+}
+/* 44px touch target, quieter 32px avatar. */
+.profile-trigger {
+  border: 6px solid transparent;
+  background-clip: padding-box;
+  font-size: 14px;
+}

@@ -739,8 +739,15 @@ function MusicApp({
                     <Icon name="previous" size={26} />
                   </button>
                   <button
-                    className="play-button"
-                    aria-label={active ? 'Pausa' : 'Play'}
+                    className={`play-button ${state.status === 'loading' ? 'is-loading' : ''}`}
+                    aria-label={
+                      state.status === 'loading'
+                        ? 'Caricamento: tocca per mettere in pausa'
+                        : active
+                          ? 'Pausa'
+                          : 'Play'
+                    }
+                    aria-busy={state.status === 'loading'}
                     disabled={!current}
                     onClick={toggle}
                   >
@@ -1111,7 +1118,7 @@ function MusicApp({
             </div>
           )}
           {screen !== 'player' && current && (
-            <div className="mini-player">
+            <div className={`mini-player is-${state.status}`}>
               <CoverArt src={current.artworkUrl} title={current.title} />
               <button
                 className="mini-title"
@@ -1119,11 +1126,24 @@ function MusicApp({
                 onClick={() => setScreen('player')}
               >
                 <strong>{current.title}</strong>
-                <small>{current.artist}</small>
+                <small>
+                  {state.status === 'loading'
+                    ? 'Caricamento…'
+                    : state.status === 'error'
+                      ? 'Audio interrotto · tocca Play'
+                      : current.artist}
+                </small>
               </button>
               <button
-                className="icon-button"
-                aria-label={active ? 'Pausa' : 'Play'}
+                className={`icon-button ${state.status === 'loading' ? 'is-loading' : ''}`}
+                aria-label={
+                  state.status === 'loading'
+                    ? 'Caricamento: tocca per mettere in pausa'
+                    : active
+                      ? 'Pausa'
+                      : 'Play'
+                }
+                aria-busy={state.status === 'loading'}
                 onClick={toggle}
               >
                 <Icon name={active ? 'pause' : 'play'} />
