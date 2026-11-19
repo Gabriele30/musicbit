@@ -22,8 +22,35 @@ export function hasArtist(track: ArtistCredit, artist: string) {
   // while new provider arrays preserve bands whose own name contains commas.
   return `, ${artistKey(track.artist)}, `.includes(`, ${key}, `);
 }
-const identity = (track: Pick<Track, 'title' | 'artist'>) =>
-  `${artistKey(track.artist)}:${track.title.normalize('NFKC').toLocaleLowerCase().replace(/\s+/g, ' ').trim()}`;
+/**
+ * One song across uploads: "CRUDELE", "Salmo - CRUDELE (Official Video)" and
+ * "CRUDELE (feat. X)" by the same primary artist are the same listening.
+ */
+export function songIdentity(
+  track: Pick<Track, 'title' | 'artist' | 'artists'>,
+) {
+  // Legacy display strings list collaborators after a comma.
+  const primary = artistKey(
+    track.artists?.[0] ?? track.artist.split(/,\s|\s&\s/)[0] ?? track.artist,
+  );
+  let title = track.title.normalize('NFKC').toLocaleLowerCase();
+  // Drop bracketed qualifiers (feat., prod., visual, official video, remaster).
+  title = title.replace(/[([{][^)\]}]*[)\]}]/g, ' ');
+  // Video uploads often prefix the performer: "salmo - dove volano le papere".
+  const dash = title.indexOf(' - ');
+  if (dash > 0 && title.slice(0, dash).includes(primary))
+    title = title.slice(dash + 3);
+  title = title
+    .replace(/(?:^|\s)(?:feat|ft|prod)\.?\s.*$/, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+  return `${primary}:${title}`;
+}
+const identity = songIdentity;
+/** Primary performer key, used to balance artists across a listening session. */
+export function primaryArtistKey(track: Pick<Track, 'artist' | 'artists'>) {
+  return artistKey(performers(track)[0] ?? track.artist);
+}
 /** Deterministic ranking, explicit signals and a cap on any one artist. */
 export function buildTasteProfile(library: LocalLibrary) {
   const taste = library.taste ?? emptyTaste();
@@ -107,6 +134,11 @@ export function personalRecommendations(
     previousArtist?: string;
     /** Radio-only variation; ordinary home and library rankings stay stable. */
     random?: () => number;
+    /**
+     * Primary artists of the session's recent tracks (oldest first). Radio
+     * spreads artists across refills, not only within one batch.
+     */
+    recentArtists?: string[];
   } = {},
 ): PersonalSuggestion[] {
   const taste = library.taste ?? emptyTaste();
@@ -134,7 +166,15 @@ export function personalRecommendations(
   );
   const seen = new Set<string>();
   const selected: PersonalSuggestion[] = [];
-  const counts = new Map<string, number>();
+  const recentArtists = (options.recentArtists ?? []).slice(-10);
+  const recentCounts = new Map<string, number>();
+  for (const key of recentArtists)
+    recentCounts.set(key, (recentCounts.get(key) ?? 0) + 1);
+  // Session cap: an artist already heard three times in the last ten songs
+  // waits; the batch cap below still limits a single refill to two.
+  const counts = new Map<string, number>(
+    [...recentCounts].map(([key, count]) => [key, Math.max(0, count - 1)]),
+  );
   const ranked = candidates
     .filter((item) => {
       const key = identity(item);
@@ -169,11 +209,13 @@ export function personalRecommendations(
       const signal = taste.excludedFromTaste?.includes(item.id)
         ? undefined
         : taste.signals.find((s) => s.id === item.id);
+      const repeats = recentCounts.get(primaryArtistKey(item)) ?? 0;
       return {
         item,
         index,
         score:
-          (options.random ? options.random() * 4 : 0) +
+          (options.random ? options.random() * 4 : 0) -
+          repeats * 3 +
           (taste.novelty === 'discovery' ? Math.min(3, weight) : weight) +
           (known
             ? taste.novelty === 'familiar'
@@ -199,6 +241,7 @@ export function personalRecommendations(
       };
     })
     .sort((a, b) => b.score - a.score || a.index - b.index);
+  const pool = [...ranked];
   while (ranked.length && selected.length < 12) {
     const previousItem = selected.at(-1)?.item;
     const previous =
@@ -220,11 +263,18 @@ export function personalRecommendations(
     selected.push({ item: candidate.item, reason: candidate.reason });
     if (selected.length >= 12) break;
   }
+  // The session cap spreads artists; it must not end radio when the related
+  // catalog only offers artists heard recently. Fall back to the batch cap.
+  if (!selected.length && pool.length && recentArtists.length)
+    return personalRecommendations(library, candidates, {
+      ...options,
+      recentArtists: [],
+    });
   return selected;
 }
 
 /** Recent listening and explicit preferences choose diverse radio starting points. */
-export function recommendationSeeds(library: LocalLibrary): Track[] {
+export function recommendationSeeds(library: LocalLibrary, limit = 3): Track[] {
   const taste = library.taste ?? emptyTaste();
   const profile = buildTasteProfile(library);
   const blocked = new Set(
@@ -281,12 +331,12 @@ export function recommendationSeeds(library: LocalLibrary): Track[] {
     if (artists.has(key)) continue;
     chosen.push(entry.track);
     artists.add(key);
-    if (chosen.length === 3) return chosen;
+    if (chosen.length === limit) return chosen;
   }
   for (const entry of ranked) {
     if (!chosen.some((track) => identity(track) === identity(entry.track)))
       chosen.push(entry.track);
-    if (chosen.length === 3) break;
+    if (chosen.length === limit) break;
   }
   return chosen;
 }

@@ -451,12 +451,28 @@ export class ContinuousAudio {
     const library = this.profile?.(session.user) ?? emptyLibrary();
     const tracks: Track[] = [];
     if (!this.cache.providerRestricted(session.user)) {
+      // Song metadata for this session: radio additions carry it; songs the
+      // listener queued are found in the synchronized library.
+      const known = new Map<string, Track>();
+      for (const entry of library.history)
+        known.set(entry.track.id, entry.track);
+      for (const track of library.favorites) known.set(track.id, track);
+      for (const addition of session.additions)
+        known.set(addition.track.id, addition.track);
+      const recentTracks = [...session.recentIds, ...session.ids]
+        .slice(-40)
+        .map((id) => known.get(id))
+        .filter((track): track is Track => !!track);
       const response = await personalRadio(
         this.catalog!,
         session.ids[session.cursor - session.queueStart] ?? session.ids.at(-1)!,
         session.controller.signal,
         library,
         [...session.recentIds, ...session.ids],
+        {
+          recentTracks,
+          unavailable: (id) => !!this.cache.failure(session.user, id),
+        },
       );
       // Do not publish a suggested track in the native program until its
       // complete source exists. One unavailable suggestion must not end radio.
@@ -856,12 +872,25 @@ export function registerContinuousRoutes(
       reply.raw.once('close', closed);
       reply.header('Cache-Control', 'private, no-store');
       try {
+        const library = profile?.(user.id);
+        const exclude = request.query.exclude?.split(',') ?? [];
+        const known = new Map<string, Track>(
+          (library?.history ?? []).map((entry) => [
+            entry.track.id,
+            entry.track,
+          ]),
+        );
         return await personalRadio(
           catalog,
           request.params.id,
           controller.signal,
-          profile?.(user.id),
-          request.query.exclude?.split(','),
+          library,
+          exclude,
+          {
+            recentTracks: [...exclude, request.params.id]
+              .map((id) => known.get(id))
+              .filter((track): track is Track => !!track),
+          },
         );
       } finally {
         reply.raw.off('close', closed);

@@ -87,11 +87,11 @@ it('varies equally relevant radio choices while moving its profile seeds beyond 
       library,
       ['anchor00001', 'anchor00002'],
     );
-    expect(catalog.recommendations.mock.calls.map(([id]) => id)).toEqual([
-      'original001',
-      'anchor00003',
-      'anchor00004',
-    ]);
+    // Profile seeds move beyond the queued songs; their order is sampled.
+    expect(
+      new Set(catalog.recommendations.mock.calls.map(([id]) => id)),
+    ).toEqual(new Set(['original001', 'anchor00003', 'anchor00004']));
+    expect(catalog.recommendations.mock.calls[0]![0]).toBe('original001');
     draw = 9;
     random.mockImplementation(() => --draw / 10);
     const b = await personalRadio(

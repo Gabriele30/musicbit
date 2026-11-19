@@ -12,6 +12,7 @@ import {
   cleanLibrary,
   buildTasteProfile,
   isCatalogItem,
+  songIdentity,
 } from './index.js';
 const item = (id: string, artist = 'Artist', title = id): CatalogItem => ({
   id,
@@ -286,5 +287,65 @@ describe('personal discovery', () => {
         },
       }),
     ).toBe(false);
+  });
+});
+
+describe('radio session variety', () => {
+  it('recognizes one song across video, featuring and prefixed uploads', () => {
+    expect(
+      new Set(
+        [
+          { title: 'CRUDELE', artist: 'Salmo' },
+          { title: 'Salmo - CRUDELE (Official Video)', artist: 'Salmo' },
+          {
+            title: 'CRUDELE (feat. Noyz Narcos)',
+            artist: 'Salmo, Noyz Narcos',
+          },
+          {
+            title: 'Crudele feat. Noyz Narcos',
+            artist: 'Salmo',
+            artists: ['Salmo', 'Noyz Narcos'],
+          },
+        ].map(songIdentity),
+      ).size,
+    ).toBe(1);
+    expect(songIdentity({ title: 'CRUDELE', artist: 'Salmo' })).not.toBe(
+      songIdentity({ title: 'CRUDELIA', artist: 'Marracash' }),
+    );
+  });
+  it('excludes a different upload of a song already heard in the session', () => {
+    const heard = catalogItemToTrack(item('crudele0001', 'Salmo', 'CRUDELE'));
+    const picks = personalRecommendations(
+      emptyLibrary(),
+      [
+        item('crudele0002', 'Salmo', 'Salmo - CRUDELE (Visual)'),
+        item('other000001', 'Gemitaiz', 'Forte'),
+      ],
+      { excludeTracks: [heard] },
+    );
+    expect(picks.map(({ item }) => item.id)).toEqual(['other000001']);
+  });
+  it('spreads artists across refills and still refills from a narrow catalog', () => {
+    const candidates = [
+      item('salmo000001', 'Salmo', 'A'),
+      item('salmo000002', 'Salmo', 'B'),
+      item('marra000001', 'Marracash', 'C'),
+      item('gemit000001', 'Gemitaiz', 'D'),
+    ];
+    const recentArtists = ['salmo', 'marracash', 'salmo', 'salmo'];
+    const ids = personalRecommendations(emptyLibrary(), candidates, {
+      recentArtists,
+    }).map(({ item }) => item.id);
+    expect(ids).not.toContain('salmo000001');
+    expect(ids[0]).toBe('gemit000001');
+    // Only artists heard recently: the session cap yields to the batch cap.
+    const narrow = personalRecommendations(
+      emptyLibrary(),
+      candidates.slice(0, 2),
+      {
+        recentArtists,
+      },
+    );
+    expect(narrow).toHaveLength(2);
   });
 });

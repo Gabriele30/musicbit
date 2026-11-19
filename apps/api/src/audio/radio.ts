@@ -4,6 +4,7 @@ import {
   isCatalogId,
   isCatalogArtwork,
   personalRecommendations,
+  primaryArtistKey,
   recommendationSeeds,
   type CatalogItem,
   type LocalLibrary,
@@ -84,23 +85,51 @@ export async function personalRadio(
   signal: AbortSignal,
   library: LocalLibrary = emptyLibrary(),
   excludedIds: Iterable<string> = [],
+  options: {
+    /** Songs already in this listening session, oldest first. */
+    recentTracks?: Track[];
+    random?: () => number;
+    /** Songs in a temporary failure backoff: never let them take a slot. */
+    unavailable?: (id: string) => boolean;
+  } = {},
 ): Promise<RecommendationsResponse & { partial: boolean; retry: boolean }> {
   signal.throwIfAborted();
   const started = performance.now();
+  const random = options.random ?? Math.random;
+  const recentTracks = options.recentTracks ?? [];
   const excluded = new Set(excludedIds);
   excluded.add(seedId);
-  const freshSeeds = recommendationSeeds({
-    ...library,
-    history: library.history.filter((entry) => !excluded.has(entry.track.id)),
-    favorites: library.favorites.filter((track) => !excluded.has(track.id)),
-  });
+  const freshSeeds = recommendationSeeds(
+    {
+      ...library,
+      history: library.history.filter((entry) => !excluded.has(entry.track.id)),
+      favorites: library.favorites.filter((track) => !excluded.has(track.id)),
+    },
+    8,
+  );
+  const pick = <T>(items: T[]) =>
+    items.length ? items[Math.floor(random() * items.length)] : undefined;
+  // Seeds: the current song, one recent song of this session (the radio
+  // drifts with the listening instead of restarting from the same profile
+  // tracks) and one profile seed chosen at random among the strongest.
+  // Production simulation: fixed top profile seeds made sessions started
+  // from different songs open with nearly the same tracks.
+  const profileSeeds = (
+    freshSeeds.length ? freshSeeds : recommendationSeeds(library, 8)
+  )
+    .map((track) => ({ track, order: random() }))
+    .sort((a, b) => a.order - b.order)
+    .map(({ track }) => track.id);
+  const sessionSeed = pick(
+    recentTracks
+      .slice(-6)
+      .filter((track) => track.id !== seedId)
+      .map((track) => track.id),
+  );
   const seeds = [
-    ...new Set([
-      seedId,
-      ...(freshSeeds.length ? freshSeeds : recommendationSeeds(library)).map(
-        (track) => track.id,
-      ),
-    ]),
+    ...new Set(
+      [seedId, sessionSeed, ...profileSeeds].filter((id): id is string => !!id),
+    ),
   ]
     .filter((id) => isCatalogId('track', id))
     .slice(0, 3);
@@ -116,6 +145,7 @@ export async function personalRadio(
         item.playback.available &&
         isCatalogId('track', item.id) &&
         !excluded.has(item.id) &&
+        !options.unavailable?.(item.id) &&
         (!item.audioUrl || item.audioUrl === `/api/audio/${item.id}`)
       )
         unique.set(item.id, item);
@@ -126,9 +156,12 @@ export async function personalRadio(
   const current = library.history.find(
     (entry) => entry.track.id === seedId,
   )?.track;
+  const previous = current ?? recentTracks.at(-1);
   const context = {
-    previousArtist: current?.artists?.[0] ?? current?.artist,
-    random: Math.random,
+    previousArtist: previous?.artists?.[0] ?? previous?.artist,
+    random,
+    excludeTracks: recentTracks,
+    recentArtists: recentTracks.map(primaryArtistKey),
   };
   let items = personalRecommendations(
     library,
