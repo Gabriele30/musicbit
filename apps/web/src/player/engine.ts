@@ -155,7 +155,14 @@ export class PlayerEngine {
   private resolutionFailure?: { id: string; message: string };
   private resolvedDurations = new Map<string, number>();
   private pendingNativeProgress: number | undefined;
-  private continuousUnavailable = false;
+  private continuousWanted = false;
+  /**
+   * A native HLS problem used to switch the whole app instance to per-song
+   * progressive sources, which iOS cannot advance reliably in a locked PWA
+   * (WebKit 261858). Fallback is now bounded: an explicit selection made ten
+   * minutes later returns to native continuous delivery.
+   */
+  private continuousRetryAt = 0;
   private continuousCheck?: ReturnType<typeof setTimeout>;
   private continuous = new ContinuousPlayback(
     () => {
@@ -167,7 +174,8 @@ export class PlayerEngine {
     () => this.audio.currentTime,
   );
   setContinuousPlayback(enabled: boolean) {
-    this.continuous.configure(enabled && !this.continuousUnavailable);
+    this.continuousWanted = enabled;
+    this.continuous.configure(enabled && this.now() >= this.continuousRetryAt);
     this.log(`continuous:${enabled ? 'enabled' : 'disabled'}`);
   }
   getDelivery() {
@@ -192,7 +200,7 @@ export class PlayerEngine {
   ) {
     clearTimeout(this.continuousCheck);
     this.continuousCheck = undefined;
-    this.continuousUnavailable = true;
+    this.continuousRetryAt = this.now() + 10 * 60 * 1000;
     this.continuous.configure(false);
     this.source = undefined;
     this.log(`continuous:${reason}-fallback`);
@@ -984,6 +992,19 @@ export class PlayerEngine {
     const clickAt = this.now();
     const track = this.state.queue[index];
     if (!track) return;
+    // An explicit in-app selection may return to native continuous delivery
+    // after a bounded fallback. Automatic and lock-screen transitions keep the
+    // current transport: a new HLS session needs server preparation.
+    if (
+      trigger === 'tap' &&
+      !resume &&
+      this.continuousWanted &&
+      !this.continuous.enabled &&
+      clickAt >= this.continuousRetryAt
+    ) {
+      this.continuous.configure(true);
+      this.log('continuous:retry');
+    }
     this.clearDeadline();
     if (this.state.status === 'loading') {
       // Abort the superseded native play request before assigning another source.

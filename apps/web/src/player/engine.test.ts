@@ -422,7 +422,7 @@ describe('persistent player', () => {
   });
   it('keeps healthy native live playback until an unsupported explicit seek needs AAC recovery', async () => {
     vi.useFakeTimers();
-    const { player, audio } = setup();
+    const { player, audio, tick } = setup();
     const queue = tracks.map((track, index) => ({
       ...track,
       id: String(index).padStart(11, '0'),
@@ -481,6 +481,13 @@ describe('persistent player', () => {
     player.next();
     expect(audio.src).toBe(queue[2]!.audioUrl);
     expect(player.getSnapshot().status).not.toBe('error');
+    // The fallback is bounded: a later explicit selection retries native HLS
+    // instead of keeping per-song sources for the app's whole lifetime.
+    audio.emit('playing');
+    tick(10 * 60 * 1000);
+    player.select(0);
+    expect(audio.src).toContain('/api/continuous/');
+    expect(player.getDelivery()).toBe('hls');
   });
   it('changes native speed without reloading audio and resets it between accounts', () => {
     const { player, audio } = setup();
