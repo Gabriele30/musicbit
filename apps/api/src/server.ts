@@ -6,6 +6,7 @@ import { AudioDiskCache } from './audio/disk-cache.js';
 import { AudioStreamService } from './audio/stream-service.js';
 import { ContinuousAudio } from './audio/continuous.js';
 import { CatalogService } from './catalog/service.js';
+import { DiagnosticsStore } from './audio/lab.js';
 
 const accountPath =
   process.env.MUSICBIT_DB_PATH ??
@@ -37,6 +38,9 @@ const app = buildApp(
         (user) => accounts.library(user).library,
       )
     : undefined,
+  accountPath === ':memory:'
+    ? undefined
+    : new DiagnosticsStore(join(dirname(accountPath), 'diagnostics')),
 );
 const port = Number(process.env.API_PORT ?? 3001);
 if (!Number.isInteger(port) || port < 1 || port > 65535)

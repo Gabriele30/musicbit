@@ -1,3 +1,4 @@
+import { telemetry } from './telemetry';
 import { PLAYBACK_QUEUE_LIMIT, type Track } from '@musicbit/shared';
 import { shuffled } from './random';
 import { UpcomingAudio } from './upcoming-audio';
@@ -346,6 +347,8 @@ export class PlayerEngine {
     audio.setAttribute('playsinline', '');
     const on = (event: string, fn: () => void) => {
       const listener = () => {
+        if (this.labActive) return;
+        if (event === 'timeupdate') this.tick();
         if (
           this.source &&
           audio.currentSrc &&
@@ -559,9 +562,61 @@ export class PlayerEngine {
     this.state = { ...this.state, ...patch };
     this.listeners.forEach((listener) => listener());
   }
+  private labActive = false;
+  private lastTick = 0;
+  /** Sparse clock samples prove whether native audio advanced while hidden. */
+  private tick() {
+    const at = Date.now();
+    if (at - this.lastTick < 5000) return;
+    this.lastTick = at;
+    this.report('tick');
+  }
+  private report(event: string, persisted?: boolean) {
+    telemetry.record({
+      ev: event,
+      rev: PLAYBACK_REVISION,
+      delivery: this.getDelivery(),
+      track: this.state.queue[this.state.index]?.id,
+      idx: this.state.index,
+      status: this.state.status,
+      pos: this.audio.currentTime || 0,
+      dur: Number.isFinite(this.audio.duration) ? this.audio.duration : -1,
+      shown: this.state.position,
+      shownDur: this.state.duration,
+      rs: this.audio.readyState ?? 0,
+      ns: this.audio.networkState ?? 0,
+      paused: this.audio.paused,
+      ended: this.audio.ended,
+      vis: document.visibilityState,
+      err: this.audio.error?.code ?? null,
+      persisted,
+    });
+  }
+  /** Hand the lifetime audio element to the device laboratory. */
+  enterLab() {
+    this.pause();
+    this.clearDeadline();
+    ++this.command;
+    this.releaseSource();
+    this.labActive = true;
+    this.patch({ status: this.state.queue.length ? 'paused' : 'idle' });
+    this.report('lab:enter');
+    return this.audio;
+  }
+  exitLab() {
+    if (!this.labActive) return;
+    this.audio.pause();
+    this.audio.loop = false;
+    this.audio.removeAttribute('src');
+    this.audio.load();
+    this.labActive = false;
+    this.updateMetadata();
+    this.report('lab:exit');
+  }
   private log(event: string, persisted?: boolean) {
     // timeupdate can be frequent. Keep diagnostics useful and bounded.
     if (event === 'timeupdate') return;
+    this.report(event, persisted);
     this.patch({
       events: [
         ...this.state.events,
@@ -1446,7 +1501,11 @@ export class PlayerEngine {
     const supported: string[] = [];
     for (const [action, handler] of actions) {
       try {
-        this.session.setActionHandler(action, handler);
+        this.session.setActionHandler(action, (details) => {
+          if (this.labActive) return;
+          telemetry.record({ ev: `media-session:${action}`, vis: document.visibilityState });
+          handler(details);
+        });
         supported.push(action);
       } catch {
         /* Feature detection per action: Safari can reject individual actions. */

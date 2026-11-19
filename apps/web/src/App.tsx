@@ -14,6 +14,7 @@ import { loadCatalog } from './catalog';
 import { PlayerEngine } from './player/engine';
 import { Icon, type IconName } from './components/Icon';
 import { Diagnostics } from './components/Diagnostics';
+import { telemetry } from './player/telemetry';
 import { PwaNotice } from './components/PwaNotice';
 import { Search } from './components/Search';
 import {
@@ -79,6 +80,8 @@ const readScreen = (): Screen => {
 
 export function App({ player }: { player: PlayerEngine }) {
   const account = useAccount();
+  const signedIn = !!account.user;
+  useEffect(() => telemetry.setEnabled(signedIn), [signedIn]);
   const scope = account.user?.id ?? 'guest';
   const previousScope = useRef<string | undefined>(undefined);
   const [connectedScope, setConnectedScope] = useState<string>('guest');

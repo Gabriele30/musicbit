@@ -3659,3 +3659,38 @@ main:focus {
     transition-duration: 0.01ms !important;
   }
 }
+
+.lab {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+.lab-strategies {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lab-strategies li {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line, #2a2a2a);
+  border-radius: 12px;
+}
+.lab-strategies li > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+.lab-actions,
+.lab-live {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.lab-result {
+  color: var(--accent, #1ed760);
+  font-size: 0.85rem;
+}

@@ -150,6 +150,12 @@ export class AudioDiskCache {
         createReadStream(path, { start, end }),
     };
   }
+  /** Metadata of the account's complete cached sources (no paths or URLs). */
+  entries(userId: string) {
+    return [...this.user(userId).entries.values()].map((entry) => ({
+      ...entry,
+    }));
+  }
   plan(userId: string, device: string, ids: string[]) {
     const user = this.user(userId);
     this.desired(user);

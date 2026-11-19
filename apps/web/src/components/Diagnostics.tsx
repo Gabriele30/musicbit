@@ -6,6 +6,7 @@ import {
 } from '../player/engine';
 import { Icon } from './Icon';
 import { PreparationControls } from './PreparationControls';
+import { BackgroundLab } from './BackgroundLab';
 
 const elapsed = (end: number | undefined, start: number) =>
   end === undefined ? '—' : `${Math.max(0, end - start).toFixed(1)} ms`;
@@ -114,6 +115,7 @@ export function Diagnostics({
         {state.queue[state.index]?.title ?? 'Catalogo in caricamento'} ·{' '}
         {state.status} · {state.position.toFixed(1)} s
       </p>
+      <BackgroundLab player={player} />
       <PreparationControls player={player} state={state} />
       <div className="metrics">
         {values.map(([label, field]) => (

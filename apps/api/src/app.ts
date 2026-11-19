@@ -23,6 +23,11 @@ import {
   type ContinuousAudio,
 } from './audio/continuous.js';
 import { AccountStore, AccountError } from './accounts/store.js';
+import {
+  DiagnosticsStore,
+  PlaybackLab,
+  registerLabRoutes,
+} from './audio/lab.js';
 import { registerAccountRoutes } from './accounts/routes.js';
 import { registerTrafficControls } from './accounts/traffic.js';
 import { registerExperienceRoutes } from './accounts/experience-routes.js';
@@ -41,6 +46,7 @@ export function buildApp(
   aiPlaylists: AiPlaylistService = new AiPlaylistService(),
   diskCache?: AudioDiskCache,
   continuous?: ContinuousAudio,
+  diagnostics?: DiagnosticsStore,
 ) {
   const logger = options.logger;
   const safeLogger = logger
@@ -86,6 +92,12 @@ export function buildApp(
     diskCache,
   );
   app.addHook('onClose', async () => continuous?.close());
+  registerLabRoutes(
+    app,
+    requireUser,
+    diagnostics,
+    diskCache ? new PlaybackLab(diskCache) : undefined,
+  );
   registerAudioRoutes(app, audioService, {
     diskCache,
     userId: (request) => {
