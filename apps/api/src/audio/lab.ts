@@ -250,7 +250,9 @@ export class DiagnosticsStore {
   append(user: string, records: unknown[]) {
     const path = this.file(user);
     const text = records
-      .map((record) => JSON.stringify({ receivedAt: Date.now(), ...(record as object) }))
+      .map((record) =>
+        JSON.stringify({ receivedAt: Date.now(), ...(record as object) }),
+      )
       .join('\n');
     if (!text) return;
     try {

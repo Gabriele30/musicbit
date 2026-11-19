@@ -1503,7 +1503,10 @@ export class PlayerEngine {
       try {
         this.session.setActionHandler(action, (details) => {
           if (this.labActive) return;
-          telemetry.record({ ev: `media-session:${action}`, vis: document.visibilityState });
+          telemetry.record({
+            ev: `media-session:${action}`,
+            vis: document.visibilityState,
+          });
           handler(details);
         });
         supported.push(action);

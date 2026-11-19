@@ -117,7 +117,9 @@ describe.skipIf(!hasFfmpeg)('playback lab clips', () => {
     expect(range.statusCode).toBe(206);
     expect(range.rawPayload).toHaveLength(100);
     expect(range.headers['content-range']).toMatch(/^bytes 0-99\/\d+$/);
-    const escape = await app.inject({ url: '/api/me/lab/clip/..%2Fclips.json' });
+    const escape = await app.inject({
+      url: '/api/me/lab/clip/..%2Fclips.json',
+    });
     expect(escape.statusCode).toBe(404);
     const fragment = readFileSync(
       join(lab.directory('user'), 'clip-0.frag.mp4'),

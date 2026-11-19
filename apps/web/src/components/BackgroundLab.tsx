@@ -24,7 +24,8 @@ const STRATEGIES: { id: LabStrategy; label: string; detail: string }[] = [
   {
     id: 'preend',
     label: 'C · Cambio prima della fine',
-    detail: 'Il brano successivo viene impostato mezzo secondo prima della fine.',
+    detail:
+      'Il brano successivo viene impostato mezzo secondo prima della fine.',
   },
   {
     id: 'ended',
@@ -60,16 +61,16 @@ function mediaSourceCtor(): MediaSourceCtor | undefined {
 }
 
 export function BackgroundLab({ player }: { player: PlayerEngine }) {
-  const [ready, setReady] = useState<
-    'idle' | 'loading' | 'ready' | 'error'
-  >('idle');
+  const [ready, setReady] = useState<'idle' | 'loading' | 'ready' | 'error'>(
+    'idle',
+  );
   const [message, setMessage] = useState('');
   const [seconds, setSeconds] = useState(20);
   const [running, setRunning] = useState<LabStrategy>();
   const [progress, setProgress] = useState<Progress>();
-  const [results, setResults] = useState<
-    Partial<Record<LabStrategy, string>>
-  >({});
+  const [results, setResults] = useState<Partial<Record<LabStrategy, string>>>(
+    {},
+  );
   const cleanup = useRef<() => void>(undefined);
   const runId = useRef(0);
 
@@ -135,7 +136,10 @@ export function BackgroundLab({ player }: { player: PlayerEngine }) {
       strategy === 'hls' || strategy === 'mse'
         ? Math.min(2, Math.floor((audio.currentTime || 0) / seconds))
         : clip;
-    const record = (ev: string, extra: Record<string, string | number> = {}) => {
+    const record = (
+      ev: string,
+      extra: Record<string, string | number> = {},
+    ) => {
       state.events++;
       telemetry.record({
         ev: `lab:${strategy}:${ev}`,
@@ -284,8 +288,9 @@ export function BackgroundLab({ player }: { player: PlayerEngine }) {
       }
       const source = new Ctor();
       // ManagedMediaSource requires an explicit choice about AirPlay.
-      (audio as HTMLAudioElement & { disableRemotePlayback?: boolean })
-        .disableRemotePlayback = true;
+      (
+        audio as HTMLAudioElement & { disableRemotePlayback?: boolean }
+      ).disableRemotePlayback = true;
       objectUrl = URL.createObjectURL(source);
       audio.src = objectUrl;
       source.addEventListener('sourceopen', () => {
@@ -305,9 +310,13 @@ export function BackgroundLab({ player }: { player: PlayerEngine }) {
                 buffer.addEventListener('updateend', () => resolve(), {
                   once: true,
                 });
-                buffer.addEventListener('error', () => reject(new Error('append')), {
-                  once: true,
-                });
+                buffer.addEventListener(
+                  'error',
+                  () => reject(new Error('append')),
+                  {
+                    once: true,
+                  },
+                );
                 buffer.appendBuffer(bytes);
               });
               record('appended', { index });
@@ -344,7 +353,9 @@ export function BackgroundLab({ player }: { player: PlayerEngine }) {
       );
       document.removeEventListener('visibilitychange', visibility);
       const summary = `${state.maxClip + 1}/3 clip raggiunte · in background: ${
-        state.hiddenClips.length ? state.hiddenClips.map((c) => c + 1).join(', ') : 'nessuna'
+        state.hiddenClips.length
+          ? state.hiddenClips.map((c) => c + 1).join(', ')
+          : 'nessuna'
       }`;
       record('summary', {
         maxClip: state.maxClip,
@@ -412,28 +423,33 @@ export function BackgroundLab({ player }: { player: PlayerEngine }) {
                   >
                     Avvia
                   </button>
-                  {results[strategy.id] && !results[strategy.id]!.includes('udito') && (
-                    <>
-                      <button
-                        className="text-button"
-                        onClick={() => heard(strategy.id, 'tutte e tre')}
-                      >
-                        Sentite tutte
-                      </button>
-                      <button
-                        className="text-button"
-                        onClick={() => heard(strategy.id, 'silenzio dopo la prima')}
-                      >
-                        Silenzio dopo la 1ª
-                      </button>
-                      <button
-                        className="text-button"
-                        onClick={() => heard(strategy.id, 'silenzio dopo la seconda')}
-                      >
-                        Silenzio dopo la 2ª
-                      </button>
-                    </>
-                  )}
+                  {results[strategy.id] &&
+                    !results[strategy.id]!.includes('udito') && (
+                      <>
+                        <button
+                          className="text-button"
+                          onClick={() => heard(strategy.id, 'tutte e tre')}
+                        >
+                          Sentite tutte
+                        </button>
+                        <button
+                          className="text-button"
+                          onClick={() =>
+                            heard(strategy.id, 'silenzio dopo la prima')
+                          }
+                        >
+                          Silenzio dopo la 1ª
+                        </button>
+                        <button
+                          className="text-button"
+                          onClick={() =>
+                            heard(strategy.id, 'silenzio dopo la seconda')
+                          }
+                        >
+                          Silenzio dopo la 2ª
+                        </button>
+                      </>
+                    )}
                 </div>
               )}
             </li>
