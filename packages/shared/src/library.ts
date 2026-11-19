@@ -51,6 +51,8 @@ export interface AccountSessionResponse {
   registrationEnabled: boolean;
   /** Optional only for compatibility with servers predating auth bootstrap. */
   continuousPlayback?: boolean;
+  /** True when the catalog and audio refuse anonymous requests. */
+  accountRequired?: boolean;
 }
 export interface AccountLoginResponse {
   user: AccountProfile;

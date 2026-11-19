@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { SpotifyChart } from '@musicbit/shared';
-import { accountRequest } from '../account';
+import { AccountRequestError, accountRequest } from '../account';
 import { Icon } from './Icon';
 
 export function Charts({
@@ -12,14 +12,14 @@ export function Charts({
 }) {
   const [market, setMarket] = useState<SpotifyChart['market']>('it');
   const [chart, setChart] = useState<SpotifyChart>();
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<'signed-out' | 'unavailable'>();
   const [expanded, setExpanded] = useState(false);
   const [refresh, setRefresh] = useState(0);
   useEffect(() => {
     if (!active) return;
     const controller = new AbortController();
     setChart(undefined);
-    setError(false);
+    setError(undefined);
     setExpanded(false);
     void accountRequest<SpotifyChart>(
       `/api/charts/spotify?market=${market}`,
@@ -46,8 +46,13 @@ export function Charts({
           throw new Error('Invalid chart');
         if (!controller.signal.aborted) setChart(data);
       })
-      .catch(() => {
-        if (!controller.signal.aborted) setError(true);
+      .catch((reason: unknown) => {
+        if (!controller.signal.aborted)
+          setError(
+            reason instanceof AccountRequestError && reason.status === 401
+              ? 'signed-out'
+              : 'unavailable',
+          );
       });
     return () => controller.abort();
   }, [active, market, refresh]);
@@ -140,7 +145,12 @@ export function Charts({
           Caricamento classifica Spotify…
         </p>
       )}
-      {error && (
+      {error === 'signed-out' && (
+        <p role="status" className="muted">
+          Accedi al tuo account per vedere la classifica.
+        </p>
+      )}
+      {error === 'unavailable' && (
         <p role="status" className="muted">
           Classifica momentaneamente non disponibile.{' '}
           <button

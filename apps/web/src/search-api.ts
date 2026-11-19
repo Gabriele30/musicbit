@@ -26,6 +26,7 @@ async function request(path: string, signal: AbortSignal): Promise<unknown> {
     if (!response.ok) {
       const messages: Record<number, string> = {
         400: 'Ricerca non valida.',
+        401: 'Accedi al tuo account per usare il catalogo.',
         404: 'Elemento non trovato.',
         429: 'Troppe richieste. Attendi e riprova.',
         503: 'Provider non disponibile. Riprova tra poco.',

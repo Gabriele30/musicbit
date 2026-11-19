@@ -84,6 +84,19 @@ describe('accounts and isolated server libraries', () => {
       ).json().continuousPlayback,
     ).toBe(false);
   });
+  it('tells a signed-out client when the catalog requires an account', async () => {
+    vi.stubEnv('MUSICBIT_REQUIRE_ACCOUNT', 'true');
+    const app = setup();
+    const session = (await app.inject('/api/auth/session')).json();
+    expect(session).toMatchObject({ user: null, accountRequired: true });
+    expect((await app.inject('/api/feed')).json()).toMatchObject({
+      code: 'SIGN_IN_REQUIRED',
+    });
+    vi.stubEnv('MUSICBIT_REQUIRE_ACCOUNT', 'false');
+    expect((await app.inject('/api/auth/session')).json().accountRequired).toBe(
+      false,
+    );
+  });
   it('requires authenticated sessions and browser CSRF protection', async () => {
     const app = setup();
     expect((await app.inject('/api/me/library')).statusCode).toBe(401);

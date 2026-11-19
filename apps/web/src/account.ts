@@ -79,6 +79,7 @@ export function useAccount() {
   const [loading, setLoading] = useState(true);
   const [registrationEnabled, setRegistrationEnabled] = useState(false);
   const [continuousPlayback, setContinuousPlayback] = useState<boolean>();
+  const [accountRequired, setAccountRequired] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
     const controller = new AbortController();
@@ -100,6 +101,7 @@ export function useAccount() {
         );
         setUser(data.user);
         setRegistrationEnabled(data.registrationEnabled);
+        setAccountRequired(data.accountRequired === true);
         setError('');
       })
       .catch(() => {
@@ -151,6 +153,7 @@ export function useAccount() {
     error,
     registrationEnabled,
     continuousPlayback,
+    accountRequired,
     signIn,
     signOut,
     updateProfile,

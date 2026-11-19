@@ -525,6 +525,16 @@ function MusicApp({
               {storageError}
             </p>
           )}
+          {!account.loading &&
+            !account.user &&
+            account.accountRequired &&
+            screen !== 'profile' && (
+              <p className="banner error" role="alert">
+                Questo dispositivo non è collegato al tuo account: catalogo e
+                ascolto richiedono l’accesso.{' '}
+                <button onClick={() => setScreen('profile')}>Accedi</button>
+              </p>
+            )}
           {account.user && sync.message && screen !== 'profile' && (
             <p className="banner" role="status">
               {sync.message}{' '}

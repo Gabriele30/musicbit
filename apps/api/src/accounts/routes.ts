@@ -111,6 +111,19 @@ export function registerAccountRoutes(
   app.get('/api/auth/session', async (request, reply) => {
     const sessionToken = token(request);
     const user = store.session(sessionToken);
+    // Token-free evidence for "signed out" reports: was a cookie sent at all?
+    request.log.info(
+      {
+        sessionCookie: !sessionToken
+          ? 'absent'
+          : !/^[A-Za-z0-9_-]{43}$/.test(sessionToken)
+            ? 'malformed'
+            : user
+              ? 'valid'
+              : 'unknown',
+      },
+      'session check',
+    );
     // Renew on application open: a user who keeps using MusicBit does not have
     // to sign in again every 30 days. Expired tokens are never revived.
     if (user && store.extendSession(sessionToken))
@@ -119,6 +132,7 @@ export function registerAccountRoutes(
       user: user ?? null,
       registrationEnabled: process.env.AUTH_REGISTRATION !== 'false',
       continuousPlayback: !!user && options.continuousPlayback === true,
+      accountRequired: process.env.MUSICBIT_REQUIRE_ACCOUNT === 'true',
     };
   });
   for (const operation of ['login', 'register'] as const)
