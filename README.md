@@ -40,6 +40,18 @@ A self-hosted music player built for everyday listening, from your desktop to yo
 
 Screenshots show the running application. The interface is currently in Italian; documentation and contribution guides are in English.
 
+## Known limitations
+
+- **Locked iPhone and CarPlay.** iOS controls what an installed web app may do
+  in the background. Continuous playback uses one native HLS stream so song
+  changes need no JavaScript; per-song fallback depends on WebKit behavior
+  that is unreliable when locked ([WebKit 261858](https://bugs.webkit.org/show_bug.cgi?id=261858)).
+  See the [stability report](docs/playback-stability-2026-11.md).
+- **Unofficial catalog.** Metadata and audio come from an unofficial YouTube
+  Music adapter and can be restricted by the provider at any time.
+- **Charts** are Spotify daily rankings as published by Kworb, with date and
+  a link to the official Spotify chart.
+
 ## Get started
 
 Requires **Node.js 24.x** and **pnpm 11.25.0**.

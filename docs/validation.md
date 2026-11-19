@@ -1,5 +1,20 @@
 # Validation and historical test reports
 
+## Current validation — 19 November 2026
+
+- `pnpm check`: lint, type checks, **392 tests in 58 files**, production builds.
+- `pnpm test:e2e`: **109 passed**, seven native HLS cases skipped on Windows WebKit.
+- Production probes with a dedicated test account: cold resolver 20.6 s →
+  1.35 s for the first uncached song after restart; first continuous manifest
+  for an uncached song 4.0 s.
+- Radio simulation with the real catalog: see
+  [playback stability report](playback-stability-2026-11.md).
+- Physical iPhone lock-screen and CarPlay behavior: **not yet verified** for
+  this build. The in-app laboratory and remote diagnostics collect that
+  evidence.
+
+The section below is the previous snapshot.
+
 ## Current validation — 25 October 2026
 
 - `pnpm check`: lint, type checks, **380 tests in 56 files**, and production builds passed.
