@@ -72,7 +72,11 @@ export class PlaybackTelemetry {
       const response = await this.fetcher(this.endpoint, {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
+        // The API rejects account writes without this same-origin marker.
+        headers: {
+          'Content-Type': 'application/json',
+          'X-MusicBit-Request': '1',
+        },
         body: JSON.stringify({ records: batch }),
         // keepalive bodies are limited to 64 KiB by browsers.
         keepalive: keepalive && batch.length <= 150,
