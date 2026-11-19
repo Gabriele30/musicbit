@@ -1,4 +1,7 @@
-import Fastify, { type FastifyServerOptions } from 'fastify';
+import Fastify, {
+  type FastifyInstance,
+  type FastifyServerOptions,
+} from 'fastify';
 import type {
   HealthResponse,
   MusicProvider,
@@ -36,6 +39,24 @@ import {
   AiPlaylistService,
   registerAiPlaylistRoutes,
 } from './accounts/ai-playlists.js';
+
+/**
+ * Opening the app is the best predictor of an imminent first tap: start the
+ * isolated resolver then, instead of during the first song (~20 s cold start).
+ * Production only; tests never contact the upstream provider.
+ */
+export function enableResolverWarmup(
+  app: FastifyInstance,
+  audioService: AudioStreamService,
+) {
+  app.addHook('onRequest', async (request) => {
+    if (
+      request.url === '/api/auth/session' &&
+      request.headers.cookie?.includes('musicbit_session=')
+    )
+      audioService.warm();
+  });
+}
 
 export function buildApp(
   options: FastifyServerOptions = {},
@@ -208,6 +229,17 @@ export function buildApp(
         code: 'PAYLOAD_TOO_LARGE',
         error: 'Il file supera il limite di 5 MB.',
       });
+    // A client that leaves (navigation, superseded request) is not a server
+    // failure: do not log it as INTERNAL_ERROR.
+    if (
+      error &&
+      typeof error === 'object' &&
+      'name' in error &&
+      error.name === 'AbortError'
+    )
+      return reply
+        .status(499)
+        .send({ code: 'CANCELLED', error: 'Richiesta annullata.' });
     if (error instanceof AccountError)
       return reply
         .status(error.status)

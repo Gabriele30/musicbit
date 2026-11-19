@@ -141,6 +141,46 @@ describe('provider process supervision', () => {
     });
     await expect(b).resolves.toBeDefined();
   });
+  it('keeps the warm resolver when the only pending song is cancelled', async () => {
+    // Production: a cancelled tap killed the child, so the next song paid a
+    // ~20 s cold start (session, player script and PoToken minter).
+    const { service, child } = setup();
+    const controller = new AbortController();
+    const a = service.resolve('aaaaaaaaaaa', controller.signal);
+    const failure = expect(a).rejects.toMatchObject({ code: 'CANCELLED' });
+    controller.abort();
+    await failure;
+    expect(child.kill).not.toHaveBeenCalled();
+    expect(child.send).toHaveBeenLastCalledWith(
+      { cancel: 1 },
+      expect.any(Function),
+    );
+    const next = service.resolve('bbbbbbbbbbb');
+    expect(forkMock).toHaveBeenCalledOnce();
+    child.emit('message', {
+      id: 2,
+      value: {
+        url: 'https://r1.googlevideo.com/videoplayback',
+        mimeType: 'audio/mp4',
+        expiresAt: Date.now() + 3600000,
+      },
+    });
+    await expect(next).resolves.toBeDefined();
+  });
+  it('warms the resolver once per minute and replaces a self-recycled worker', async () => {
+    vi.useFakeTimers();
+    const { service, child } = setup();
+    service.warm();
+    service.warm();
+    expect(forkMock).toHaveBeenCalledOnce();
+    expect(child.send.mock.calls.map(([m]) => m)).toEqual([{ warm: true }]);
+    const successor = new Child();
+    forkMock.mockReturnValue(successor);
+    child.emit('exit', 0);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(forkMock).toHaveBeenCalledTimes(2);
+    expect(successor.send.mock.calls.map(([m]) => m)).toEqual([{ warm: true }]);
+  });
   it('kills a hung process on deadline and starts a fresh one for a retry', async () => {
     vi.useFakeTimers();
     const { service, child } = setup(50);

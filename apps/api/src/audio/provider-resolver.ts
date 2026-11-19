@@ -84,6 +84,11 @@ export class ProviderAudioResolver {
     this.cache.evict(videoId);
   }
 
+  /** Session, player script and PoToken minter: the cold-start work. */
+  async warm(): Promise<void> {
+    await Promise.all([this.getClient(), this.poTokenService.warm()]);
+  }
+
   close(): void {
     this.cache.close();
   }

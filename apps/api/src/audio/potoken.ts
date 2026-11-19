@@ -124,6 +124,11 @@ export class PoTokenService {
     return { callback: mintCallback, expiresAt };
   }
 
+  /** Initialize or refresh the minter ahead of a request. */
+  async warm(): Promise<void> {
+    await this.getMinter();
+  }
+
   /**
    * Generates a web-safe content-bound Proof of Origin token for the given video ID.
    */

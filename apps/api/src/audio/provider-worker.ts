@@ -14,6 +14,12 @@ process.on('message', (message: unknown) => {
       resolver.evict(message.evict);
     return;
   }
+  if ('warm' in message) {
+    void resolver.warm().catch(() => {
+      /* The next real request reports provider failures. */
+    });
+    return;
+  }
   if ('cancel' in message && typeof message.cancel === 'number') {
     controllers.get(message.cancel)?.abort();
     return;

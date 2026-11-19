@@ -32,7 +32,31 @@ export class ProviderProcess {
     }
   >();
   private idle?: ReturnType<typeof setTimeout>;
-  constructor(private timeoutMs = 45000) {}
+  private warmedAt = 0;
+  constructor(
+    private timeoutMs = 45000,
+    private idleMs = 3 * 60 * 60 * 1000,
+  ) {}
+  /**
+   * Boot the resolver (client session, player script, PoToken minter) before
+   * a listener needs it. A cold start took ~20 s in production, while a warm
+   * resolution took under one second. Repeated calls within a minute are no-ops.
+   */
+  warm() {
+    const now = Date.now();
+    if (now - this.warmedAt < 60000) return;
+    this.warmedAt = now;
+    const child = this.start();
+    if (!this.pending.size) this.armIdle();
+    child.send({ warm: true }, (error) => {
+      if (error && this.child === child) this.fail();
+    });
+  }
+  private armIdle() {
+    clearTimeout(this.idle);
+    this.idle = setTimeout(() => this.close(), this.idleMs);
+    this.idle.unref?.();
+  }
   private start() {
     if (this.child) return this.child;
     const worker = new URL('./provider-worker.js', import.meta.url);
@@ -97,14 +121,20 @@ export class ProviderProcess {
             msg.code === 'NOT_FOUND' ? 404 : 503,
           ),
         );
-      if (!this.pending.size)
-        this.idle = setTimeout(() => this.close(), 30 * 60000);
+      if (!this.pending.size) this.armIdle();
     });
     child.on('error', () => {
       if (this.child === child) this.fail();
     });
-    child.on('exit', () => {
-      if (this.child === child) this.fail();
+    child.on('exit', (code) => {
+      if (this.child !== child) return;
+      this.fail();
+      // The worker recycles itself after bounded work: start its successor
+      // warm so the next song does not pay the cold start.
+      if (code === 0) {
+        this.warmedAt = 0;
+        setTimeout(() => this.warm(), 1000).unref?.();
+      }
     });
     return child;
   }
@@ -143,8 +173,10 @@ export class ProviderProcess {
         item.reject(
           new AudioResolutionError('Richiesta annullata.', 'CANCELLED', 499),
         );
-        if (!this.pending.size) this.close();
-        else child.send({ cancel: id }, () => {});
+        // Cancelling one song (rapid skips, navigation) must not kill the
+        // resolver: the next song would pay the whole cold start again.
+        child.send({ cancel: id }, () => {});
+        if (!this.pending.size) this.armIdle();
       };
       const timer = setTimeout(() => this.fail('TIMEOUT'), this.timeoutMs);
       const cleanup = () => {

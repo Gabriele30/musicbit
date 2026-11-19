@@ -18,6 +18,17 @@ afterEach(async () => {
 });
 
 describe('Fastify API', () => {
+  it('reports a client abort as cancelled rather than an internal error', async () => {
+    const app = create();
+    app.get('/api/test-abort', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      controller.signal.throwIfAborted();
+    });
+    const response = await app.inject({ url: '/api/test-abort' });
+    expect(response.statusCode).toBe(499);
+    expect(response.json()).toMatchObject({ code: 'CANCELLED' });
+  });
   it('reports health', async () => {
     const response = await create().inject({ method: 'GET', url: '/health' });
     expect(response.statusCode).toBe(200);

@@ -1,4 +1,4 @@
-import { buildApp } from './app.js';
+import { buildApp, enableResolverWarmup } from './app.js';
 import { AccountStore } from './accounts/store.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -42,6 +42,7 @@ const app = buildApp(
     ? undefined
     : new DiagnosticsStore(join(dirname(accountPath), 'diagnostics')),
 );
+enableResolverWarmup(app, audioService);
 const port = Number(process.env.API_PORT ?? 3001);
 if (!Number.isInteger(port) || port < 1 || port > 65535)
   throw new Error('API_PORT deve essere tra 1 e 65535');
@@ -53,6 +54,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
 }
 try {
   await app.listen({ port, host: process.env.API_HOST ?? '127.0.0.1' });
+  audioService.warm();
 } catch (error) {
   app.log.error(error);
   process.exitCode = 1;

@@ -59,6 +59,11 @@ export class AudioStreamService {
     this.process.close();
   }
 
+  /** Start the isolated resolver ahead of the first tap (cold start ~20 s). */
+  warm(): void {
+    this.process.warm();
+  }
+
   async resolve(
     videoId: string,
     signal?: AbortSignal,
