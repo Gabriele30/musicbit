@@ -164,6 +164,10 @@ export class PlayerEngine {
    */
   private continuousRetryAt = 0;
   private continuousCheck?: ReturnType<typeof setTimeout>;
+  private stallWatch?: ReturnType<typeof setTimeout>;
+  private stallClock = { time: 0, at: 0 };
+  private stallRecoveries = 0;
+  private stallRecoveryBase = 0;
   private continuous = new ContinuousPlayback(
     () => {
       if (this.continuous.error && !this.continuous.target(this.state.index))
@@ -792,7 +796,65 @@ export class PlayerEngine {
     });
     this.log(`prepare:${outcome}`);
   }
+  /** True when native media already holds audio at a program time. */
+  private nativeBuffered(time: number) {
+    const ranges = this.audio.buffered;
+    for (let i = 0; i < (ranges?.length ?? 0); i++)
+      if (time >= ranges.start(i) - 0.25 && time < ranges.end(i) - 1)
+        return true;
+    return false;
+  }
+  /**
+   * Native HLS can wedge silently: on a locked iPhone a skip that seeks into a
+   * not yet downloaded song left the element "playing" with a frozen clock and
+   * no further playlist or segment requests (device diagnostics, 20 Nov).
+   * A frozen clock while audio should play restarts the program at the same
+   * song, at most twice before an honest error.
+   */
+  private watchContinuousStall() {
+    clearTimeout(this.stallWatch);
+    this.stallWatch = undefined;
+    if (!this.continuous.active(this.source)) return;
+    this.stallClock = { time: this.audio.currentTime, at: this.now() };
+    const check = () => {
+      this.stallWatch = undefined;
+      if (!this.continuous.active(this.source)) return;
+      const time = this.audio.currentTime;
+      const expectsAudio =
+        !this.audio.paused &&
+        (this.state.status === 'loading' || this.state.status === 'playing');
+      if (!expectsAudio || time > this.stallClock.time + 0.25) {
+        if (expectsAudio && time - this.stallRecoveryBase >= 20)
+          this.stallRecoveries = 0;
+        this.stallClock = { time, at: this.now() };
+      } else if (this.now() - this.stallClock.at >= 10000) {
+        this.recoverContinuousStall();
+        return;
+      }
+      this.stallWatch = setTimeout(check, 2000);
+    };
+    this.stallWatch = setTimeout(check, 2000);
+  }
+  private recoverContinuousStall() {
+    if (this.stallRecoveries >= 2) {
+      this.log('continuous:stall-failed');
+      this.fail(
+        'Audio interrotto: il flusso non avanza. Tocca Play per riprovare.',
+      );
+      return;
+    }
+    this.stallRecoveries++;
+    this.log('continuous:stall-restart');
+    // The new program starts at this song, so its clock is track-relative.
+    const position = this.state.position;
+    this.resumePosition = position;
+    this.continuous.clear();
+    this.select(this.state.index, 'media-session', true);
+    this.stallRecoveryBase = position;
+  }
   private releaseSource() {
+    clearTimeout(this.stallWatch);
+    this.stallWatch = undefined;
     clearTimeout(this.continuousCheck);
     this.continuousCheck = undefined;
     this.pendingSeek = undefined;
@@ -1027,11 +1089,25 @@ export class PlayerEngine {
     const resumeAt =
       resume && index === this.state.index ? this.resumePosition : 0;
     this.resumePosition = 0;
-    const hlsTarget =
+    if (trigger === 'tap' && !resume) this.stallRecoveries = 0;
+    let hlsTarget =
       this.continuous.active(this.source) &&
       this.continuous.validQueue(this.state.queue)
         ? this.continuous.target(index)
         : undefined;
+    // A locked iPhone does not load a song it has not buffered yet after a
+    // seek (steering-wheel skips into the 6th song stayed silent). Start a
+    // new program at that song instead: a source change plays while locked.
+    if (
+      hlsTarget &&
+      (index !== this.state.index || !resume) &&
+      document.visibilityState === 'hidden' &&
+      !this.nativeBuffered(hlsTarget.start + resumeAt)
+    ) {
+      this.log('continuous:restart-unbuffered');
+      this.continuous.clear();
+      hlsTarget = undefined;
+    }
     const hlsSource = hlsTarget
       ? this.source
       : resume &&
@@ -1165,6 +1241,7 @@ export class PlayerEngine {
     }
     if (this.state.status === 'loading') this.armDeadline();
     if (this.continuous.active(this.source)) void this.continuous.submit();
+    this.watchContinuousStall();
     // A source with no seek range can still play/advance perfectly well.
     // Only a start/resume/selection that cannot settle needs AAC recovery.
     this.checkContinuous();

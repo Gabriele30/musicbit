@@ -489,6 +489,94 @@ describe('persistent player', () => {
     expect(audio.src).toContain('/api/continuous/');
     expect(player.getDelivery()).toBe('hls');
   });
+  describe('native continuous skips on a locked iPhone', () => {
+    async function lockedProgram() {
+      vi.useFakeTimers();
+      const harness = setup();
+      const { player, audio } = harness;
+      const queue = [0, 1, 2, 3].map((index) => ({
+        ...tracks[0]!,
+        id: String(index).padStart(11, '0'),
+        audioUrl: `/api/audio/${String(index).padStart(11, '0')}`,
+      }));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({
+                complete: false,
+                tracks: queue.map((track, index) => ({
+                  index,
+                  id: track.id,
+                  start: index * 120,
+                  duration: 120,
+                })),
+              }),
+              { headers: { 'Content-Type': 'application/json' } },
+            ),
+        ),
+      );
+      Object.defineProperty(audio, 'seekable', {
+        value: { length: 1, start: () => 0, end: () => 480 },
+        configurable: true,
+      });
+      audio.duration = Infinity;
+      audio.readyState = 4;
+      player.setContinuousPlayback(true);
+      player.playCollection(queue);
+      await vi.advanceTimersByTimeAsync(0);
+      audio.emit('loadedmetadata');
+      audio.emit('playing');
+      audio.currentTime = 5;
+      audio.emit('timeupdate');
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+      return { ...harness, queue };
+    }
+    it('seeks into a buffered song but restarts the program for an unbuffered one', async () => {
+      const { player, audio } = await lockedProgram();
+      const program = audio.src;
+      expect(program).toContain('/api/continuous/');
+      // Safari already holds the next song: a native seek is safe.
+      audio.buffered = { length: 1, start: () => 0, end: () => 200 };
+      player.next('media-session');
+      expect(audio.src).toBe(program);
+      expect(audio.currentTime).toBe(120);
+      audio.emit('seeked');
+      audio.emit('playing');
+      audio.currentTime = 122;
+      audio.emit('timeupdate');
+      // The following song was never downloaded: a seek wedged the locked
+      // element, so the song starts from zero in a new native program.
+      player.next('media-session');
+      expect(audio.src).toContain('/api/continuous/');
+      expect(audio.src).not.toBe(program);
+      expect(audio.play).toHaveBeenCalledTimes(3);
+      expect(player.getSnapshot()).toMatchObject({ index: 2, position: 0 });
+    });
+    it('restarts a frozen native clock twice, then reports the stop honestly', async () => {
+      const { player, audio, tick } = await lockedProgram();
+      const sources = new Set([audio.src]);
+      const freeze = async () => {
+        for (let i = 0; i < 6; i++) {
+          tick(2000);
+          await vi.advanceTimersByTimeAsync(2000);
+        }
+      };
+      await freeze();
+      sources.add(audio.src);
+      expect(sources.size).toBe(2);
+      expect(player.getSnapshot().status).toBe('loading');
+      await freeze();
+      sources.add(audio.src);
+      expect(sources.size).toBe(3);
+      await freeze();
+      expect(player.getSnapshot()).toMatchObject({
+        status: 'error',
+        error: expect.stringContaining('Tocca Play'),
+      });
+    });
+  });
   it('changes native speed without reloading audio and resets it between accounts', () => {
     const { player, audio } = setup();
     player.setPlaybackRate(1.5);
